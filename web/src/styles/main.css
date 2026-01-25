@@ -264,7 +264,7 @@ header.scrolled {
 .theme-toggle {
   margin-left: auto;
   background: transparent;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
   width: 44px;
   height: 44px;
@@ -276,6 +276,11 @@ header.scrolled {
   justify-content: center;
   font-size: 1.25rem;
   position: relative;
+}
+
+/* Subtle border in light mode */
+[data-theme="light"] .theme-toggle {
+  border-color: rgba(0, 151, 167, 0.15);
 }
 
 .theme-toggle:hover {
@@ -319,7 +324,7 @@ header.scrolled {
 /* ===== SETTINGS TOGGLE ===== */
 .settings-toggle {
   background: transparent;
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
   width: 44px;
   height: 44px;
@@ -330,6 +335,11 @@ header.scrolled {
   align-items: center;
   justify-content: center;
   margin-left: 0.5rem;
+}
+
+/* Subtle border in light mode */
+[data-theme="light"] .settings-toggle {
+  border-color: rgba(0, 151, 167, 0.15);
 }
 
 .settings-toggle:hover {
