@@ -62,9 +62,21 @@ tasks:
       - task: dev:tauri
 
   run:app:
-    desc: Build and run the desktop app
+    desc: Run the desktop app (debug mode, default)
     cmds:
       - cargo tauri dev
+
+  run:app:debug:
+    desc: Run the desktop app in debug mode (alias for run:app)
+    cmds:
+      - task: run:app
+
+  run:app:release:
+    desc: Build and run the desktop app in release mode
+    deps: [build:web]
+    cmds:
+      - cd src-tauri && cargo build --release
+      - ./src-tauri/target/release/pastel-hn
 
   # ===== Format & Lint Tasks =====
 
