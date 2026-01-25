@@ -892,6 +892,7 @@ const icons = {
   user: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
   clock: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   comment: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  replies: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8"/><path d="M8 14h4"/></svg>`,
   back: `<svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
   link: `<svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
   collapse: `<svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>`,
@@ -1043,6 +1044,10 @@ function renderStory(story: HNItem, rank: number): string {
   const scoreHeat = getScoreHeat(story.score)
   const isRead = readStoryIds.has(story.id)
 
+  // Calculate reading time for text posts (Ask HN, etc.)
+  const textWordCount = story.text ? countWords(story.text) : 0
+  const readingTime = textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
+
   const typeAttr = storyType ? ` data-type="${storyType}"` : ''
   const heatAttr = scoreHeat ? ` data-heat="${scoreHeat}"` : ''
   const readClass = isRead ? ' story-read' : ''
@@ -1071,6 +1076,7 @@ function renderStory(story: HNItem, rank: number): string {
           <span class="story-comments">
             <a href="#item/${story.id}" aria-label="${story.descendants || 0} comments">${icons.comment}${story.descendants || 0} comments</a>
           </span>
+          ${readingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${readingTime}</span>` : ''}
         </div>
       </div>
     </article>
@@ -1148,8 +1154,8 @@ function renderComment(
           <span class="comment-author${isOp ? ' comment-author-op' : ''}">${icons.user}<a href="#user/${encodeURIComponent(comment.by || 'unknown')}" class="user-link">${escapeHtml(comment.by || 'unknown')}</a>${isOp ? ' <span class="op-badge">OP</span>' : ''}</span>
           <span class="meta-sep"></span>
           <span class="comment-time">${icons.clock}${timeAgo}</span>
-          ${hasChildren ? `<span class="meta-sep"></span><span class="comment-replies">${childCount} ${childCount === 1 ? 'reply' : 'replies'}</span>` : ''}
-          ${hasUnfetchedChildren ? `<span class="meta-sep"></span><span class="comment-replies comment-replies-unfetched">${totalKids} ${totalKids === 1 ? 'reply' : 'replies'}</span>` : ''}
+          ${hasChildren ? `<span class="meta-sep"></span><span class="comment-replies">${icons.replies}${childCount}</span>` : ''}
+          ${hasUnfetchedChildren ? `<span class="meta-sep"></span><span class="comment-replies comment-replies-unfetched">${icons.replies}${totalKids}</span>` : ''}
         </div>
         <div class="comment-content-wrapper">
           <div class="comment-content-inner">
@@ -1385,12 +1391,17 @@ async function renderStoryDetail(
               ? `
             <div class="article-content" data-url="${escapeHtml(story.url || '')}">
               <div class="article-loading">
-                <div class="skeleton skeleton-title" style="height: 1.5rem; width: 60%; margin-bottom: 1rem;"></div>
-                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.5rem;"></div>
-                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.5rem;"></div>
-                <div class="skeleton" style="height: 1rem; width: 90%; margin-bottom: 0.5rem;"></div>
-                <div class="skeleton" style="height: 1rem; width: 95%; margin-bottom: 0.5rem;"></div>
-                <div class="skeleton" style="height: 1rem; width: 80%;"></div>
+                <div class="skeleton skeleton-title" style="height: 1.75rem; width: 75%; margin-bottom: 1.25rem;"></div>
+                <div class="skeleton" style="height: 0.9rem; width: 30%; margin-bottom: 1.5rem; opacity: 0.6;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.6rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.6rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 92%; margin-bottom: 1.25rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.6rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.6rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 88%; margin-bottom: 0.6rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 95%; margin-bottom: 1.25rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.6rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 75%;"></div>
               </div>
             </div>
           `
