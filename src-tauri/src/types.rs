@@ -354,3 +354,573 @@ impl Serialize for ApiError {
         serializer.serialize_str(&self.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ===== ItemType Tests =====
+
+    #[test]
+    fn item_type_default_is_unknown() {
+        assert_eq!(ItemType::default(), ItemType::Unknown);
+    }
+
+    #[test]
+    fn item_type_deserialize_story() {
+        let json = r#""story""#;
+        let item_type: ItemType = serde_json::from_str(json).unwrap();
+        assert_eq!(item_type, ItemType::Story);
+    }
+
+    #[test]
+    fn item_type_deserialize_comment() {
+        let json = r#""comment""#;
+        let item_type: ItemType = serde_json::from_str(json).unwrap();
+        assert_eq!(item_type, ItemType::Comment);
+    }
+
+    #[test]
+    fn item_type_deserialize_job() {
+        let json = r#""job""#;
+        let item_type: ItemType = serde_json::from_str(json).unwrap();
+        assert_eq!(item_type, ItemType::Job);
+    }
+
+    #[test]
+    fn item_type_deserialize_poll() {
+        let json = r#""poll""#;
+        let item_type: ItemType = serde_json::from_str(json).unwrap();
+        assert_eq!(item_type, ItemType::Poll);
+    }
+
+    #[test]
+    fn item_type_deserialize_pollopt() {
+        let json = r#""pollopt""#;
+        let item_type: ItemType = serde_json::from_str(json).unwrap();
+        assert_eq!(item_type, ItemType::Pollopt);
+    }
+
+    #[test]
+    fn item_type_deserialize_unknown_variant() {
+        let json = r#""something_else""#;
+        let item_type: ItemType = serde_json::from_str(json).unwrap();
+        assert_eq!(item_type, ItemType::Unknown);
+    }
+
+    #[test]
+    fn item_type_serialize_story() {
+        let item_type = ItemType::Story;
+        let json = serde_json::to_string(&item_type).unwrap();
+        assert_eq!(json, r#""story""#);
+    }
+
+    // ===== StoryFeed Tests =====
+
+    #[test]
+    fn story_feed_endpoint_top() {
+        assert_eq!(StoryFeed::Top.endpoint(), "topstories");
+    }
+
+    #[test]
+    fn story_feed_endpoint_new() {
+        assert_eq!(StoryFeed::New.endpoint(), "newstories");
+    }
+
+    #[test]
+    fn story_feed_endpoint_best() {
+        assert_eq!(StoryFeed::Best.endpoint(), "beststories");
+    }
+
+    #[test]
+    fn story_feed_endpoint_ask() {
+        assert_eq!(StoryFeed::Ask.endpoint(), "askstories");
+    }
+
+    #[test]
+    fn story_feed_endpoint_show() {
+        assert_eq!(StoryFeed::Show.endpoint(), "showstories");
+    }
+
+    #[test]
+    fn story_feed_endpoint_jobs() {
+        assert_eq!(StoryFeed::Jobs.endpoint(), "jobstories");
+    }
+
+    #[test]
+    fn story_feed_serialize_deserialize_roundtrip() {
+        let feed = StoryFeed::Top;
+        let json = serde_json::to_string(&feed).unwrap();
+        let parsed: StoryFeed = serde_json::from_str(&json).unwrap();
+        assert_eq!(feed, parsed);
+    }
+
+    // ===== RawHNItem -> HNItem Conversion Tests =====
+
+    #[test]
+    fn raw_hn_item_to_hn_item_story() {
+        let raw = RawHNItem {
+            id: 123,
+            item_type: Some("story".to_string()),
+            by: Some("testuser".to_string()),
+            time: 1609459200,
+            text: None,
+            url: Some("https://example.com".to_string()),
+            score: 100,
+            title: Some("Test Story".to_string()),
+            descendants: 50,
+            kids: Some(vec![456, 789]),
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+
+        assert_eq!(item.id, 123);
+        assert_eq!(item.item_type, 0); // story = 0
+        assert_eq!(item.by, Some("testuser".to_string()));
+        assert_eq!(item.time, 1609459200);
+        assert_eq!(item.url, Some("https://example.com".to_string()));
+        assert_eq!(item.score, 100);
+        assert_eq!(item.title, Some("Test Story".to_string()));
+        assert_eq!(item.descendants, 50);
+        assert_eq!(item.kids, Some(vec![456, 789]));
+        assert_eq!(item.parent, None);
+        assert!(!item.dead);
+        assert!(!item.deleted);
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_comment() {
+        let raw = RawHNItem {
+            id: 456,
+            item_type: Some("comment".to_string()),
+            by: Some("commenter".to_string()),
+            time: 1609459300,
+            text: Some("<p>This is a comment</p>".to_string()),
+            url: None,
+            score: 0,
+            title: None,
+            descendants: 0,
+            kids: None,
+            parent: Some(123),
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+
+        assert_eq!(item.item_type, 1); // comment = 1
+        assert_eq!(item.text, Some("<p>This is a comment</p>".to_string()));
+        assert_eq!(item.parent, Some(123));
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_job() {
+        let raw = RawHNItem {
+            id: 789,
+            item_type: Some("job".to_string()),
+            by: Some("company".to_string()),
+            time: 1609459400,
+            text: Some("Job description".to_string()),
+            url: Some("https://jobs.example.com".to_string()),
+            score: 0,
+            title: Some("Hiring: Engineer".to_string()),
+            descendants: 0,
+            kids: None,
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+        assert_eq!(item.item_type, 2); // job = 2
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_poll() {
+        let raw = RawHNItem {
+            id: 1000,
+            item_type: Some("poll".to_string()),
+            by: Some("pollster".to_string()),
+            time: 1609459500,
+            text: None,
+            url: None,
+            score: 50,
+            title: Some("Poll question?".to_string()),
+            descendants: 10,
+            kids: Some(vec![1001, 1002]),
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+        assert_eq!(item.item_type, 3); // poll = 3
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_pollopt() {
+        let raw = RawHNItem {
+            id: 1001,
+            item_type: Some("pollopt".to_string()),
+            by: Some("pollster".to_string()),
+            time: 1609459500,
+            text: Some("Option A".to_string()),
+            url: None,
+            score: 25,
+            title: None,
+            descendants: 0,
+            kids: None,
+            parent: Some(1000),
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+        assert_eq!(item.item_type, 4); // pollopt = 4
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_unknown_type() {
+        let raw = RawHNItem {
+            id: 2000,
+            item_type: Some("something_new".to_string()),
+            by: None,
+            time: 0,
+            text: None,
+            url: None,
+            score: 0,
+            title: None,
+            descendants: 0,
+            kids: None,
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+        assert_eq!(item.item_type, 5); // unknown = 5
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_none_type() {
+        let raw = RawHNItem {
+            id: 2001,
+            item_type: None,
+            by: None,
+            time: 0,
+            text: None,
+            url: None,
+            score: 0,
+            title: None,
+            descendants: 0,
+            kids: None,
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let item: HNItem = raw.into();
+        assert_eq!(item.item_type, 5); // None maps to unknown = 5
+    }
+
+    #[test]
+    fn raw_hn_item_to_hn_item_dead_deleted() {
+        let raw = RawHNItem {
+            id: 3000,
+            item_type: Some("comment".to_string()),
+            by: None,
+            time: 0,
+            text: None,
+            url: None,
+            score: 0,
+            title: None,
+            descendants: 0,
+            kids: None,
+            parent: Some(100),
+            dead: true,
+            deleted: true,
+        };
+
+        let item: HNItem = raw.into();
+        assert!(item.dead);
+        assert!(item.deleted);
+    }
+
+    // ===== RawHNUser -> HNUser Conversion Tests =====
+
+    #[test]
+    fn raw_hn_user_to_hn_user_full() {
+        let raw = RawHNUser {
+            id: "testuser".to_string(),
+            created: 1577836800,
+            karma: 12345,
+            about: Some("I am a test user.".to_string()),
+            submitted: Some(vec![100, 200, 300]),
+        };
+
+        let user: HNUser = raw.into();
+
+        assert_eq!(user.id, "testuser");
+        assert_eq!(user.created, 1577836800);
+        assert_eq!(user.karma, 12345);
+        assert_eq!(user.about, Some("I am a test user.".to_string()));
+        assert_eq!(user.submitted, Some(vec![100, 200, 300]));
+    }
+
+    #[test]
+    fn raw_hn_user_to_hn_user_minimal() {
+        let raw = RawHNUser {
+            id: "lurker".to_string(),
+            created: 1600000000,
+            karma: 1,
+            about: None,
+            submitted: None,
+        };
+
+        let user: HNUser = raw.into();
+
+        assert_eq!(user.id, "lurker");
+        assert_eq!(user.karma, 1);
+        assert_eq!(user.about, None);
+        assert_eq!(user.submitted, None);
+    }
+
+    // ===== AlgoliaHit -> SearchResult Conversion Tests =====
+
+    #[test]
+    fn algolia_hit_to_search_result_story() {
+        let hit = AlgoliaHit {
+            object_id: "12345".to_string(),
+            title: Some("Test Story".to_string()),
+            url: Some("https://example.com".to_string()),
+            author: Some("author".to_string()),
+            points: Some(100),
+            num_comments: Some(50),
+            created_at_i: Some(1609459200),
+            story_id: None,
+            story_title: None,
+            comment_text: None,
+            tags: vec!["story".to_string(), "author_author".to_string()],
+        };
+
+        let result: SearchResult = hit.into();
+
+        assert_eq!(result.id, 12345);
+        assert_eq!(result.title, Some("Test Story".to_string()));
+        assert_eq!(result.url, Some("https://example.com".to_string()));
+        assert_eq!(result.author, Some("author".to_string()));
+        assert_eq!(result.points, 100);
+        assert_eq!(result.num_comments, 50);
+        assert_eq!(result.created_at, 1609459200);
+        assert_eq!(result.result_type, "story");
+        assert_eq!(result.story_id, None);
+        assert_eq!(result.text, None);
+    }
+
+    #[test]
+    fn algolia_hit_to_search_result_comment() {
+        let hit = AlgoliaHit {
+            object_id: "67890".to_string(),
+            title: None,
+            url: None,
+            author: Some("commenter".to_string()),
+            points: Some(10),
+            num_comments: None,
+            created_at_i: Some(1609459300),
+            story_id: Some(12345),
+            story_title: Some("Parent Story".to_string()),
+            comment_text: Some("This is a comment.".to_string()),
+            tags: vec!["comment".to_string(), "author_commenter".to_string()],
+        };
+
+        let result: SearchResult = hit.into();
+
+        assert_eq!(result.id, 67890);
+        assert_eq!(result.result_type, "comment");
+        assert_eq!(result.story_id, Some(12345));
+        assert_eq!(result.story_title, Some("Parent Story".to_string()));
+        assert_eq!(result.text, Some("This is a comment.".to_string()));
+    }
+
+    #[test]
+    fn algolia_hit_to_search_result_missing_optional_fields() {
+        let hit = AlgoliaHit {
+            object_id: "99999".to_string(),
+            title: None,
+            url: None,
+            author: None,
+            points: None,
+            num_comments: None,
+            created_at_i: None,
+            story_id: None,
+            story_title: None,
+            comment_text: None,
+            tags: vec![],
+        };
+
+        let result: SearchResult = hit.into();
+
+        assert_eq!(result.id, 99999);
+        assert_eq!(result.points, 0);
+        assert_eq!(result.num_comments, 0);
+        assert_eq!(result.created_at, 0);
+        assert_eq!(result.result_type, "story"); // no "comment" tag = story
+    }
+
+    #[test]
+    fn algolia_hit_to_search_result_invalid_object_id() {
+        let hit = AlgoliaHit {
+            object_id: "not_a_number".to_string(),
+            title: None,
+            url: None,
+            author: None,
+            points: None,
+            num_comments: None,
+            created_at_i: None,
+            story_id: None,
+            story_title: None,
+            comment_text: None,
+            tags: vec![],
+        };
+
+        let result: SearchResult = hit.into();
+        assert_eq!(result.id, 0); // fallback to 0 on parse failure
+    }
+
+    // ===== ApiError Tests =====
+
+    #[test]
+    fn api_error_serialize_not_found() {
+        let error = ApiError::NotFound(12345);
+        let json = serde_json::to_string(&error).unwrap();
+        assert_eq!(json, r#""Item not found: 12345""#);
+    }
+
+    #[test]
+    fn api_error_serialize_user_not_found() {
+        let error = ApiError::UserNotFound("testuser".to_string());
+        let json = serde_json::to_string(&error).unwrap();
+        assert_eq!(json, r#""User not found: testuser""#);
+    }
+
+    #[test]
+    fn api_error_serialize_rate_limited() {
+        let error = ApiError::RateLimited(60);
+        let json = serde_json::to_string(&error).unwrap();
+        assert_eq!(json, r#""Rate limited, retry after 60 seconds""#);
+    }
+
+    #[test]
+    fn api_error_serialize_api_error() {
+        let error = ApiError::Api("Something went wrong".to_string());
+        let json = serde_json::to_string(&error).unwrap();
+        assert_eq!(json, r#""API error: Something went wrong""#);
+    }
+
+    #[test]
+    fn api_error_serialize_article_extraction() {
+        let error = ApiError::ArticleExtraction("Could not parse content".to_string());
+        let json = serde_json::to_string(&error).unwrap();
+        assert_eq!(
+            json,
+            r#""Failed to extract article content: Could not parse content""#
+        );
+    }
+
+    // ===== HNItem Serialization Tests =====
+
+    #[test]
+    fn hn_item_serialize_camel_case() {
+        let item = HNItem {
+            id: 123,
+            item_type: 0,
+            by: Some("user".to_string()),
+            time: 1609459200,
+            text: None,
+            url: Some("https://example.com".to_string()),
+            score: 100,
+            title: Some("Test".to_string()),
+            descendants: 50,
+            kids: Some(vec![456]),
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let json = serde_json::to_string(&item).unwrap();
+
+        // Check camelCase field names
+        assert!(json.contains(r#""type":0"#));
+        // Note: 'descendants' is already camelCase-friendly
+        assert!(json.contains(r#""descendants":50"#));
+    }
+
+    // ===== SearchResponse Serialization Tests =====
+
+    #[test]
+    fn search_response_serialize_camel_case() {
+        let response = SearchResponse {
+            hits: vec![],
+            nb_hits: 100,
+            page: 0,
+            nb_pages: 10,
+            hits_per_page: 20,
+            query: "test".to_string(),
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+
+        assert!(json.contains(r#""nbHits":100"#));
+        assert!(json.contains(r#""nbPages":10"#));
+        assert!(json.contains(r#""hitsPerPage":20"#));
+    }
+
+    // ===== SubmissionFilter Tests =====
+
+    #[test]
+    fn submission_filter_serialize_all() {
+        let filter = SubmissionFilter::All;
+        let json = serde_json::to_string(&filter).unwrap();
+        assert_eq!(json, r#""all""#);
+    }
+
+    #[test]
+    fn submission_filter_deserialize_stories() {
+        let json = r#""stories""#;
+        let filter: SubmissionFilter = serde_json::from_str(json).unwrap();
+        assert_eq!(filter, SubmissionFilter::Stories);
+    }
+
+    // ===== SearchSort and SearchFilter Tests =====
+
+    #[test]
+    fn search_sort_serialize() {
+        assert_eq!(
+            serde_json::to_string(&SearchSort::Relevance).unwrap(),
+            r#""relevance""#
+        );
+        assert_eq!(
+            serde_json::to_string(&SearchSort::Date).unwrap(),
+            r#""date""#
+        );
+    }
+
+    #[test]
+    fn search_filter_serialize() {
+        assert_eq!(
+            serde_json::to_string(&SearchFilter::All).unwrap(),
+            r#""all""#
+        );
+        assert_eq!(
+            serde_json::to_string(&SearchFilter::Story).unwrap(),
+            r#""story""#
+        );
+        assert_eq!(
+            serde_json::to_string(&SearchFilter::Comment).unwrap(),
+            r#""comment""#
+        );
+    }
+}
