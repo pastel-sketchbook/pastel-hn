@@ -4353,8 +4353,14 @@ main {
   width: 100%;
   height: 100%;
   max-width: 100%;
-  padding: 1rem 2rem;
+  padding: 1rem 0;
   box-sizing: border-box;
+}
+
+/* Add horizontal padding to stories in Zen mode (works with virtual scroll) */
+.zen-mode .story {
+  margin-left: 2rem;
+  margin-right: 2rem;
 }
 
 /* Hide navigation in zen mode */
