@@ -1,6 +1,6 @@
 import { extractDomain, fetchStories, formatTimeAgo, init } from './api'
 import { initTheme, toggleTheme } from './theme'
-import type { HNItem, StoryFeed } from './types'
+import { type HNItem, ItemType, type StoryFeed } from './types'
 import './styles/main.css'
 
 let currentFeed: StoryFeed = 'top'
@@ -38,15 +38,49 @@ async function renderStories(feed: StoryFeed): Promise<void> {
   }
 }
 
+// Line-only SVG icons
+const icons = {
+  upvote: `<svg viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"/></svg>`,
+  points: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  user: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  comment: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+}
+
+// Determine story type from title
+function getStoryType(title: string | null): 'ask' | 'show' | null {
+  if (!title) return null
+  const lowerTitle = title.toLowerCase()
+  if (lowerTitle.startsWith('ask hn:') || lowerTitle.startsWith('ask hn –'))
+    return 'ask'
+  if (lowerTitle.startsWith('show hn:') || lowerTitle.startsWith('show hn –'))
+    return 'show'
+  return null
+}
+
+// Determine score heat level for glow effect
+function getScoreHeat(score: number): string {
+  if (score >= 500) return 'fire'
+  if (score >= 200) return 'hot'
+  if (score >= 100) return 'warm'
+  return ''
+}
+
 function renderStory(story: HNItem, rank: number): string {
   const domain = extractDomain(story.url)
   const timeAgo = formatTimeAgo(story.time)
+  const storyType =
+    story.type === ItemType.Job ? 'job' : getStoryType(story.title)
+  const scoreHeat = getScoreHeat(story.score)
+
+  const typeAttr = storyType ? ` data-type="${storyType}"` : ''
+  const heatAttr = scoreHeat ? ` data-heat="${scoreHeat}"` : ''
 
   return `
-    <article class="story" data-id="${story.id}">
+    <article class="story" data-id="${story.id}"${typeAttr}>
       <div class="story-rank">${rank}</div>
       <div class="story-vote">
-        <button class="vote-btn" title="Upvote">▲</button>
+        <button class="vote-btn" title="Upvote">${icons.upvote}</button>
       </div>
       <div class="story-content">
         <h2 class="story-title">
@@ -56,11 +90,14 @@ function renderStory(story: HNItem, rank: number): string {
           ${domain ? `<span class="story-domain">(${domain})</span>` : ''}
         </h2>
         <div class="story-meta">
-          <span class="story-score">${story.score} points</span>
-          <span class="story-by">by ${escapeHtml(story.by || 'unknown')}</span>
-          <span class="story-time">${timeAgo}</span>
+          <span class="story-score"${heatAttr}>${icons.points}${story.score} points</span>
+          <span class="meta-sep"></span>
+          <span class="story-by">${icons.user}${escapeHtml(story.by || 'unknown')}</span>
+          <span class="meta-sep"></span>
+          <span class="story-time">${icons.clock}${timeAgo}</span>
+          <span class="meta-sep"></span>
           <span class="story-comments">
-            <a href="#item/${story.id}">${story.descendants || 0} comments</a>
+            <a href="#item/${story.id}">${icons.comment}${story.descendants || 0} comments</a>
           </span>
         </div>
       </div>
