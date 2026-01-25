@@ -288,7 +288,7 @@
 - [x] Unit tests for settings.ts (settings.test.ts - 29 tests)
 - [x] Unit tests for toast.ts (toast.test.ts - 30 tests)
 - [ ] Rust unit tests for HnClient (fetch, caching, error handling)
-- [ ] Rust unit tests for types.rs (serialization, From impls)
+- [x] Rust unit tests for types.rs (types.rs - 40 tests)
 - [ ] Component tests for UI
 - [ ] E2E tests with Playwright
 - [ ] Visual regression tests
