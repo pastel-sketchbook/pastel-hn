@@ -1836,8 +1836,8 @@ main {
   min-width: 0;
   background: linear-gradient(
     135deg,
-    rgba(0, 217, 255, 0.02) 0%,
-    transparent 100%
+    rgba(0, 217, 255, 0.08) 0%,
+    rgba(0, 217, 255, 0.02) 100%
   );
   border: 1px solid rgba(0, 217, 255, 0.08);
   border-left: 3px solid var(--cyan-dim);
@@ -1851,8 +1851,8 @@ main {
 [data-theme="light"] .comment-body {
   background: linear-gradient(
     135deg,
-    rgba(0, 151, 167, 0.03) 0%,
-    transparent 100%
+    rgba(0, 151, 167, 0.1) 0%,
+    rgba(0, 151, 167, 0.03) 100%
   );
   border-color: rgba(0, 151, 167, 0.12);
   animation: comment-breathe-light 6s ease-in-out infinite;
