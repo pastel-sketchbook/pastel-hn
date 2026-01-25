@@ -29,7 +29,9 @@ describe('VirtualScroll', () => {
     globalThis.window = mockWindow
     // @ts-expect-error - overriding globals for testing
     globalThis.document = dom.window.document
-    container = document.getElementById('container')!
+    const el = document.getElementById('container')
+    if (!el) throw new Error('Test container not found')
+    container = el
 
     // Mock ResizeObserver
     originalResizeObserver = globalThis.ResizeObserver
