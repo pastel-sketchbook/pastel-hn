@@ -141,6 +141,31 @@ function showErrorToast(error: unknown, context: string): void {
 }
 
 /**
+ * Calculate estimated reading time from word count
+ * Average reading speed: ~200-250 words per minute
+ * Using 200 wpm for comfortable reading
+ */
+function calculateReadingTime(wordCount: number): string {
+  if (wordCount <= 0) return ''
+  const minutes = Math.ceil(wordCount / 200)
+  if (minutes < 1) return 'less than 1 min read'
+  if (minutes === 1) return '1 min read'
+  return `${minutes} min read`
+}
+
+/**
+ * Count words in text (strips HTML tags first)
+ */
+function countWords(text: string): number {
+  if (!text) return 0
+  // Strip HTML tags
+  const plainText = text.replace(/<[^>]*>/g, ' ')
+  // Split by whitespace and filter empty strings
+  const words = plainText.split(/\s+/).filter((word) => word.length > 0)
+  return words.length
+}
+
+/**
  * Check if user prefers reduced motion
  */
 function prefersReducedMotion(): boolean {
@@ -812,6 +837,7 @@ const icons = {
   externalLink: `<svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
   document: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
   article: `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>`,
+  book: `<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
 }
 
 // ===== SKELETON LOADING COMPONENTS =====
@@ -1121,13 +1147,16 @@ async function fetchAndDisplayArticle(
     const article = await fetchArticleContent(url)
 
     if (article.content) {
+      const readingTime = article.wordCount ? calculateReadingTime(article.wordCount) : ''
       articleContainer.innerHTML = `
         <div class="article-reader">
           ${article.title ? `<h2 class="article-title">${escapeHtml(article.title)}</h2>` : ''}
           ${article.byline ? `<div class="article-byline">${escapeHtml(article.byline)}</div>` : ''}
-          ${article.siteName ? `<div class="article-source">${escapeHtml(article.siteName)}</div>` : ''}
+          <div class="article-meta">
+            ${article.siteName ? `<span class="article-source">${escapeHtml(article.siteName)}</span>` : ''}
+            ${readingTime ? `<span class="article-reading-time">${icons.clock}${readingTime}</span>` : ''}
+          </div>
           <div class="article-body">${article.content}</div>
-          ${article.wordCount ? `<div class="article-word-count">${article.wordCount} words</div>` : ''}
         </div>
       `
     } else {
@@ -1233,6 +1262,10 @@ async function renderStoryDetail(
     const hasExternalUrl = !!story.url && !story.url.startsWith('item?id=')
     const commentCount = story.descendants || 0
 
+    // Calculate reading time for text posts (Ask HN, etc.)
+    const textWordCount = story.text ? countWords(story.text) : 0
+    const textReadingTime = textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
+
     container.innerHTML = `
       <div class="story-detail"${typeAttr}>
         <div class="story-detail-header">
@@ -1254,6 +1287,7 @@ async function renderStoryDetail(
             <span class="story-time">${icons.clock}${timeAgo}</span>
             <span class="meta-sep"></span>
             <span class="story-comments-count">${icons.comment}${commentCount} comments</span>
+            ${textReadingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${textReadingTime}</span>` : ''}
           </div>
         </article>
         

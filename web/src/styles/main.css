@@ -1389,6 +1389,52 @@ main {
   font-family: var(--font-mono);
 }
 
+/* Article meta (source, reading time) */
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.article-source {
+  font-family: var(--font-mono);
+}
+
+.article-reading-time {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.article-reading-time svg {
+  width: 0.9em;
+  height: 0.9em;
+  stroke: var(--accent-secondary);
+  fill: none;
+  stroke-width: 2;
+}
+
+/* Story reading time in meta */
+.story-reading-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+}
+
+.story-reading-time svg {
+  width: 0.85em;
+  height: 0.85em;
+  stroke: var(--accent-secondary);
+  fill: none;
+  stroke-width: 2;
+}
+
 .article-error,
 .no-content {
   padding: 2rem;
