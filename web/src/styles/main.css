@@ -4553,11 +4553,15 @@ main {
   background: linear-gradient(135deg, #1a1525 0%, #1e1a2e 50%, #152028 100%);
   border: 1px solid rgba(0, 217, 255, 0.3);
   color: #b8c5d0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 217, 255, 0.1);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(0, 217, 255, 0.1);
 }
 
 [data-theme="dark"] .zen-mode-badge:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 217, 255, 0.2);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(0, 217, 255, 0.2);
 }
 
 [data-theme="dark"] .zen-badge-icon {
