@@ -147,7 +147,7 @@ tasks:
         IFS='.' read -r major minor patch <<< "$VERSION"
         NEW_VERSION="$major.$minor.$((patch + 1))"
         echo "$NEW_VERSION" > VERSION
-        git add VERSION
+        git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
         echo "Released v$NEW_VERSION - run 'git push --tags' to publish"
@@ -162,7 +162,7 @@ tasks:
         IFS='.' read -r major minor patch <<< "$VERSION"
         NEW_VERSION="$major.$((minor + 1)).0"
         echo "$NEW_VERSION" > VERSION
-        git add VERSION
+        git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
         echo "Released v$NEW_VERSION - run 'git push --tags' to publish"
@@ -177,7 +177,7 @@ tasks:
         IFS='.' read -r major minor patch <<< "$VERSION"
         NEW_VERSION="$((major + 1)).0.0"
         echo "$NEW_VERSION" > VERSION
-        git add VERSION
+        git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
         echo "Released v$NEW_VERSION - run 'git push --tags' to publish"

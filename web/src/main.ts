@@ -64,7 +64,7 @@ const SUBMISSIONS_PER_PAGE = 20
 // Page transition utilities
 type TransitionDirection = 'forward' | 'back' | 'fade'
 
-async function transitionView(
+async function _transitionView(
   container: HTMLElement,
   direction: TransitionDirection,
   renderFn: () => void | Promise<void>,
@@ -1953,7 +1953,7 @@ function setupNavigation(): void {
     const target = e.target as HTMLElement
     // Don't handle if clicking on a link, button, or interactive element
     if (target.closest('a, button, .vote-btn')) return
-    
+
     const storyCard = target.closest('.story[data-id]') as HTMLElement | null
     if (storyCard && currentView === 'list') {
       const storyId = storyCard.dataset.id
@@ -2022,7 +2022,10 @@ async function main(): Promise<void> {
 
     // Update nav to show correct default feed as active
     document.querySelectorAll('[data-feed]').forEach((btn) => {
-      btn.classList.toggle('active', btn.getAttribute('data-feed') === currentFeed)
+      btn.classList.toggle(
+        'active',
+        btn.getAttribute('data-feed') === currentFeed,
+      )
     })
 
     // Handle hash routing

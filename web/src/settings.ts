@@ -2,7 +2,7 @@
  * Settings panel for user preferences
  */
 
-import { getTheme, setTheme, type Theme } from './theme'
+import { setTheme, type Theme } from './theme'
 
 export type FontSize = 'compact' | 'normal' | 'comfortable'
 export type Density = 'compact' | 'normal' | 'comfortable'

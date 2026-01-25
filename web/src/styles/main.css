@@ -3121,35 +3121,65 @@ main {
 }
 
 /* Apply stagger delays to first 10 items */
-.story.stagger-in:nth-child(1) { animation-delay: 0ms; }
-.story.stagger-in:nth-child(2) { animation-delay: 30ms; }
-.story.stagger-in:nth-child(3) { animation-delay: 60ms; }
-.story.stagger-in:nth-child(4) { animation-delay: 90ms; }
-.story.stagger-in:nth-child(5) { animation-delay: 120ms; }
-.story.stagger-in:nth-child(6) { animation-delay: 150ms; }
-.story.stagger-in:nth-child(7) { animation-delay: 180ms; }
-.story.stagger-in:nth-child(8) { animation-delay: 210ms; }
-.story.stagger-in:nth-child(9) { animation-delay: 240ms; }
-.story.stagger-in:nth-child(10) { animation-delay: 270ms; }
+.story.stagger-in:nth-child(1) {
+  animation-delay: 0ms;
+}
+.story.stagger-in:nth-child(2) {
+  animation-delay: 30ms;
+}
+.story.stagger-in:nth-child(3) {
+  animation-delay: 60ms;
+}
+.story.stagger-in:nth-child(4) {
+  animation-delay: 90ms;
+}
+.story.stagger-in:nth-child(5) {
+  animation-delay: 120ms;
+}
+.story.stagger-in:nth-child(6) {
+  animation-delay: 150ms;
+}
+.story.stagger-in:nth-child(7) {
+  animation-delay: 180ms;
+}
+.story.stagger-in:nth-child(8) {
+  animation-delay: 210ms;
+}
+.story.stagger-in:nth-child(9) {
+  animation-delay: 240ms;
+}
+.story.stagger-in:nth-child(10) {
+  animation-delay: 270ms;
+}
 
 /* Comment stagger animation */
 .comment.stagger-in {
   animation: staggerFadeIn 0.2s ease-out both;
 }
 
-.comment.stagger-in:nth-child(1) { animation-delay: 50ms; }
-.comment.stagger-in:nth-child(2) { animation-delay: 100ms; }
-.comment.stagger-in:nth-child(3) { animation-delay: 150ms; }
-.comment.stagger-in:nth-child(4) { animation-delay: 200ms; }
-.comment.stagger-in:nth-child(5) { animation-delay: 250ms; }
+.comment.stagger-in:nth-child(1) {
+  animation-delay: 50ms;
+}
+.comment.stagger-in:nth-child(2) {
+  animation-delay: 100ms;
+}
+.comment.stagger-in:nth-child(3) {
+  animation-delay: 150ms;
+}
+.comment.stagger-in:nth-child(4) {
+  animation-delay: 200ms;
+}
+.comment.stagger-in:nth-child(5) {
+  animation-delay: 250ms;
+}
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   .view-transition,
   .story.stagger-in,
   .comment.stagger-in {
-    animation: none !important;
-    transition: none !important;
+    animation: none;
+    transition: none;
   }
 }
 
@@ -3174,7 +3204,8 @@ main {
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(0, 217, 255, 0.1);
   backdrop-filter: blur(12px);
   min-width: 280px;
@@ -3182,17 +3213,19 @@ main {
   pointer-events: auto;
   opacity: 0;
   transform: translateX(100%);
-  transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .toast-enter {
   opacity: 1;
-  transform: translateX(0) !important;
+  transform: translateX(0);
 }
 
 .toast-exit {
   opacity: 0;
-  transform: translateX(100%) !important;
+  transform: translateX(100%);
 }
 
 /* Toast type colors */
@@ -3300,7 +3333,8 @@ main {
 
 /* Light theme adjustments */
 [data-theme="light"] .toast {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
@@ -3325,11 +3359,11 @@ main {
   }
 
   .toast-enter {
-    transform: translateX(0) !important;
+    transform: translateX(0);
   }
 
   .toast-exit {
-    transform: translateX(0) !important;
+    transform: translateX(0);
   }
 }
 
