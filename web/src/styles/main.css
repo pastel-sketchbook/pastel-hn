@@ -1102,6 +1102,7 @@ main {
 /* ===== STORY DETAIL VIEW ===== */
 .story-detail {
   padding: 1.5rem;
+  width: 100%;
   max-width: 90%;
   margin-left: auto;
   margin-right: auto;
@@ -1839,18 +1840,27 @@ main {
 }
 
 /* Collapse/expand animation using CSS grid for smoother transitions */
-.comment-content-wrapper {
+.comment-content-wrapper,
+.comment-children-wrapper {
   display: grid;
   grid-template-rows: 1fr;
   transition: grid-template-rows 0.3s ease-out;
 }
 
-.comment-content-wrapper > div {
+.comment-content-inner,
+.comment-children-inner {
   overflow: hidden;
 }
 
-.comment[data-collapsed="true"] .comment-content-wrapper {
+.comment[data-collapsed="true"] .comment-content-wrapper,
+.comment[data-collapsed="true"] .comment-children-wrapper {
   grid-template-rows: 0fr;
+}
+
+/* Children wrapper needs full width */
+.comment-children-wrapper {
+  flex-basis: 100%;
+  width: 100%;
 }
 
 /* Legacy fallback using max-height for browsers without grid animation support */
@@ -1858,19 +1868,15 @@ main {
 .comment-children {
   overflow: hidden;
   transition:
-    max-height 0.3s ease-out,
     opacity 0.25s ease-out,
     padding 0.3s ease-out,
     margin 0.3s ease-out;
-  max-height: 10000px;
-  /* Large enough to contain any comment */
   opacity: 1;
 }
 
 /* Collapsed state with animation */
 .comment[data-collapsed="true"] .comment-text,
 .comment[data-collapsed="true"] .comment-children {
-  max-height: 0;
   opacity: 0;
   pointer-events: none;
   margin-top: 0;
@@ -1896,14 +1902,18 @@ main {
   .comment-text,
   .comment-children,
   .comment-content-wrapper,
+  .comment-children-wrapper,
   .comment-body {
     transition: none;
   }
 
+  .comment[data-collapsed="true"] .comment-content-wrapper,
+  .comment[data-collapsed="true"] .comment-children-wrapper {
+    display: none;
+  }
+
   .comment[data-collapsed="true"] .comment-text,
   .comment[data-collapsed="true"] .comment-children {
-    display: none;
-    max-height: unset;
     opacity: 1;
   }
 }
@@ -4433,6 +4443,8 @@ main {
   min-height: 100%;
   /* Ensure consistent side room */
   padding: 2rem 1rem;
+  /* Transparent to show body grid background */
+  background: transparent;
   /* Ensure no border on the stories container */
   border: none;
   box-shadow: none;
@@ -4458,6 +4470,7 @@ main {
 
 /* Story detail in zen mode - match list view width */
 .zen-mode .story-detail {
+  width: 100%;
   max-width: 95%;
   margin: 0 auto;
   padding: 2rem;

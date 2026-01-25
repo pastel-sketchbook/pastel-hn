@@ -1147,14 +1147,18 @@ function renderComment(
           ${hasChildren ? `<span class="meta-sep"></span><span class="comment-replies">${childCount} ${childCount === 1 ? 'reply' : 'replies'}</span>` : ''}
           ${hasUnfetchedChildren ? `<span class="meta-sep"></span><span class="comment-replies comment-replies-unfetched">${totalKids} ${totalKids === 1 ? 'reply' : 'replies'}</span>` : ''}
         </div>
-        <div class="comment-text">${sanitizeHtml(comment.text)}</div>
+        <div class="comment-content-wrapper">
+          <div class="comment-content-inner">
+            <div class="comment-text">${sanitizeHtml(comment.text)}</div>
+          </div>
+        </div>
         <div class="comment-collapsed-info">
           <span class="comment-author${isOp ? ' comment-author-op' : ''}">${escapeHtml(comment.by || 'unknown')}</span>
           <span class="meta-sep"></span>
           ${hasChildren || hasUnfetchedChildren ? `<span>${(childCount || totalKids) + 1} comments collapsed</span>` : '<span>collapsed</span>'}
         </div>
       </div>
-      ${hasChildren ? `<div class="comment-children">${childrenHtml}</div>` : ''}
+      ${hasChildren ? `<div class="comment-children-wrapper"><div class="comment-children-inner"><div class="comment-children">${childrenHtml}</div></div></div>` : ''}
       ${loadMoreHtml}
     </div>
   `
@@ -1274,8 +1278,10 @@ async function renderStoryDetail(
   }
 
   // Show skeleton loading state for story detail
+  // Use appropriate width based on zen mode
+  const skeletonWidth = zenModeActive ? '95%' : '90%'
   container.innerHTML = `
-    <div class="story-detail">
+    <div class="story-detail" style="max-width: ${skeletonWidth};">
       <div class="story-detail-header">
         <button class="back-btn" data-action="back" title="Back to stories">
           ${icons.back}
