@@ -153,8 +153,12 @@ body::before {
   max-width: 1400px;
   margin: 0 auto;
   padding: 1.5rem 2rem;
-  position: relative;
-  z-index: 1;
+  /* Fill viewport and use flex layout */
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 /* ===== CYBER FRAME MIXIN ===== */
@@ -224,14 +228,9 @@ body::before {
 
 /* ===== HEADER ===== */
 header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  flex-shrink: 0;
   margin-bottom: 1.5rem;
   background: var(--bg-primary);
-  /* Force new stacking context above transformed content */
-  transform: translateZ(0);
-  will-change: transform;
 }
 
 /* Sticky header background for light theme */
@@ -388,8 +387,11 @@ nav {
 /* ===== MAIN CONTENT ===== */
 main {
   position: relative;
-  /* Ensure main content stays below sticky header */
-  z-index: 1;
+  /* Take remaining space and handle scrolling */
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Allow flex child to shrink */
 }
 
 #stories {
@@ -2242,8 +2244,6 @@ main {
 
 .virtual-scroll-items {
   width: 100%;
-  /* Ensure items stay below sticky header */
-  z-index: 1;
 }
 
 /* Ensure story items have consistent height in virtual scroll mode */

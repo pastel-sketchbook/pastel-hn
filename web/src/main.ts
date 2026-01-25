@@ -73,12 +73,31 @@ let searchDebounceTimeout: ReturnType<typeof setTimeout> | null = null
 // Intersection Observer for infinite scroll (fallback for small lists)
 let scrollObserver: IntersectionObserver | null = null
 
+// Get the main scroll container
+function getScrollContainer(): HTMLElement {
+  return document.querySelector('main') as HTMLElement
+}
+
+// Get current scroll position from the scroll container
+function getScrollTop(): number {
+  const container = getScrollContainer()
+  return container ? container.scrollTop : 0
+}
+
+// Set scroll position on the scroll container
+function setScrollTop(top: number, behavior: ScrollBehavior = 'auto'): void {
+  const container = getScrollContainer()
+  if (container) {
+    container.scrollTo({ top, behavior })
+  }
+}
+
 // Debounced scroll position saver
 let scrollSaveTimeout: ReturnType<typeof setTimeout> | null = null
 function saveScrollPositionDebounced(): void {
   if (scrollSaveTimeout) clearTimeout(scrollSaveTimeout)
   scrollSaveTimeout = setTimeout(() => {
-    const scrollY = window.scrollY
+    const scrollY = getScrollTop()
     if (currentView === 'list') {
       saveFeedScrollPosition(currentFeed, scrollY)
     } else if (currentView === 'detail' && currentStoryId) {
@@ -92,7 +111,7 @@ function updateHeaderShadow(): void {
   const header = document.querySelector('header')
   if (!header) return
 
-  if (window.scrollY > 10) {
+  if (getScrollTop() > 10) {
     header.classList.add('scrolled')
   } else {
     header.classList.remove('scrolled')
@@ -121,16 +140,13 @@ function setupBackToTop(): void {
 }
 
 function scrollToTop(): void {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth',
-  })
+  setScrollTop(0, 'smooth')
 }
 
 function updateBackToTopVisibility(): void {
   if (!backToTopBtn) return
 
-  if (window.scrollY > BACK_TO_TOP_THRESHOLD) {
+  if (getScrollTop() > BACK_TO_TOP_THRESHOLD) {
     backToTopBtn.classList.add('visible')
   } else {
     backToTopBtn.classList.remove('visible')
@@ -161,7 +177,7 @@ function setupPullToRefresh(): void {
   document.addEventListener(
     'touchstart',
     (e) => {
-      if (window.scrollY === 0 && currentView === 'list' && !isLoading) {
+      if (getScrollTop() === 0 && currentView === 'list' && !isLoading) {
         touchStartY = e.touches[0].clientY
         pullStartY = touchStartY
         isPulling = true
@@ -173,7 +189,7 @@ function setupPullToRefresh(): void {
   document.addEventListener(
     'touchmove',
     (e) => {
-      if (!isPulling || window.scrollY > 0) {
+      if (!isPulling || getScrollTop() > 0) {
         isPulling = false
         updatePullIndicator(0)
         return
@@ -207,7 +223,7 @@ function setupPullToRefresh(): void {
     (e) => {
       // Only trigger if at top of page, scrolling up, and in list view
       if (
-        window.scrollY === 0 &&
+        getScrollTop() === 0 &&
         e.deltaY < 0 &&
         currentView === 'list' &&
         !isLoading
@@ -296,7 +312,7 @@ async function renderStories(feed: StoryFeed, refresh = false): Promise<void> {
 
   // Save current scroll position before clearing (for feed switches)
   if (currentView === 'list' && currentFeed !== feed) {
-    saveFeedScrollPosition(currentFeed, window.scrollY)
+    saveFeedScrollPosition(currentFeed, getScrollTop())
   }
 
   // Reset pagination state
@@ -345,7 +361,7 @@ async function renderStories(feed: StoryFeed, refresh = false): Promise<void> {
     requestAnimationFrame(() => {
       const savedPosition = getFeedScrollPosition(feed)
       if (savedPosition > 0) {
-        window.scrollTo(0, savedPosition)
+        setScrollTop(savedPosition)
       }
     })
   } catch (error) {
@@ -440,13 +456,13 @@ function maybeEnableVirtualScroll(): void {
     const container = document.getElementById('stories')
     if (container) {
       // Save current scroll position
-      const scrollY = window.scrollY
+      const scrollY = getScrollTop()
 
       // Switch to virtual scroll
       initVirtualScroll(container)
 
       // Restore scroll position
-      window.scrollTo(0, scrollY)
+      setScrollTop(scrollY)
     }
   }
 }
@@ -840,7 +856,7 @@ async function renderStoryDetail(storyId: number): Promise<void> {
   currentView = 'detail'
 
   // Save feed scroll position before navigating
-  saveFeedScrollPosition(currentFeed, window.scrollY)
+  saveFeedScrollPosition(currentFeed, getScrollTop())
 
   // Set current story for scroll tracking
   currentStoryId = storyId
@@ -936,9 +952,9 @@ async function renderStoryDetail(storyId: number): Promise<void> {
     requestAnimationFrame(() => {
       const savedPosition = getStoryScrollPosition(storyId)
       if (savedPosition > 0) {
-        window.scrollTo(0, savedPosition)
+        setScrollTop(savedPosition)
       } else {
-        window.scrollTo(0, 0)
+        setScrollTop(0)
       }
     })
   } catch (error) {
@@ -1121,7 +1137,7 @@ async function renderUserProfile(userId: string): Promise<void> {
     setupUserProfileTabs()
 
     // Scroll to top
-    window.scrollTo(0, 0)
+    setScrollTop(0)
   } catch (error) {
     container.innerHTML = `
       <div class="error">
@@ -1866,15 +1882,19 @@ async function main(): Promise<void> {
     window.addEventListener('hashchange', handleHashChange)
 
     // Set up scroll position saving, header shadow, and back to top
-    window.addEventListener(
-      'scroll',
-      () => {
-        saveScrollPositionDebounced()
-        updateHeaderShadow()
-        updateBackToTopVisibility()
-      },
-      { passive: true },
-    )
+    // Listen on the main scroll container instead of window
+    const scrollContainer = getScrollContainer()
+    if (scrollContainer) {
+      scrollContainer.addEventListener(
+        'scroll',
+        () => {
+          saveScrollPositionDebounced()
+          updateHeaderShadow()
+          updateBackToTopVisibility()
+        },
+        { passive: true },
+      )
+    }
 
     // Set up back to top button
     setupBackToTop()

@@ -6,6 +6,8 @@
 export interface VirtualScrollOptions<T> {
   /** Container element to render items into */
   container: HTMLElement
+  /** Element that handles scrolling (defaults to finding scrollable parent) */
+  scrollElement?: HTMLElement
   /** Estimated height of each item in pixels */
   itemHeight: number
   /** Number of items to render outside the viewport as buffer */
@@ -29,6 +31,7 @@ export interface VirtualScrollState<T> {
 
 export class VirtualScroll<T> {
   private container: HTMLElement
+  private scrollElement: HTMLElement | null = null
   private itemHeight: number
   private bufferSize: number
   private renderItem: (item: T, index: number) => string
@@ -55,11 +58,31 @@ export class VirtualScroll<T> {
 
   constructor(options: VirtualScrollOptions<T>) {
     this.container = options.container
+    this.scrollElement = options.scrollElement ?? null
     this.itemHeight = options.itemHeight
     this.bufferSize = options.bufferSize ?? 5
     this.renderItem = options.renderItem
     this.onNearEnd = options.onNearEnd
     this.nearEndThreshold = options.nearEndThreshold ?? 200
+  }
+
+  /**
+   * Find the scrollable parent element
+   */
+  private findScrollParent(): HTMLElement | null {
+    let element: HTMLElement | null = this.container.parentElement
+    while (element) {
+      const style = getComputedStyle(element)
+      if (
+        style.overflowY === 'auto' ||
+        style.overflowY === 'scroll' ||
+        element.tagName === 'MAIN'
+      ) {
+        return element
+      }
+      element = element.parentElement
+    }
+    return null
   }
 
   /**
@@ -70,10 +93,14 @@ export class VirtualScroll<T> {
     this.isNearEndTriggered = false
     this.measuredHeights.clear()
 
+    // Find scroll element if not provided
+    if (!this.scrollElement) {
+      this.scrollElement = this.findScrollParent()
+    }
+
     // Create scroll structure
     this.container.innerHTML = ''
     this.container.style.position = 'relative'
-    this.container.style.overflow = 'visible' // Let window handle scroll
 
     // Spacer to maintain scroll height
     this.scrollSpacer = document.createElement('div')
@@ -89,19 +116,28 @@ export class VirtualScroll<T> {
     this.itemsContainer.style.top = '0'
     this.itemsContainer.style.left = '0'
     this.itemsContainer.style.right = '0'
-    this.itemsContainer.style.zIndex = '1' // Stay below sticky header (z-index: 100)
     this.scrollSpacer.appendChild(this.itemsContainer)
 
-    // Set up scroll listener on window
+    // Set up scroll listener on scroll element or window
     this.scrollHandler = this.handleScroll.bind(this)
-    window.addEventListener('scroll', this.scrollHandler, { passive: true })
+    if (this.scrollElement) {
+      this.scrollElement.addEventListener('scroll', this.scrollHandler, {
+        passive: true,
+      })
+    } else {
+      window.addEventListener('scroll', this.scrollHandler, { passive: true })
+    }
 
     // Set up resize observer
     this.resizeObserver = new ResizeObserver(() => {
       this.updateContainerHeight()
       this.render()
     })
-    this.resizeObserver.observe(document.documentElement)
+    if (this.scrollElement) {
+      this.resizeObserver.observe(this.scrollElement)
+    } else {
+      this.resizeObserver.observe(document.documentElement)
+    }
 
     // Initial render
     this.updateContainerHeight()
@@ -144,31 +180,43 @@ export class VirtualScroll<T> {
   }
 
   /**
-   * Get the offset of the container from the top of the page
+   * Get the offset of the container from the top of the scroll element
    */
   private getContainerOffset(): number {
+    if (this.scrollElement) {
+      const containerRect = this.container.getBoundingClientRect()
+      const scrollRect = this.scrollElement.getBoundingClientRect()
+      return containerRect.top - scrollRect.top + this.scrollTop
+    }
     return this.container.getBoundingClientRect().top + window.scrollY
   }
 
   /**
-   * Update container height based on viewport
+   * Update container height based on scroll element
    */
   private updateContainerHeight(): void {
-    this.containerHeight = window.innerHeight
+    if (this.scrollElement) {
+      this.containerHeight = this.scrollElement.clientHeight
+    } else {
+      this.containerHeight = window.innerHeight
+    }
   }
 
   /**
    * Handle scroll events
    */
   private handleScroll(): void {
-    this.scrollTop = window.scrollY
+    if (this.scrollElement) {
+      this.scrollTop = this.scrollElement.scrollTop
+    } else {
+      this.scrollTop = window.scrollY
+    }
     this.render()
 
     // Check if near end for infinite scroll
     if (this.onNearEnd && !this.isNearEndTriggered) {
       const totalHeight = this.getTotalHeight()
-      const scrolledDistance =
-        this.scrollTop - this.getContainerOffset() + this.containerHeight
+      const scrolledDistance = this.scrollTop + this.containerHeight
 
       if (scrolledDistance >= totalHeight - this.nearEndThreshold) {
         this.isNearEndTriggered = true
@@ -181,11 +229,8 @@ export class VirtualScroll<T> {
    * Calculate which items should be visible
    */
   private calculateVisibleRange(): { start: number; end: number } {
-    const containerOffset = this.getContainerOffset()
-    const relativeScrollTop = Math.max(0, this.scrollTop - containerOffset)
-
-    // Calculate visible range
-    const start = Math.floor(relativeScrollTop / this.itemHeight)
+    // Calculate visible range based on scroll position
+    const start = Math.floor(this.scrollTop / this.itemHeight)
     const visibleCount = Math.ceil(this.containerHeight / this.itemHeight)
     const end = start + visibleCount
 
@@ -212,7 +257,7 @@ export class VirtualScroll<T> {
 
     // Calculate offset for positioned items
     const offsetY = start * this.itemHeight
-    this.itemsContainer.style.transform = `translateY(${offsetY}px)`
+    this.itemsContainer.style.top = `${offsetY}px`
 
     // Render visible items
     const visibleItems = this.items.slice(start, end)
@@ -227,8 +272,12 @@ export class VirtualScroll<T> {
    * Scroll to a specific item index
    */
   scrollToIndex(index: number, behavior: ScrollBehavior = 'smooth'): void {
-    const targetY = this.getContainerOffset() + index * this.itemHeight
-    window.scrollTo({ top: targetY, behavior })
+    const targetY = index * this.itemHeight
+    if (this.scrollElement) {
+      this.scrollElement.scrollTo({ top: targetY, behavior })
+    } else {
+      window.scrollTo({ top: targetY, behavior })
+    }
   }
 
   /**
@@ -257,7 +306,11 @@ export class VirtualScroll<T> {
    */
   destroy(): void {
     if (this.scrollHandler) {
-      window.removeEventListener('scroll', this.scrollHandler)
+      if (this.scrollElement) {
+        this.scrollElement.removeEventListener('scroll', this.scrollHandler)
+      } else {
+        window.removeEventListener('scroll', this.scrollHandler)
+      }
       this.scrollHandler = null
     }
 
