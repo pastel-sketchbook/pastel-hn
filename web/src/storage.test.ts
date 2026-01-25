@@ -155,9 +155,7 @@ describe('storage', () => {
       const data = JSON.parse(
         localStorage.getItem('pastel-hn-read-stories') || '[]',
       )
-      const count = data.filter(
-        (s: { id: number }) => s.id === 12345,
-      ).length
+      const count = data.filter((s: { id: number }) => s.id === 12345).length
       expect(count).toBe(1)
     })
 

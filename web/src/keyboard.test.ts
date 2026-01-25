@@ -54,9 +54,7 @@ describe('keyboard', () => {
       resetSelection()
 
       expect(getSelectedIndex()).toBe(-1)
-      expect(
-        document.querySelector('.keyboard-selected'),
-      ).toBeNull()
+      expect(document.querySelector('.keyboard-selected')).toBeNull()
     })
   })
 

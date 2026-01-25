@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  applySettings,
   closeSettingsModal,
   getSettings,
   initSettings,
   isSettingsModalOpen,
   loadSettings,
+  type Settings,
   saveSettings,
   showSettingsModal,
-  type Settings,
 } from './settings'
 
 // Mock theme module
@@ -189,10 +188,13 @@ describe('settings', () => {
       )
 
       // Mock matchMedia
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: false,
-        addEventListener: vi.fn(),
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: false,
+          addEventListener: vi.fn(),
+        }),
+      )
 
       initSettings()
 
@@ -204,10 +206,13 @@ describe('settings', () => {
 
     it('listens for system theme changes when using system theme', () => {
       const mockAddEventListener = vi.fn()
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: false,
-        addEventListener: mockAddEventListener,
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: false,
+          addEventListener: mockAddEventListener,
+        }),
+      )
 
       initSettings()
 
@@ -260,9 +265,15 @@ describe('settings', () => {
     it('modal contains theme options', () => {
       showSettingsModal()
 
-      const lightBtn = document.querySelector('[data-setting="theme"][data-value="light"]')
-      const darkBtn = document.querySelector('[data-setting="theme"][data-value="dark"]')
-      const systemBtn = document.querySelector('[data-setting="theme"][data-value="system"]')
+      const lightBtn = document.querySelector(
+        '[data-setting="theme"][data-value="light"]',
+      )
+      const darkBtn = document.querySelector(
+        '[data-setting="theme"][data-value="dark"]',
+      )
+      const systemBtn = document.querySelector(
+        '[data-setting="theme"][data-value="system"]',
+      )
 
       expect(lightBtn).not.toBeNull()
       expect(darkBtn).not.toBeNull()
@@ -272,9 +283,15 @@ describe('settings', () => {
     it('modal contains font size options', () => {
       showSettingsModal()
 
-      const compact = document.querySelector('[data-setting="fontSize"][data-value="compact"]')
-      const normal = document.querySelector('[data-setting="fontSize"][data-value="normal"]')
-      const comfortable = document.querySelector('[data-setting="fontSize"][data-value="comfortable"]')
+      const compact = document.querySelector(
+        '[data-setting="fontSize"][data-value="compact"]',
+      )
+      const normal = document.querySelector(
+        '[data-setting="fontSize"][data-value="normal"]',
+      )
+      const comfortable = document.querySelector(
+        '[data-setting="fontSize"][data-value="comfortable"]',
+      )
 
       expect(compact).not.toBeNull()
       expect(normal).not.toBeNull()
@@ -284,9 +301,15 @@ describe('settings', () => {
     it('modal contains density options', () => {
       showSettingsModal()
 
-      const compact = document.querySelector('[data-setting="density"][data-value="compact"]')
-      const normal = document.querySelector('[data-setting="density"][data-value="normal"]')
-      const comfortable = document.querySelector('[data-setting="density"][data-value="comfortable"]')
+      const compact = document.querySelector(
+        '[data-setting="density"][data-value="compact"]',
+      )
+      const normal = document.querySelector(
+        '[data-setting="density"][data-value="normal"]',
+      )
+      const comfortable = document.querySelector(
+        '[data-setting="density"][data-value="comfortable"]',
+      )
 
       expect(compact).not.toBeNull()
       expect(normal).not.toBeNull()
@@ -298,7 +321,9 @@ describe('settings', () => {
 
       const feeds = ['top', 'new', 'best', 'ask', 'show', 'jobs']
       for (const feed of feeds) {
-        const btn = document.querySelector(`[data-setting="defaultFeed"][data-value="${feed}"]`)
+        const btn = document.querySelector(
+          `[data-setting="defaultFeed"][data-value="${feed}"]`,
+        )
         expect(btn).not.toBeNull()
       }
     })
@@ -306,7 +331,9 @@ describe('settings', () => {
     it('clicking setting option updates settings', () => {
       showSettingsModal()
 
-      const darkBtn = document.querySelector('[data-setting="theme"][data-value="dark"]') as HTMLElement
+      const darkBtn = document.querySelector(
+        '[data-setting="theme"][data-value="dark"]',
+      ) as HTMLElement
       darkBtn.click()
 
       expect(getSettings().theme).toBe('dark')
@@ -315,7 +342,9 @@ describe('settings', () => {
     it('clicking close button closes modal', () => {
       showSettingsModal()
 
-      const closeBtn = document.querySelector('[data-action="close-settings"]') as HTMLElement
+      const closeBtn = document.querySelector(
+        '[data-action="close-settings"]',
+      ) as HTMLElement
       closeBtn.click()
 
       expect(isSettingsModalOpen()).toBe(false)
@@ -324,7 +353,9 @@ describe('settings', () => {
     it('clicking backdrop closes modal', () => {
       showSettingsModal()
 
-      const overlay = document.querySelector('.settings-modal-overlay') as HTMLElement
+      const overlay = document.querySelector(
+        '.settings-modal-overlay',
+      ) as HTMLElement
       overlay.click()
 
       expect(isSettingsModalOpen()).toBe(false)
@@ -342,10 +373,14 @@ describe('settings', () => {
       saveSettings({ theme: 'dark' })
       showSettingsModal()
 
-      const darkBtn = document.querySelector('[data-setting="theme"][data-value="dark"]')
+      const darkBtn = document.querySelector(
+        '[data-setting="theme"][data-value="dark"]',
+      )
       expect(darkBtn?.classList.contains('active')).toBe(true)
 
-      const lightBtn = document.querySelector('[data-setting="theme"][data-value="light"]')
+      const lightBtn = document.querySelector(
+        '[data-setting="theme"][data-value="light"]',
+      )
       expect(lightBtn?.classList.contains('active')).toBe(false)
     })
   })
