@@ -1694,7 +1694,7 @@ function setupCommentCollapse(): void {
 
       const isCollapsed = comment.dataset.collapsed === 'true'
       comment.dataset.collapsed = isCollapsed ? 'false' : 'true'
-      collapseBtn.innerHTML = isCollapsed ? icons.collapse : icons.expand
+      // Icon rotation is handled by CSS based on data-collapsed state
       collapseBtn.title = isCollapsed ? 'Collapse' : 'Expand'
       return
     }

@@ -1643,6 +1643,18 @@ main {
   stroke-width: 2;
   fill: none;
   opacity: 1;
+  transition: transform 0.3s ease;
+}
+
+/* Rotate icon when collapsed */
+.comment[data-collapsed="true"] .comment-collapse svg {
+  transform: rotate(-180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comment-collapse svg {
+    transition: none;
+  }
 }
 
 .comment-author {
@@ -1729,10 +1741,36 @@ main {
   margin-left: 0;
 }
 
-/* Collapsed state */
+/* Collapse/expand animation setup */
+.comment-text,
+.comment-children {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+  max-height: 5000px; /* Large enough to contain any comment */
+  opacity: 1;
+}
+
+/* Collapsed state with animation */
 .comment[data-collapsed="true"] .comment-text,
 .comment[data-collapsed="true"] .comment-children {
-  display: none;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .comment-text,
+  .comment-children {
+    transition: none;
+  }
+  
+  .comment[data-collapsed="true"] .comment-text,
+  .comment[data-collapsed="true"] .comment-children {
+    display: none;
+    max-height: unset;
+    opacity: 1;
+  }
 }
 
 .comment-collapsed-info {
@@ -1741,12 +1779,21 @@ main {
   color: var(--text-muted);
   font-family: var(--font-mono);
   padding: 0.25rem 0;
+  opacity: 0;
+  transition: opacity 0.2s ease-in 0.1s;
 }
 
 .comment[data-collapsed="true"] .comment-collapsed-info {
   display: flex;
   align-items: center;
   gap: 0;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comment-collapsed-info {
+    transition: none;
+  }
 }
 
 .comment[data-collapsed="true"] .comment-meta {

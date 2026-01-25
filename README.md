@@ -1,6 +1,8 @@
 # pastel-hn
 
-**The best Hacker News desktop client** - A native app with stunning Cyberpunk Pastel aesthetics, built for comfortable reading and keyboard-centric navigation.
+**The best Hacker News desktop client** - A cross-platform desktop app with stunning Cyberpunk Pastel aesthetics, built for comfortable reading and keyboard-centric navigation.
+
+Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
 ![Version](https://img.shields.io/badge/version-0.4.0-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
