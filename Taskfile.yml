@@ -72,11 +72,11 @@ tasks:
       - task: run:app
 
   run:app:release:
-    desc: Build and run the desktop app in release mode
+    desc: Build and run the desktop app in release mode (bundled with icons)
     deps: [build:web]
     cmds:
-      - cd src-tauri && cargo build --release
-      - ./src-tauri/target/release/pastel-hn
+      - cd src-tauri && cargo tauri build
+      - open ./src-tauri/target/release/bundle/macos/pastel-hn.app
 
   # ===== Format & Lint Tasks =====
 
@@ -239,6 +239,62 @@ tasks:
         echo ""
         echo "CSS:"
         find web/src -name "*.css" 2>/dev/null | xargs wc -l 2>/dev/null || echo "  No CSS files yet"
+
+  icon:gen:
+    desc: Generate app icons from SVG source
+    dir: src-tauri/icons
+    cmds:
+      - |
+        echo "Generating PNG icons from icon.svg..."
+        
+        # Standard sizes
+        rsvg-convert -w 16 -h 16 icon.svg > 16x16.png
+        rsvg-convert -w 32 -h 32 icon.svg > 32x32.png
+        rsvg-convert -w 64 -h 64 icon.svg > 64x64.png
+        rsvg-convert -w 128 -h 128 icon.svg > 128x128.png
+        rsvg-convert -w 256 -h 256 icon.svg > 256x256.png
+        rsvg-convert -w 512 -h 512 icon.svg > 512x512.png
+        rsvg-convert -w 1024 -h 1024 icon.svg > icon.png
+        
+        # Retina sizes (@2x)
+        rsvg-convert -w 32 -h 32 icon.svg > 16x16@2x.png
+        rsvg-convert -w 64 -h 64 icon.svg > 32x32@2x.png
+        rsvg-convert -w 256 -h 256 icon.svg > 128x128@2x.png
+        rsvg-convert -w 512 -h 512 icon.svg > 256x256@2x.png
+        
+        echo "PNG icons generated!"
+        
+        # Generate .icns for macOS (requires iconutil)
+        if command -v iconutil &> /dev/null; then
+          echo "Generating icon.icns..."
+          mkdir -p icon.iconset
+          cp 16x16.png icon.iconset/icon_16x16.png
+          cp 16x16@2x.png icon.iconset/icon_16x16@2x.png
+          cp 32x32.png icon.iconset/icon_32x32.png
+          cp 32x32@2x.png icon.iconset/icon_32x32@2x.png
+          cp 128x128.png icon.iconset/icon_128x128.png
+          cp 128x128@2x.png icon.iconset/icon_128x128@2x.png
+          cp 256x256.png icon.iconset/icon_256x256.png
+          cp 256x256@2x.png icon.iconset/icon_256x256@2x.png
+          cp 512x512.png icon.iconset/icon_512x512.png
+          cp icon.png icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset -o icon.icns
+          rm -rf icon.iconset
+          echo "icon.icns generated!"
+        else
+          echo "Warning: iconutil not found, skipping .icns generation"
+        fi
+        
+        # Generate .ico for Windows (requires ImageMagick convert)
+        if command -v convert &> /dev/null; then
+          echo "Generating icon.ico..."
+          convert 16x16.png 32x32.png 64x64.png 128x128.png 256x256.png icon.ico
+          echo "icon.ico generated!"
+        else
+          echo "Warning: ImageMagick not found, skipping .ico generation"
+        fi
+        
+        echo "Icon generation complete!"
 
   install:tools:
     desc: Install development tools
