@@ -5,6 +5,7 @@
 > **Architecture Notes:**
 > - Phase 1 (Zig/WASM) was removed in v0.2.0. See [ADR-0001](docs/rationale/0001_removing_zig_wasm_layer.md)
 > - API layer moved to Rust in v0.4.0. See [ADR-0002](docs/rationale/0002_rust_api_layer.md)
+> - Error handling pattern documented in [ADR-0004](docs/rationale/0004_error_handling_pattern.md)
 
 ---
 

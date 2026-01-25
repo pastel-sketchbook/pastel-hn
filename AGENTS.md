@@ -83,6 +83,30 @@ Use the following prefixes:
 - refactor: behavior-preserving code improvement.
 - chore: tooling / config / documentation.
 
+## Commit Discipline Guidelines
+
+**Single Responsibility Per Commit:**
+- Each commit should do ONE thing well
+- Never mix CSS additions with JS removals in the same commit
+- Never mix test tooling changes with test additions
+
+**Version Bumps Must Be Isolated:**
+- `chore: bump version to X.Y.Z` commits should ONLY change VERSION file
+- Run `task format` BEFORE the version bump if formatting is needed
+- Do not bundle unrelated refactoring with version bumps
+
+**Tooling Changes Warrant Separate Commits:**
+- Test framework/environment changes (e.g., jsdom → happy-dom) get their own `chore:` commit
+- Include brief rationale in commit message for tooling changes
+
+**Structural Separation Examples:**
+- BAD: `feat: add animations` that also removes old JS code
+- GOOD: `struct: remove manual icon swap logic` followed by `feat: add CSS collapse animations`
+
+**When In Doubt, Split:**
+- If a commit message needs "and" to describe it, consider splitting
+- Smaller, focused commits are easier to review, revert, and bisect
+
 # TASK NAMING CONVENTION
 
 Use colon (`:`) as a separator in task names, not hyphens. For example:
