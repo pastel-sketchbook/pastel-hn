@@ -2,7 +2,9 @@
 
 **Goal:** Build the definitive Hacker News desktop experience - a native app that surpasses all existing HN clients in usability, visual design, and reading comfort.
 
-> **Note:** Phase 1 (Zig/WASM) was removed in v0.2.0. See [ADR-0001](docs/rationale/0001_removing_zig_wasm_layer.md) for rationale.
+> **Architecture Notes:**
+> - Phase 1 (Zig/WASM) was removed in v0.2.0. See [ADR-0001](docs/rationale/0001_removing_zig_wasm_layer.md)
+> - API layer moved to Rust in v0.4.0. See [ADR-0002](docs/rationale/0002_rust_api_layer.md)
 
 ---
 
@@ -16,37 +18,62 @@
 
 ---
 
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────┐
+│  TypeScript (UI Layer)                      │
+│  - DOM rendering and manipulation           │
+│  - Keyboard/mouse event handling            │
+│  - Theme and settings management            │
+│  - Virtual scrolling                        │
+│  - Calls Rust via Tauri invoke()            │
+└─────────────────┬───────────────────────────┘
+                  │ @tauri-apps/api invoke()
+┌─────────────────▼───────────────────────────┐
+│  Rust (Data Layer)                          │
+│  - HN Firebase API client (reqwest)         │
+│  - Algolia Search API client                │
+│  - In-memory caching (moka)                 │
+│  - Structured error handling (thiserror)    │
+│  - Structured logging (tracing)             │
+└─────────────────────────────────────────────┘
+```
+
+---
+
 ## Phase 1: Core Foundation (API & Types)
 
-### 1.1 API Client
-- [x] Define `HNItem` interface
-- [x] Define `HNUser` interface
-- [x] Define `StoryType` enum
-- [x] Define API response types
-- [x] Implement base URL constant
-- [x] Create fetch wrapper with error handling
+### 1.1 Rust API Client
+- [x] Define HN types with serde (HNItem, HNUser, StoryFeed)
+- [x] Implement HnClient with reqwest
+- [x] Connection pooling and timeouts
+- [x] Structured error handling with thiserror
+- [x] Structured logging with tracing
 
-### 1.2 API Functions
-- [x] `fetchTopStories(limit?: number): Promise<number[]>`
-- [x] `fetchNewStories(limit?: number): Promise<number[]>`
-- [x] `fetchBestStories(limit?: number): Promise<number[]>`
-- [x] `fetchAskStories(limit?: number): Promise<number[]>`
-- [x] `fetchShowStories(limit?: number): Promise<number[]>`
-- [x] `fetchJobStories(limit?: number): Promise<number[]>`
-- [x] `fetchItem(id: number): Promise<HNItem>`
-- [x] `fetchUser(id: string): Promise<HNUser>`
-- [x] `fetchStoryWithComments(id: number, depth?: number): Promise<StoryWithComments>`
+### 1.2 Tauri Commands
+- [x] `fetch_stories(feed, offset, limit)` - Paginated story fetching
+- [x] `fetch_item(id)` - Single item fetch
+- [x] `fetch_items(ids)` - Batch item fetch
+- [x] `fetch_story_with_comments(id, depth)` - Story with comment tree
+- [x] `fetch_comment_children(id, depth)` - Load more comments
+- [x] `fetch_user(id)` - User profile
+- [x] `fetch_user_submissions(user_id, offset, limit, filter)` - User submissions
+- [x] `search_hn(query, page, hits_per_page, sort, filter)` - Algolia search
+- [x] `clear_cache()` / `clear_story_ids_cache(feed)` - Cache management
 
-### 1.3 Caching & Performance
-- [x] Implement in-memory cache for items
-- [x] Add TTL-based cache invalidation
-- [x] Cache story lists with shorter TTL (2 min TTL in storyIdsCache)
+### 1.3 Caching (Rust/moka)
+- [x] In-memory item cache with 5min TTL (10,000 items max)
+- [x] Story IDs cache with 2min TTL
+- [x] User cache with 10min TTL
 - [ ] Intelligent prefetching for visible stories
 - [ ] Background refresh for stale data
+- [ ] Persistent cache (SQLite) for offline support
 
-### 1.4 Utilities
-- [x] `formatTimeAgo(timestamp)` - relative time formatting
-- [x] `extractDomain(url)` - domain extraction for display
+### 1.4 TypeScript API Wrapper
+- [x] Thin wrapper around Tauri invoke
+- [x] Type-safe interfaces matching Rust types
+- [x] Utility functions (formatTimeAgo, extractDomain)
 
 ---
 
@@ -175,7 +202,7 @@
 
 ### 4.4 Offline Support
 - [ ] Offline indicator in header
-- [ ] Cache stories for offline reading
+- [ ] Cache stories for offline reading (SQLite)
 - [ ] Queue actions for when online
 - [ ] Sync status indicators
 
@@ -196,7 +223,7 @@
 - [ ] Multi-window support (story in new window)
 
 ### 5.2 Native Commands
-- [x] `open_external_link(url)` - system browser
+- [x] `open_external(url)` - system browser
 - [x] `get_app_version()` - version info
 - [ ] `check_for_updates()` - update checker
 - [ ] `show_notification(title, body)` - native notifications
@@ -220,9 +247,10 @@
 ## Phase 6: Polish & Performance
 
 ### 6.1 Performance Optimization
-- [x] Virtual scrolling for 500+ items (VirtualScroll class implemented)
-- [ ] Lazy comment loading (fetch on expand) - partial: "load more" exists
-- [ ] Image lazy loading (user avatars, if added)
+- [x] Virtual scrolling for 500+ items (VirtualScroll class)
+- [x] Connection pooling in Rust HTTP client
+- [x] Concurrent request fetching with Tokio
+- [ ] Lazy comment loading (fetch on expand)
 - [ ] Bundle size optimization (<100KB JS)
 - [ ] First contentful paint <500ms
 
@@ -235,9 +263,10 @@
 - [x] Reduced motion support
 
 ### 6.3 Testing
-- [x] Unit tests for API functions (api.test.ts - 14 tests)
+- [x] Unit tests for API functions (api.test.ts - 18 tests)
 - [x] Unit tests for theme module (theme.test.ts - 11 tests)
 - [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 7 tests)
+- [ ] Rust unit tests for HnClient
 - [ ] Component tests for UI
 - [ ] E2E tests with Playwright
 - [ ] Visual regression tests
@@ -248,7 +277,7 @@
 - [ ] README with screenshots
 - [ ] Keyboard shortcut reference
 - [ ] Contributing guide
-- [ ] Architecture overview
+- [x] Architecture overview (this document + ADRs)
 
 ---
 
@@ -256,28 +285,34 @@
 
 ```
 pastel-hn/
-├── web/                        # Frontend
+├── web/                        # Frontend (TypeScript)
 │   ├── src/
-│   │   ├── api.ts              # HN API client
+│   │   ├── api.ts              # Tauri invoke wrappers
 │   │   ├── types.ts            # TypeScript types
 │   │   ├── theme.ts            # Theme management
 │   │   ├── keyboard.ts         # Keyboard navigation
+│   │   ├── settings.ts         # Settings panel
+│   │   ├── toast.ts            # Toast notifications
+│   │   ├── virtual-scroll.ts   # Virtual scrolling
 │   │   ├── storage.ts          # LocalStorage helpers
-│   │   ├── components/         # UI components (future)
 │   │   ├── styles/
 │   │   │   └── main.css        # Cyberpunk styles
-│   │   └── main.ts             # Entry point
+│   │   └── main.ts             # Entry point & UI
 │   ├── index.html
 │   └── package.json
-├── src-tauri/                  # Tauri Rust backend
+├── src-tauri/                  # Backend (Rust)
 │   ├── src/
-│   │   └── main.rs
+│   │   ├── main.rs             # Tauri app setup
+│   │   ├── client.rs           # HnClient with caching
+│   │   ├── commands.rs         # Tauri command handlers
+│   │   └── types.rs            # Rust types with serde
 │   ├── icons/                  # App icons
 │   ├── Cargo.toml
 │   └── tauri.conf.json
 ├── docs/
 │   └── rationale/              # Architecture Decision Records
-│       └── 0001_removing_zig_wasm_layer.md
+│       ├── 0001_removing_zig_wasm_layer.md
+│       └── 0002_rust_api_layer.md
 ├── TODO.md
 ├── AGENTS.md
 ├── Taskfile.yml

@@ -1,285 +1,111 @@
+/**
+ * HN API client - Thin wrapper around Tauri commands
+ *
+ * All API calls are handled by the Rust backend for better performance,
+ * caching, and error handling. See docs/rationale/0002_rust_api_layer.md
+ */
+
+import { invoke } from '@tauri-apps/api/core'
 import type {
   CommentWithChildren,
   HNItem,
   HNUser,
-  ItemType,
   StoryFeed,
   StoryWithComments,
 } from './types'
 
-const BASE_URL = 'https://hacker-news.firebaseio.com/v0'
+// ===== HN Firebase API =====
 
-const itemCache = new Map<number, { item: HNItem; timestamp: number }>()
-const CACHE_TTL = 5 * 60 * 1000
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`)
-  }
-  return response.json()
+export interface StoriesResponse {
+  stories: HNItem[]
+  hasMore: boolean
+  total: number
 }
 
-function getCachedItem(id: number): HNItem | null {
-  const cached = itemCache.get(id)
-  if (!cached) return null
-  if (Date.now() - cached.timestamp > CACHE_TTL) {
-    itemCache.delete(id)
-    return null
-  }
-  return cached.item
+export interface SubmissionsResponse {
+  items: HNItem[]
+  hasMore: boolean
+  total: number
 }
 
-function cacheItem(item: HNItem): void {
-  itemCache.set(item.id, { item, timestamp: Date.now() })
-}
+export type SubmissionFilter = 'all' | 'stories' | 'comments'
 
-function parseItemType(type: string | undefined): ItemType {
-  const types: Record<string, ItemType> = {
-    story: 0,
-    comment: 1,
-    job: 2,
-    poll: 3,
-    pollopt: 4,
-  }
-  return types[type ?? ''] ?? 5
-}
-
-interface RawHNItem {
-  id: number
-  type?: string
-  by?: string
-  time?: number
-  text?: string
-  url?: string
-  score?: number
-  title?: string
-  descendants?: number
-  kids?: number[]
-  parent?: number
-  dead?: boolean
-  deleted?: boolean
-}
-
-function rawToItem(raw: RawHNItem): HNItem {
-  return {
-    id: raw.id,
-    type: parseItemType(raw.type),
-    by: raw.by ?? null,
-    time: raw.time ?? 0,
-    text: raw.text ?? null,
-    url: raw.url ?? null,
-    score: raw.score ?? 0,
-    title: raw.title ?? null,
-    descendants: raw.descendants ?? 0,
-    kids: raw.kids ?? null,
-    parent: raw.parent ?? null,
-    dead: raw.dead ?? false,
-    deleted: raw.deleted ?? false,
-  }
-}
-
-export async function init(): Promise<void> {
-  // No WASM init needed for now - using native JSON
-}
-
-export async function fetchStoryIds(
-  feed: StoryFeed,
-  limit?: number,
-): Promise<number[]> {
-  const endpoint = {
-    top: 'topstories',
-    new: 'newstories',
-    best: 'beststories',
-    ask: 'askstories',
-    show: 'showstories',
-    jobs: 'jobstories',
-  }[feed]
-
-  const ids = await fetchJson<number[]>(`${BASE_URL}/${endpoint}.json`)
-  return limit ? ids.slice(0, limit) : ids
-}
-
-export async function fetchItem(id: number): Promise<HNItem> {
-  const cached = getCachedItem(id)
-  if (cached) return cached
-
-  const raw = await fetchJson<RawHNItem>(`${BASE_URL}/item/${id}.json`)
-  const item = rawToItem(raw)
-
-  cacheItem(item)
-  return item
-}
-
-interface RawHNUser {
-  id: string
-  created: number
-  karma: number
-  about?: string
-  submitted?: number[]
-}
-
-export async function fetchUser(id: string): Promise<HNUser> {
-  const raw = await fetchJson<RawHNUser>(`${BASE_URL}/user/${id}.json`)
-  return {
-    id: raw.id,
-    created: raw.created,
-    karma: raw.karma,
-    about: raw.about ?? null,
-    submitted: raw.submitted ?? null,
-  }
-}
-
-// Fetch user submissions with pagination and type filtering
-export async function fetchUserSubmissions(
-  userId: string,
-  offset: number,
-  limit: number,
-  filter?: 'all' | 'stories' | 'comments',
-): Promise<{ items: HNItem[]; hasMore: boolean; total: number }> {
-  const user = await fetchUser(userId)
-  const allIds = user.submitted ?? []
-
-  // Get the slice of IDs we need
-  const slicedIds = allIds.slice(offset, offset + limit * 2) // Fetch extra for filtering
-  const items = await fetchItems(slicedIds)
-
-  // Filter by type if specified
-  let filteredItems = items
-  if (filter === 'stories') {
-    filteredItems = items.filter(
-      (item) => item.type === 0 || item.type === 2, // Story or Job
-    )
-  } else if (filter === 'comments') {
-    filteredItems = items.filter((item) => item.type === 1) // Comment
-  }
-
-  // Take only the limit we need
-  const resultItems = filteredItems.slice(0, limit)
-
-  return {
-    items: resultItems,
-    hasMore: offset + limit < allIds.length,
-    total: allIds.length,
-  }
-}
-
-export async function fetchItems(ids: number[]): Promise<HNItem[]> {
-  const items = await Promise.all(ids.map((id) => fetchItem(id)))
-  return items
-}
-
-export async function fetchStories(
-  feed: StoryFeed,
-  limit = 30,
-): Promise<HNItem[]> {
-  const ids = await fetchStoryIds(feed, limit)
-  return fetchItems(ids)
-}
-
-// Cache for story IDs per feed to enable pagination
-const storyIdsCache = new Map<StoryFeed, { ids: number[]; timestamp: number }>()
-const STORY_IDS_CACHE_TTL = 2 * 60 * 1000 // 2 minutes
-
+/**
+ * Fetch paginated stories for a feed
+ */
 export async function fetchStoriesPaginated(
   feed: StoryFeed,
   offset: number,
   limit: number,
-): Promise<{ stories: HNItem[]; hasMore: boolean; total: number }> {
-  // Get cached IDs or fetch new ones
-  let ids: number[]
-  const cached = storyIdsCache.get(feed)
-
-  if (cached && Date.now() - cached.timestamp < STORY_IDS_CACHE_TTL) {
-    ids = cached.ids
-  } else {
-    ids = await fetchStoryIds(feed)
-    storyIdsCache.set(feed, { ids, timestamp: Date.now() })
-  }
-
-  const pageIds = ids.slice(offset, offset + limit)
-  const stories = await fetchItems(pageIds)
-
-  return {
-    stories,
-    hasMore: offset + limit < ids.length,
-    total: ids.length,
-  }
+): Promise<StoriesResponse> {
+  return invoke('fetch_stories', { feed, offset, limit })
 }
 
-export function clearStoryIdsCache(feed?: StoryFeed): void {
-  if (feed) {
-    storyIdsCache.delete(feed)
-  } else {
-    storyIdsCache.clear()
-  }
+/**
+ * Fetch stories (convenience wrapper for backward compatibility)
+ */
+export async function fetchStories(
+  feed: StoryFeed,
+  limit = 30,
+): Promise<HNItem[]> {
+  const response = await fetchStoriesPaginated(feed, 0, limit)
+  return response.stories
 }
 
-export async function fetchComments(
-  item: HNItem,
-  depth = 2,
-): Promise<CommentWithChildren[]> {
-  if (!item.kids || item.kids.length === 0 || depth <= 0) {
-    return []
-  }
-
-  const comments = await fetchItems(item.kids)
-
-  if (depth > 1) {
-    await Promise.all(
-      comments.map(async (comment) => {
-        const nested = await fetchComments(comment, depth - 1)
-        ;(comment as CommentWithChildren).children = nested
-      }),
-    )
-  }
-
-  return comments as CommentWithChildren[]
+/**
+ * Fetch a single item by ID
+ */
+export async function fetchItem(id: number): Promise<HNItem> {
+  return invoke('fetch_item', { id })
 }
 
-// Fetch children for a specific comment (used for "load more" in deep threads)
-export async function fetchCommentChildren(
-  commentId: number,
-  depth = 2,
-): Promise<CommentWithChildren[]> {
-  const comment = await fetchItem(commentId)
-  return fetchComments(comment, depth)
+/**
+ * Fetch multiple items by IDs
+ */
+export async function fetchItems(ids: number[]): Promise<HNItem[]> {
+  return invoke('fetch_items', { ids })
 }
 
+/**
+ * Fetch a story with its comments
+ */
 export async function fetchStoryWithComments(
   id: number,
   depth = 2,
 ): Promise<StoryWithComments> {
-  const story = await fetchItem(id)
-  const comments = await fetchComments(story, depth)
-  return { story, comments }
+  return invoke('fetch_story_with_comments', { id, depth })
 }
 
-export function clearCache(): void {
-  itemCache.clear()
+/**
+ * Fetch children of a specific comment (for "load more")
+ */
+export async function fetchCommentChildren(
+  id: number,
+  depth = 2,
+): Promise<CommentWithChildren[]> {
+  return invoke('fetch_comment_children', { id, depth })
 }
 
-export function formatTimeAgo(timestamp: number): string {
-  const seconds = Math.floor(Date.now() / 1000 - timestamp)
-
-  if (seconds < 60) return `${seconds}s ago`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-  return `${Math.floor(seconds / 86400)}d ago`
+/**
+ * Fetch a user by ID
+ */
+export async function fetchUser(id: string): Promise<HNUser> {
+  return invoke('fetch_user', { id })
 }
 
-export function extractDomain(url: string | null): string | null {
-  if (!url) return null
-  try {
-    const parsed = new URL(url)
-    return parsed.hostname.replace(/^www\./, '')
-  } catch {
-    return null
-  }
+/**
+ * Fetch user submissions with pagination and filtering
+ */
+export async function fetchUserSubmissions(
+  userId: string,
+  offset: number,
+  limit: number,
+  filter: SubmissionFilter = 'all',
+): Promise<SubmissionsResponse> {
+  return invoke('fetch_user_submissions', { userId, offset, limit, filter })
 }
 
-// ===== SEARCH API (Algolia HN Search) =====
-const ALGOLIA_BASE_URL = 'https://hn.algolia.com/api/v1'
+// ===== Search API (Algolia) =====
 
 export interface SearchResult {
   id: number
@@ -290,9 +116,9 @@ export interface SearchResult {
   numComments: number
   createdAt: number
   type: 'story' | 'comment'
-  storyId?: number // For comments, the parent story ID
-  storyTitle?: string // For comments, the parent story title
-  text?: string // Comment text
+  storyId?: number
+  storyTitle?: string
+  text?: string
 }
 
 export interface SearchResponse {
@@ -304,52 +130,11 @@ export interface SearchResponse {
   query: string
 }
 
-interface AlgoliaHit {
-  objectID: string
-  title?: string
-  url?: string
-  author?: string
-  points?: number
-  num_comments?: number
-  created_at_i?: number
-  story_id?: number
-  story_title?: string
-  comment_text?: string
-  _tags?: string[]
-}
-
-interface AlgoliaResponse {
-  hits: AlgoliaHit[]
-  nbHits: number
-  page: number
-  nbPages: number
-  hitsPerPage: number
-  query: string
-}
-
-function algoliaHitToResult(hit: AlgoliaHit): SearchResult {
-  const isComment = hit._tags?.includes('comment') ?? false
-
-  return {
-    id: Number.parseInt(hit.objectID, 10),
-    title: hit.title ?? null,
-    url: hit.url ?? null,
-    author: hit.author ?? null,
-    points: hit.points ?? 0,
-    numComments: hit.num_comments ?? 0,
-    createdAt: hit.created_at_i ?? 0,
-    type: isComment ? 'comment' : 'story',
-    storyId: hit.story_id,
-    storyTitle: hit.story_title,
-    text: hit.comment_text,
-  }
-}
-
 export type SearchSort = 'relevance' | 'date'
 export type SearchFilter = 'all' | 'story' | 'comment'
 
 /**
- * Search HN using Algolia Search API
+ * Search HN using Algolia
  */
 export async function searchHN(
   query: string,
@@ -367,30 +152,90 @@ export async function searchHN(
     filter = 'all',
   } = options
 
-  // Build query params
-  const params = new URLSearchParams({
+  return invoke('search_hn', {
     query,
-    page: String(page),
-    hitsPerPage: String(hitsPerPage),
+    page,
+    hitsPerPage,
+    sort,
+    filter,
   })
+}
 
-  // Add filter tags
-  if (filter !== 'all') {
-    params.set('tags', filter)
+// ===== Cache Management =====
+
+/**
+ * Clear all caches
+ */
+export async function clearCache(): Promise<void> {
+  return invoke('clear_cache')
+}
+
+/**
+ * Clear story IDs cache for a specific feed or all feeds
+ */
+export async function clearStoryIdsCache(feed?: StoryFeed): Promise<void> {
+  return invoke('clear_story_ids_cache', { feed: feed ?? null })
+}
+
+// ===== Utility Functions (kept in TypeScript as they're UI-related) =====
+
+/**
+ * Format a Unix timestamp as relative time (e.g., "5m ago", "2h ago")
+ */
+export function formatTimeAgo(timestamp: number): string {
+  const seconds = Math.floor(Date.now() / 1000 - timestamp)
+
+  if (seconds < 60) return `${seconds}s ago`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
+
+/**
+ * Extract domain from a URL for display
+ */
+export function extractDomain(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    return parsed.hostname.replace(/^www\./, '')
+  } catch {
+    return null
   }
+}
 
-  // Use different endpoint based on sort
-  const endpoint = sort === 'date' ? 'search_by_date' : 'search'
-  const url = `${ALGOLIA_BASE_URL}/${endpoint}?${params.toString()}`
+// ===== Legacy Compatibility =====
 
-  const response = await fetchJson<AlgoliaResponse>(url)
+/**
+ * Initialize the API (no-op, kept for backward compatibility)
+ */
+export async function init(): Promise<void> {
+  // No initialization needed - Rust client is initialized by Tauri
+}
 
-  return {
-    hits: response.hits.map(algoliaHitToResult),
-    nbHits: response.nbHits,
-    page: response.page,
-    nbPages: response.nbPages,
-    hitsPerPage: response.hitsPerPage,
-    query: response.query,
+/**
+ * Fetch story IDs for a feed (used internally, prefer fetchStoriesPaginated)
+ */
+export async function fetchStoryIds(
+  feed: StoryFeed,
+  limit?: number,
+): Promise<number[]> {
+  // Fetch via paginated endpoint and extract IDs
+  const response = await fetchStoriesPaginated(feed, 0, limit ?? 500)
+  return response.stories.map((s) => s.id)
+}
+
+/**
+ * Fetch comments for an item (deprecated, use fetchStoryWithComments)
+ */
+export async function fetchComments(
+  item: HNItem,
+  depth = 2,
+): Promise<CommentWithChildren[]> {
+  if (!item.kids || item.kids.length === 0) {
+    return []
   }
+  // Use the story with comments endpoint for the parent item
+  const result = await fetchStoryWithComments(item.id, depth)
+  return result.comments
 }

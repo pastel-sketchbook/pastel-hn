@@ -11,16 +11,17 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@fontsource/orbitron": "latest",
-    "@fontsource/rajdhani": "latest",
-    "@fontsource/share-tech-mono": "latest"
+    "@fontsource/orbitron": "^5.2.8",
+    "@fontsource/rajdhani": "^5.2.7",
+    "@fontsource/share-tech-mono": "^5.2.7",
+    "@tauri-apps/api": "^2.9.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "latest",
+    "@biomejs/biome": "^2.3.12",
     "@testing-library/dom": "^10.4.1",
     "jsdom": "^27.4.0",
-    "typescript": "latest",
-    "vite": "latest",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
     "vitest": "^4.0.18"
   }
 }

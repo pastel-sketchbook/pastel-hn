@@ -1,17 +1,43 @@
 [package]
 name = "pastel-hn"
-version = "0.2.0"
+version = "0.3.3"
 edition = "2021"
 
 [build-dependencies]
-tauri-build = { version = "*", features = [] }
+tauri-build = { version = "2.5.3", features = [] }
 
 [dependencies]
-tauri = { version = "*", features = [] }
-tauri-plugin-shell = "*"
-serde = { version = "*", features = ["derive"] }
-serde_json = "*"
-open = "*"
+# Tauri
+tauri = { version = "2.9.5", features = [] }
+tauri-plugin-shell = "2.3.4"
+
+# Async runtime
+tokio = { version = "1.49.0", features = ["full"] }
+
+# HTTP client
+reqwest = { version = "0.13.1", features = ["json", "rustls"] }
+
+# Serialization
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+
+# Error handling
+anyhow = "1.0.100"
+thiserror = "2.0.18"
+
+# Logging
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+
+# In-memory cache with TTL
+moka = { version = "0.12.12", features = ["future"] }
+
+# Open URLs
+open = "5.3.3"
+
+# Utilities
+futures = "0.3.31"
+urlencoding = "2.1.3"
 
 [features]
 default = ["custom-protocol"]
