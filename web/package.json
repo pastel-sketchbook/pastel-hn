@@ -1,6 +1,6 @@
 {
   "name": "pastel-hn-web",
-  "version": "0.7.14",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
