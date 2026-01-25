@@ -1885,8 +1885,51 @@ function closeHelpModal(): void {
  * Press 'z' to toggle, Escape also exits zen mode
  */
 async function toggleZenMode(): Promise<void> {
-  zenModeActive = !zenModeActive
-  document.documentElement.classList.toggle('zen-mode', zenModeActive)
+  const enteringZen = !zenModeActive
+
+  // Toggle fullscreen and decorations via Tauri API first (before CSS changes)
+  // This ensures window state is correct before visual updates
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const appWindow = getCurrentWindow()
+
+    if (enteringZen) {
+      // Hide window decorations (title bar) and go fullscreen
+      await appWindow.setDecorations(false)
+      await appWindow.setFullscreen(true)
+    } else {
+      // Restore window decorations and exit fullscreen
+      // Important: Exit fullscreen first, then restore decorations
+      // Add a small delay between operations to allow OS to process
+      await appWindow.setFullscreen(false)
+      // Wait for fullscreen exit to complete before restoring decorations
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      await appWindow.setDecorations(true)
+    }
+
+    // Only update state after Tauri API calls succeed
+    zenModeActive = enteringZen
+    document.documentElement.classList.toggle('zen-mode', zenModeActive)
+
+    if (zenModeActive) {
+      showZenModeBadge()
+      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
+    } else {
+      hideZenModeBadge()
+    }
+  } catch (error) {
+    // Fallback for non-Tauri environment (browser dev)
+    console.warn('Tauri window API not available:', error)
+    zenModeActive = enteringZen
+    document.documentElement.classList.toggle('zen-mode', zenModeActive)
+
+    if (zenModeActive) {
+      showZenModeBadge()
+      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
+    } else {
+      hideZenModeBadge()
+    }
+  }
 
   // Force virtual scroll to re-render with new styling
   // Use requestAnimationFrame to ensure CSS classes have been applied
@@ -1895,34 +1938,6 @@ async function toggleZenMode(): Promise<void> {
       virtualScroll?.forceRender()
     })
   }
-
-  // Toggle fullscreen and hide decorations via Tauri API
-  try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
-    const appWindow = getCurrentWindow()
-
-    if (zenModeActive) {
-      // Hide window decorations (title bar) and go fullscreen
-      await appWindow.setDecorations(false)
-      await appWindow.setFullscreen(true)
-      showZenModeBadge()
-      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
-    } else {
-      // Restore window decorations and exit fullscreen
-      await appWindow.setFullscreen(false)
-      await appWindow.setDecorations(true)
-      hideZenModeBadge()
-    }
-  } catch (error) {
-    // Fallback for non-Tauri environment (browser dev)
-    console.warn('Tauri window API not available:', error)
-    if (zenModeActive) {
-      showZenModeBadge()
-      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
-    } else {
-      hideZenModeBadge()
-    }
-  }
 }
 
 /**
@@ -1930,6 +1945,20 @@ async function toggleZenMode(): Promise<void> {
  */
 async function exitZenMode(): Promise<void> {
   if (zenModeActive) {
+    // Exit fullscreen and restore decorations via Tauri API first
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const appWindow = getCurrentWindow()
+      // Exit fullscreen first, then restore decorations
+      // Add a small delay between operations to allow OS to process
+      await appWindow.setFullscreen(false)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      await appWindow.setDecorations(true)
+    } catch (error) {
+      console.warn('Tauri window API not available:', error)
+    }
+
+    // Update state after Tauri API calls
     zenModeActive = false
     document.documentElement.classList.remove('zen-mode')
     hideZenModeBadge()
@@ -1940,16 +1969,6 @@ async function exitZenMode(): Promise<void> {
       requestAnimationFrame(() => {
         virtualScroll?.forceRender()
       })
-    }
-
-    // Exit fullscreen and restore decorations via Tauri API
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window')
-      const appWindow = getCurrentWindow()
-      await appWindow.setFullscreen(false)
-      await appWindow.setDecorations(true)
-    } catch (error) {
-      console.warn('Tauri window API not available:', error)
     }
   }
 }
@@ -2342,14 +2361,16 @@ function setupKeyboardNavigation(): void {
       }
     },
     onBack: () => {
-      if (zenModeActive) {
-        exitZenMode()
-      } else if (isSettingsModalOpen()) {
+      // Priority: Close modals first, then exit zen mode, then navigate back
+      // This ensures modals can be closed while in zen mode without exiting zen
+      if (isSettingsModalOpen()) {
         closeSettingsModal()
       } else if (searchModalOpen) {
         closeSearchModal()
       } else if (helpModalOpen) {
         closeHelpModal()
+      } else if (zenModeActive) {
+        exitZenMode()
       } else if (currentView === 'detail') {
         navigateBackToList()
       }
