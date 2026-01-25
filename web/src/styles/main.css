@@ -3974,6 +3974,37 @@ main {
   min-width: auto;
 }
 
+/* Keyboard shortcuts in settings */
+.settings-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1.5rem;
+}
+
+.settings-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.settings-shortcut kbd {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  min-width: 55px;
+  text-align: center;
+  color: var(--cyan);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.settings-shortcut span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 /* Responsive settings */
 @media (max-width: 480px) {
   .settings-modal-overlay {
@@ -3990,6 +4021,10 @@ main {
 
   .feed-options {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .settings-shortcuts {
+    grid-template-columns: 1fr;
   }
 }
 

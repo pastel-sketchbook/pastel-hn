@@ -3,6 +3,7 @@
  */
 
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
+import { KEYBOARD_SHORTCUTS } from './keyboard'
 import { setTheme, type Theme } from './theme'
 
 export type FontSize = 'compact' | 'normal' | 'comfortable'
@@ -39,6 +40,7 @@ const settingsIcons = {
   type: `<svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
   layout: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
   home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  keyboard: `<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg>`,
 }
 
 /**
@@ -208,6 +210,21 @@ export function showSettingsModal(): void {
             <button class="settings-option ${currentSettings.defaultFeed === 'jobs' ? 'active' : ''}" data-setting="defaultFeed" data-value="jobs">
               <span>Jobs</span>
             </button>
+          </div>
+        </div>
+        
+        <!-- Keyboard Shortcuts -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">${settingsIcons.keyboard}Keyboard Shortcuts</h3>
+          <div class="settings-shortcuts">
+            ${KEYBOARD_SHORTCUTS.map(
+              (s) => `
+              <div class="settings-shortcut">
+                <kbd>${s.key}</kbd>
+                <span>${s.description}</span>
+              </div>
+            `,
+            ).join('')}
           </div>
         </div>
       </div>
