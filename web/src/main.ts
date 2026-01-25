@@ -37,7 +37,7 @@ import {
   saveFeedScrollPosition,
   saveStoryScrollPosition,
 } from './storage'
-import { initTheme, toggleTheme } from './theme'
+import { toggleTheme } from './theme'
 import { toastError, toastInfo, toastSuccess } from './toast'
 import {
   type CommentWithChildren,
@@ -56,6 +56,7 @@ let currentStories: HNItem[] = []
 let helpModalOpen = false
 let helpModalFocusTrap: FocusTrapInstance | null = null
 let zenModeActive = false
+let zenModeTransitioning = false // Lock to prevent rapid toggling
 let currentOffset = 0
 let hasMoreStories = true
 let currentStoryAuthor: string | null = null // Track OP for comment highlighting
@@ -628,7 +629,10 @@ async function renderStories(
   readStoryIds = getReadStoryIds()
 
   const container = document.getElementById('stories')
-  if (!container) return
+  if (!container) {
+    isLoading = false
+    return
+  }
 
   // Show skeleton loading state
   container.innerHTML = renderStorySkeletons(6)
@@ -1270,7 +1274,10 @@ async function renderStoryDetail(
   readStoryIds.add(storyId)
 
   const container = document.getElementById('stories')
-  if (!container) return
+  if (!container) {
+    isLoading = false
+    return
+  }
 
   // Animate stories away if we have a clicked element
   if (clickedStoryEl) {
@@ -1519,7 +1526,10 @@ async function renderUserProfile(userId: string): Promise<void> {
   currentUserId = userId
 
   const container = document.getElementById('stories')
-  if (!container) return
+  if (!container) {
+    isLoading = false
+    return
+  }
 
   // Show skeleton loading state for user profile
   container.innerHTML = renderUserProfileSkeleton()
@@ -1885,6 +1895,10 @@ function closeHelpModal(): void {
  * Press 'z' to toggle, Escape also exits zen mode
  */
 async function toggleZenMode(): Promise<void> {
+  // Prevent rapid toggling while transition is in progress
+  if (zenModeTransitioning) return
+  zenModeTransitioning = true
+
   const enteringZen = !zenModeActive
 
   // Toggle fullscreen and decorations via Tauri API first (before CSS changes)
@@ -1929,6 +1943,11 @@ async function toggleZenMode(): Promise<void> {
     } else {
       hideZenModeBadge()
     }
+  } finally {
+    // Release lock after a short delay to ensure transitions complete
+    setTimeout(() => {
+      zenModeTransitioning = false
+    }, 200)
   }
 
   // Force virtual scroll to re-render with new styling
@@ -1944,7 +1963,12 @@ async function toggleZenMode(): Promise<void> {
  * Exit zen mode if active
  */
 async function exitZenMode(): Promise<void> {
+  // Prevent rapid toggling while transition is in progress
+  if (zenModeTransitioning) return
+  
   if (zenModeActive) {
+    zenModeTransitioning = true
+    
     // Exit fullscreen and restore decorations via Tauri API first
     try {
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -1956,6 +1980,11 @@ async function exitZenMode(): Promise<void> {
       await appWindow.setDecorations(true)
     } catch (error) {
       console.warn('Tauri window API not available:', error)
+    } finally {
+      // Release lock after a short delay to ensure transitions complete
+      setTimeout(() => {
+        zenModeTransitioning = false
+      }, 200)
     }
 
     // Update state after Tauri API calls
@@ -2588,8 +2617,9 @@ function handleHashChange(): void {
 }
 
 async function main(): Promise<void> {
-  // Initialize theme and settings first to prevent flash of wrong theme
-  initTheme()
+  // Initialize settings first to prevent flash of wrong theme
+  // Note: initSettings() handles theme initialization via applySettings()
+  // We don't call initTheme() separately to avoid duplicate system theme listeners
   initSettings()
 
   // Ensure window decorations are visible on startup (safety net)
