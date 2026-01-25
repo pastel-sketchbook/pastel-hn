@@ -209,7 +209,7 @@
 - [x] Rate limit detection and retry UI
 
 ### 4.4 Error Handling UX
-- [ ] Connection error recovery with retry button
+- [x] Connection error recovery with retry button
 - [ ] Graceful degradation when offline
 - [ ] Error boundaries to prevent full app crashes
 - [x] User-friendly error messages (not raw API errors)
