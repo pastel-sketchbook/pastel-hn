@@ -5,7 +5,21 @@
 @import "@fontsource/rajdhani/600.css";
 @import "@fontsource/share-tech-mono/400.css";
 
+/* ===== THEME VARIABLES ===== */
 :root {
+  /* Typography - shared across themes */
+  --font-display: "Orbitron", sans-serif;
+  --font-sans: "Rajdhani", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+
+  /* Layout - shared across themes */
+  --frame-thickness: 3px;
+  --corner-size: 30px;
+}
+
+/* ===== DARK THEME (Default) ===== */
+:root,
+[data-theme="dark"] {
   --bg-primary: #050a0e;
   --bg-secondary: #0a1014;
   --bg-panel: rgba(10, 16, 20, 0.92);
@@ -35,12 +49,50 @@
   --border: rgba(0, 217, 255, 0.25);
   --border-bright: rgba(0, 217, 255, 0.7);
 
-  --font-display: "Orbitron", sans-serif;
-  --font-sans: "Rajdhani", sans-serif;
-  --font-mono: "Share Tech Mono", monospace;
+  /* Grid pattern opacity */
+  --grid-opacity: 0.04;
+}
 
-  --frame-thickness: 3px;
-  --corner-size: 30px;
+/* ===== LIGHT THEME ===== */
+/* Cyberpunk aesthetic with pastel tones on light background */
+[data-theme="light"] {
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #e4eaf0;
+  --bg-panel: rgba(255, 255, 255, 0.92);
+  --bg-panel-inner: rgba(240, 244, 248, 0.8);
+  --bg-hover: rgba(0, 180, 216, 0.1);
+
+  /* Deeper cyan for light backgrounds */
+  --cyan: #00a8c7;
+  --cyan-dim: #008ba3;
+  --cyan-glow: rgba(0, 168, 199, 0.4);
+  --cyan-soft: rgba(0, 168, 199, 0.12);
+
+  /* Warmer orange for light mode */
+  --orange: #e67e22;
+  --orange-dim: #d35400;
+  --orange-glow: rgba(230, 126, 34, 0.4);
+
+  /* Deeper purple for readability */
+  --purple: #7c3aed;
+  --purple-dim: #6d28d9;
+  --purple-glow: rgba(124, 58, 237, 0.4);
+
+  /* Richer pink */
+  --pink: #db2777;
+  --pink-glow: rgba(219, 39, 119, 0.4);
+
+  /* Dark text for light backgrounds */
+  --text-primary: #1a2332;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* Stronger borders for light mode */
+  --border: rgba(0, 168, 199, 0.35);
+  --border-bright: rgba(0, 168, 199, 0.8);
+
+  /* Grid pattern - more subtle on light */
+  --grid-opacity: 0.06;
 }
 
 * {
@@ -73,8 +125,8 @@ body::before {
   right: 0;
   bottom: 0;
   background-image:
-    linear-gradient(rgba(0, 217, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 217, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(var(--cyan-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cyan-soft) 1px, transparent 1px);
   background-size: 60px 60px;
   pointer-events: none;
   z-index: 0;
@@ -165,6 +217,62 @@ header {
   padding: 1.25rem 2rem;
 }
 
+/* ===== THEME TOGGLE ===== */
+.theme-toggle {
+  margin-left: auto;
+  background: transparent;
+  border: 2px solid var(--border);
+  color: var(--text-secondary);
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  position: relative;
+}
+
+.theme-toggle:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--cyan-soft);
+  box-shadow: 0 0 15px var(--cyan-glow);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Sun icon for dark mode (clicking switches to light) */
+.theme-toggle .icon-sun {
+  display: block;
+}
+.theme-toggle .icon-moon {
+  display: none;
+}
+
+/* Moon icon for light mode (clicking switches to dark) */
+[data-theme="light"] .theme-toggle .icon-sun {
+  display: none;
+}
+[data-theme="light"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+/* Icon styles - line-only aesthetic */
+.theme-toggle svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .logo {
   display: flex;
   align-items: center;
@@ -189,7 +297,7 @@ header {
   justify-content: center;
   font-weight: 700;
   font-size: 1.5rem;
-  background: rgba(0, 217, 255, 0.1);
+  background: var(--cyan-soft);
   box-shadow:
     0 0 15px var(--cyan-glow),
     0 0 30px var(--cyan-glow),

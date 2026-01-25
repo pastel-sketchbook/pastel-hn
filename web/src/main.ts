@@ -1,4 +1,5 @@
 import { extractDomain, fetchStories, formatTimeAgo, init } from './api'
+import { initTheme, toggleTheme } from './theme'
 import type { HNItem, StoryFeed } from './types'
 import './styles/main.css'
 
@@ -95,10 +96,23 @@ function setupNavigation(): void {
   })
 }
 
+function setupThemeToggle(): void {
+  const toggle = document.getElementById('theme-toggle')
+  if (!toggle) return
+
+  toggle.addEventListener('click', () => {
+    toggleTheme()
+  })
+}
+
 async function main(): Promise<void> {
+  // Initialize theme first to prevent flash of wrong theme
+  initTheme()
+
   try {
     await init()
     setupNavigation()
+    setupThemeToggle()
     await renderStories(currentFeed)
   } catch (error) {
     console.error('Failed to initialize:', error)
