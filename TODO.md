@@ -197,7 +197,7 @@
 - [ ] "New comments" indicator on revisit
 - [x] Mark stories as read (visual indicator)
 - [ ] Reading time estimates (backend `word_count` exists, wire to UI)
-- [ ] Distraction-free reading mode
+- [x] Distraction-free reading mode (Zen mode with 'z' key)
 - [ ] **Article Reader Mode** (use existing `fetch_article_content` command to render articles inline)
 
 ### 4.3 Smart Features
