@@ -4498,7 +4498,7 @@ main {
 }
 
 /* Light mode specific background */
-[data-theme="light"] .zen-mode main {
+[data-theme="light"].zen-mode main {
   background: transparent;
 }
 
@@ -4549,7 +4549,7 @@ main {
   border: 1px solid rgba(0, 217, 255, 0.15);
 }
 
-[data-theme="light"] .zen-mode .story {
+[data-theme="light"].zen-mode .story {
   background: linear-gradient(
     135deg,
     rgba(255, 252, 247, 0.92) 0%,
