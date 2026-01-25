@@ -55,6 +55,7 @@ let currentView: 'list' | 'detail' | 'user' = 'list'
 let currentStories: HNItem[] = []
 let helpModalOpen = false
 let helpModalFocusTrap: FocusTrapInstance | null = null
+let zenModeActive = false
 let currentOffset = 0
 let hasMoreStories = true
 let currentStoryAuthor: string | null = null // Track OP for comment highlighting
@@ -1854,6 +1855,31 @@ function closeHelpModal(): void {
   }
 }
 
+// ===== ZEN MODE =====
+
+/**
+ * Toggle zen mode - hides header and maximizes content area
+ * Press 'z' to toggle, Escape also exits zen mode
+ */
+function toggleZenMode(): void {
+  zenModeActive = !zenModeActive
+  document.documentElement.classList.toggle('zen-mode', zenModeActive)
+
+  if (zenModeActive) {
+    toastInfo('Zen mode enabled. Press Z or Escape to exit.')
+  }
+}
+
+/**
+ * Exit zen mode if active
+ */
+function exitZenMode(): void {
+  if (zenModeActive) {
+    zenModeActive = false
+    document.documentElement.classList.remove('zen-mode')
+  }
+}
+
 // ===== SEARCH MODAL =====
 
 function showSearchModal(): void {
@@ -2214,7 +2240,9 @@ function setupKeyboardNavigation(): void {
       }
     },
     onBack: () => {
-      if (isSettingsModalOpen()) {
+      if (zenModeActive) {
+        exitZenMode()
+      } else if (isSettingsModalOpen()) {
         closeSettingsModal()
       } else if (searchModalOpen) {
         closeSearchModal()
@@ -2276,6 +2304,9 @@ function setupKeyboardNavigation(): void {
           firstComment.classList.add('keyboard-selected')
         }
       }
+    },
+    onZenMode: () => {
+      toggleZenMode()
     },
   })
 

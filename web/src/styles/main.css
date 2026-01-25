@@ -4221,3 +4221,65 @@ main {
 [data-density="comfortable"] .comment-text {
   margin-top: 0.75rem;
 }
+
+/* ===== ZEN MODE ===== */
+
+/* Zen mode - distraction-free reading */
+.zen-mode {
+  --zen-transition: 0.3s ease;
+}
+
+.zen-mode header {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--zen-transition), opacity var(--zen-transition);
+}
+
+.zen-mode main {
+  padding-top: 1rem;
+  transition: padding-top var(--zen-transition);
+}
+
+.zen-mode .container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Hide navigation in zen mode */
+.zen-mode nav {
+  display: none;
+}
+
+/* Larger, more comfortable reading in zen mode */
+.zen-mode .story-detail-title {
+  font-size: 2rem;
+}
+
+.zen-mode .comment-text {
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.zen-mode .article-content {
+  font-size: 1.1rem;
+  line-height: 1.9;
+}
+
+/* Back button stays visible but subtle in zen mode */
+.zen-mode .story-detail-header .back-btn {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.zen-mode .story-detail-header .back-btn:hover {
+  opacity: 1;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .zen-mode header,
+  .zen-mode main {
+    transition: none;
+  }
+}
