@@ -264,7 +264,7 @@ header.scrolled {
 /* ===== THEME TOGGLE ===== */
 .theme-toggle {
   margin-left: auto;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   width: 44px;
@@ -326,7 +326,7 @@ header.scrolled {
 
 /* ===== SETTINGS TOGGLE ===== */
 .settings-toggle {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   width: 44px;
@@ -405,7 +405,7 @@ nav {
 }
 
 .nav-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 2px solid transparent;
   color: var(--text-secondary);
   padding: 0.6rem 1.5rem;
@@ -731,7 +731,7 @@ main {
 
 /* Line-only upvote icon */
 .vote-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -1028,7 +1028,7 @@ main {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--cyan);
   border-radius: 4px;
   color: var(--cyan);
@@ -1266,7 +1266,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 2px solid var(--border);
   color: var(--text-secondary);
   padding: 0.6rem 1.25rem;
@@ -1454,7 +1454,7 @@ main {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
@@ -1620,7 +1620,7 @@ main {
 
 .article-body pre code {
   padding: 0;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .article-body ul,
@@ -1895,7 +1895,7 @@ main {
 }
 
 .comment-collapse {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -2182,7 +2182,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px dashed var(--border);
   color: var(--cyan);
   padding: 0.5rem 1rem;
@@ -2376,7 +2376,7 @@ main {
 .help-close-btn {
   display: block;
   width: 100%;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 2px solid var(--border);
   color: var(--text-secondary);
   padding: 0.75rem 1.5rem;
@@ -2481,7 +2481,7 @@ main {
 }
 
 .retry-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--orange);
   color: var(--orange);
   padding: 0.35rem 0.85rem;
@@ -2754,7 +2754,7 @@ main {
 }
 
 .tab-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 0.4rem 1rem;
@@ -2925,7 +2925,7 @@ main {
 }
 
 .load-more-submissions-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 2px solid var(--border);
   color: var(--text-secondary);
   padding: 0.75rem 2rem;
@@ -3455,7 +3455,7 @@ main {
 }
 
 .search-filter-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 0.4rem 0.8rem;
@@ -3656,7 +3656,7 @@ main {
 }
 
 .search-pagination-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 0.5rem 1rem;
@@ -4094,7 +4094,7 @@ main {
 
 .toast-action {
   align-self: flex-start;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   color: var(--cyan);
   font-family: var(--font-mono);
@@ -4114,7 +4114,7 @@ main {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   cursor: pointer;
   padding: 0;
@@ -4225,7 +4225,7 @@ main {
 }
 
 .settings-close-btn {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   width: 32px;
   height: 32px;
@@ -4368,7 +4368,7 @@ main {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: 1px solid var(--orange);
   border-radius: 4px;
   color: var(--orange);
@@ -4597,13 +4597,13 @@ main {
   /* Scrollable container */
   overflow-y: auto;
   /* Transparent to show body background (consistent theme & grid) */
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   z-index: 100;
 }
 
 /* Light mode specific background */
 [data-theme="light"].zen-mode main {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 /* Container stretches to fill */
@@ -4621,7 +4621,7 @@ main {
   /* Ensure consistent side room */
   padding: 2rem 1rem;
   /* Transparent to show body grid background */
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   /* Ensure no border on the stories container */
   border: none;
   box-shadow: none;
@@ -4631,7 +4631,7 @@ main {
 .zen-mode .virtual-scroll-spacer,
 .zen-mode .virtual-scroll-items,
 .zen-mode .container {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.02);
   border: none;
   box-shadow: none;
 }
