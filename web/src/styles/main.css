@@ -4272,7 +4272,7 @@ main {
 
 /* ===== ZEN MODE ===== */
 
-/* Zen mode - distraction-free reading */
+/* Zen mode - fullscreen distraction-free reading */
 .zen-mode {
   --zen-transition: 0.3s ease;
 }
@@ -4281,24 +4281,47 @@ main {
   transform: translateY(-100%);
   opacity: 0;
   pointer-events: none;
+  position: absolute;
   transition:
     transform var(--zen-transition),
     opacity var(--zen-transition);
 }
 
 .zen-mode main {
-  padding-top: 1rem;
+  padding-top: 0;
+  height: 100vh;
+  width: 100vw;
+  max-width: 100vw;
   transition: padding-top var(--zen-transition);
 }
 
 .zen-mode .container {
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Stories list takes full screen in zen mode */
+.zen-mode #stories {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  padding: 1rem 2rem;
+  box-sizing: border-box;
 }
 
 /* Hide navigation in zen mode */
 .zen-mode nav {
   display: none;
+}
+
+/* Story detail in zen mode - centered readable width */
+.zen-mode .story-detail {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
 /* Larger, more comfortable reading in zen mode */
@@ -4326,10 +4349,72 @@ main {
   opacity: 1;
 }
 
+/* Zen mode badge indicator */
+.zen-mode-badge {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 9999;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  animation: zenBadgeFadeIn 0.3s ease;
+}
+
+.zen-mode-badge:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.zen-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.zen-badge-text {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@keyframes zenBadgeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+}
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   .zen-mode header,
   .zen-mode main {
     transition: none;
+  }
+  
+  .zen-mode-badge {
+    animation: none;
   }
 }

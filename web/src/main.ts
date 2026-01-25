@@ -1875,25 +1875,83 @@ function closeHelpModal(): void {
 // ===== ZEN MODE =====
 
 /**
- * Toggle zen mode - hides header and maximizes content area
+ * Toggle zen mode - fullscreen, hides header, maximizes content area
  * Press 'z' to toggle, Escape also exits zen mode
  */
-function toggleZenMode(): void {
+async function toggleZenMode(): Promise<void> {
   zenModeActive = !zenModeActive
   document.documentElement.classList.toggle('zen-mode', zenModeActive)
 
-  if (zenModeActive) {
-    toastInfo('Zen mode enabled. Press Z or Escape to exit.')
+  // Toggle fullscreen via Tauri API
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const appWindow = getCurrentWindow()
+    
+    if (zenModeActive) {
+      await appWindow.setFullscreen(true)
+      showZenModeBadge()
+      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
+    } else {
+      await appWindow.setFullscreen(false)
+      hideZenModeBadge()
+    }
+  } catch (error) {
+    // Fallback for non-Tauri environment (browser dev)
+    console.warn('Tauri window API not available:', error)
+    if (zenModeActive) {
+      showZenModeBadge()
+      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
+    } else {
+      hideZenModeBadge()
+    }
   }
 }
 
 /**
  * Exit zen mode if active
  */
-function exitZenMode(): void {
+async function exitZenMode(): Promise<void> {
   if (zenModeActive) {
     zenModeActive = false
     document.documentElement.classList.remove('zen-mode')
+    hideZenModeBadge()
+    
+    // Exit fullscreen via Tauri API
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const appWindow = getCurrentWindow()
+      await appWindow.setFullscreen(false)
+    } catch (error) {
+      console.warn('Tauri window API not available:', error)
+    }
+  }
+}
+
+/**
+ * Show zen mode badge indicator
+ */
+function showZenModeBadge(): void {
+  // Remove existing badge if any
+  hideZenModeBadge()
+  
+  const badge = document.createElement('div')
+  badge.className = 'zen-mode-badge'
+  badge.innerHTML = `
+    <span class="zen-badge-icon">Z</span>
+    <span class="zen-badge-text">Zen Mode</span>
+  `
+  badge.title = 'Press Z or Escape to exit Zen mode'
+  badge.addEventListener('click', () => toggleZenMode())
+  document.body.appendChild(badge)
+}
+
+/**
+ * Hide zen mode badge
+ */
+function hideZenModeBadge(): void {
+  const badge = document.querySelector('.zen-mode-badge')
+  if (badge) {
+    badge.remove()
   }
 }
 
@@ -2324,6 +2382,9 @@ function setupKeyboardNavigation(): void {
     },
     onZenMode: () => {
       toggleZenMode()
+    },
+    onToggleTheme: () => {
+      toggleTheme()
     },
   })
 

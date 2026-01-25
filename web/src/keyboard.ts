@@ -16,6 +16,7 @@ type KeyboardCallback = {
   onSearch?: () => void
   onFocusComments?: () => void
   onZenMode?: () => void
+  onToggleTheme?: () => void
 }
 
 let callbacks: KeyboardCallback = {}
@@ -186,6 +187,11 @@ function handleKeydown(e: KeyboardEvent): void {
       callbacks.onZenMode?.()
       break
 
+    case 'd':
+      e.preventDefault()
+      callbacks.onToggleTheme?.()
+      break
+
     case '1':
     case '2':
     case '3':
@@ -223,6 +229,7 @@ export const KEYBOARD_SHORTCUTS = [
   { key: 'o', description: 'Open link in browser' },
   { key: 'c', description: 'Focus comments' },
   { key: 'z', description: 'Toggle Zen mode' },
+  { key: 'd', description: 'Toggle dark/light' },
   { key: 'Escape', description: 'Go back / exit Zen' },
   { key: 'r', description: 'Refresh feed' },
   { key: 't', description: 'Scroll to top' },
