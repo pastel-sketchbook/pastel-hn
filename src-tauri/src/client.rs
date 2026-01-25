@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use moka::future::Cache;
 use reqwest::Client;
-use tracing::{debug, info, instrument};
+use tracing::{debug, info, instrument, warn};
 
 use crate::types::*;
 
@@ -15,6 +15,26 @@ const ALGOLIA_BASE_URL: &str = "https://hn.algolia.com/api/v1";
 const ITEM_CACHE_TTL: Duration = Duration::from_secs(5 * 60); // 5 minutes
 const STORY_IDS_CACHE_TTL: Duration = Duration::from_secs(2 * 60); // 2 minutes
 const USER_CACHE_TTL: Duration = Duration::from_secs(10 * 60); // 10 minutes
+
+/// Check response for rate limiting and other errors
+fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
+    let status = response.status();
+    
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        // Try to get retry-after header, default to 60 seconds
+        let retry_after = response
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(60);
+        
+        warn!(retry_after = retry_after, "Rate limited by API");
+        return Err(ApiError::RateLimited(retry_after));
+    }
+    
+    Ok(())
+}
 
 /// HN API client with built-in caching
 pub struct HnClient {
@@ -70,7 +90,10 @@ impl HnClient {
         let url = format!("{}/{}.json", HN_BASE_URL, feed.endpoint());
         info!(url = %url, "Fetching story IDs");
 
-        let ids: Vec<u32> = self.http.get(&url).send().await?.json().await?;
+        let response = self.http.get(&url).send().await?;
+        check_response_status(&response)?;
+        
+        let ids: Vec<u32> = response.json().await?;
 
         debug!(feed = ?feed, count = ids.len(), "Fetched story IDs");
         self.story_ids_cache.insert(feed, ids.clone()).await;
@@ -91,6 +114,7 @@ impl HnClient {
         debug!(url = %url, "Fetching item");
 
         let response = self.http.get(&url).send().await?;
+        check_response_status(&response)?;
         
         if !response.status().is_success() {
             return Err(ApiError::NotFound(id));
@@ -161,6 +185,7 @@ impl HnClient {
         info!(url = %url, "Fetching user");
 
         let response = self.http.get(&url).send().await?;
+        check_response_status(&response)?;
         
         if !response.status().is_success() {
             return Err(ApiError::UserNotFound(id.to_string()));
@@ -309,7 +334,10 @@ impl HnClient {
 
         info!(url = %url, "Searching HN");
 
-        let response: AlgoliaResponse = self.http.get(&url).send().await?.json().await?;
+        let response = self.http.get(&url).send().await?;
+        check_response_status(&response)?;
+        
+        let response: AlgoliaResponse = response.json().await?;
 
         Ok(SearchResponse {
             hits: response.hits.into_iter().map(Into::into).collect(),
@@ -346,6 +374,7 @@ impl HnClient {
         info!(url = %url, "Fetching article content");
 
         let response = self.http.get(url).send().await?;
+        check_response_status(&response)?;
         
         if !response.status().is_success() {
             return Err(ApiError::ArticleExtraction(format!(

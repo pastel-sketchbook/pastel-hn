@@ -66,6 +66,79 @@ const SUBMISSIONS_PER_PAGE = 20
 const TRANSITION_DURATION = 350 // ms - matches CSS animation duration
 
 /**
+ * Error types for user-friendly messages
+ */
+type ApiErrorType = 'rate_limited' | 'not_found' | 'network' | 'unknown'
+
+interface ParsedError {
+  type: ApiErrorType
+  message: string
+  retryAfter?: number
+}
+
+/**
+ * Parse error message from API to determine error type and user-friendly message
+ */
+function parseApiError(error: unknown): ParsedError {
+  const errorStr = String(error)
+
+  // Check for rate limiting
+  const rateLimitMatch = errorStr.match(/Rate limited, retry after (\d+) seconds/)
+  if (rateLimitMatch) {
+    const retryAfter = Number.parseInt(rateLimitMatch[1], 10)
+    return {
+      type: 'rate_limited',
+      message: `Too many requests. Please wait ${retryAfter} seconds before trying again.`,
+      retryAfter,
+    }
+  }
+
+  // Check for not found errors
+  if (errorStr.includes('not found') || errorStr.includes('NotFound')) {
+    return {
+      type: 'not_found',
+      message: 'The requested content was not found.',
+    }
+  }
+
+  // Check for network errors
+  if (
+    errorStr.includes('network') ||
+    errorStr.includes('fetch') ||
+    errorStr.includes('Failed to fetch') ||
+    errorStr.includes('NetworkError')
+  ) {
+    return {
+      type: 'network',
+      message: 'Network error. Check your connection and try again.',
+    }
+  }
+
+  // Default unknown error
+  return {
+    type: 'unknown',
+    message: 'An unexpected error occurred. Please try again.',
+  }
+}
+
+/**
+ * Show appropriate toast for an API error
+ */
+function showErrorToast(error: unknown, context: string): void {
+  const parsed = parseApiError(error)
+
+  if (parsed.type === 'rate_limited') {
+    toastError(`Rate limited: ${context}. Try again in ${parsed.retryAfter}s.`)
+  } else if (parsed.type === 'not_found') {
+    toastError(`${context} not found.`)
+  } else if (parsed.type === 'network') {
+    toastError(`Network error: ${context}. Check your connection.`)
+  } else {
+    toastError(`Failed to ${context.toLowerCase()}.`)
+  }
+}
+
+/**
  * Check if user prefers reduced motion
  */
 function prefersReducedMotion(): boolean {
@@ -500,13 +573,17 @@ async function renderStories(
     })
   } catch (error) {
     container.setAttribute('aria-busy', 'false')
+    const parsed = parseApiError(error)
+    const errorMessage = parsed.type === 'rate_limited'
+      ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+      : 'Failed to load stories. Please try again.'
     container.innerHTML = `
       <div class="error" role="alert">
         <span class="error-icon" aria-hidden="true">⚠</span>
-        <span>Failed to load stories. Please try again.</span>
+        <span>${errorMessage}</span>
       </div>
     `
-    toastError('Failed to load stories. Check your connection and try again.')
+    showErrorToast(error, 'Load stories')
     console.error('Failed to load stories:', error)
   } finally {
     isLoading = false
@@ -1256,17 +1333,23 @@ async function renderStoryDetail(
       }
     })
   } catch (error) {
+    const parsed = parseApiError(error)
+    const errorMessage = parsed.type === 'rate_limited'
+      ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+      : parsed.type === 'not_found'
+        ? 'Story not found. It may have been deleted.'
+        : 'Failed to load story. Please try again.'
     container.innerHTML = `
       <div class="error">
         <span class="error-icon">⚠</span>
-        <span>Failed to load story. Please try again.</span>
+        <span>${errorMessage}</span>
       </div>
       <button class="back-btn" data-action="back" style="margin: 2rem auto; display: flex;">
         ${icons.back}
         <span>Back to stories</span>
       </button>
     `
-    toastError('Failed to load story')
+    showErrorToast(error, 'Load story')
     console.error('Failed to load story:', error)
   } finally {
     isLoading = false
@@ -1438,17 +1521,23 @@ async function renderUserProfile(userId: string): Promise<void> {
     // Scroll to top
     setScrollTop(0)
   } catch (error) {
+    const parsed = parseApiError(error)
+    const errorMessage = parsed.type === 'rate_limited'
+      ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+      : parsed.type === 'not_found'
+        ? 'User not found. The account may not exist.'
+        : 'Failed to load user profile. Please try again.'
     container.innerHTML = `
       <div class="error">
         <span class="error-icon">⚠</span>
-        <span>Failed to load user profile. User may not exist.</span>
+        <span>${errorMessage}</span>
       </div>
       <button class="back-btn" data-action="back" style="margin: 2rem auto; display: flex;">
         ${icons.back}
         <span>Back</span>
       </button>
     `
-    toastError('User not found')
+    showErrorToast(error, 'Load user')
     console.error('Failed to load user:', error)
   } finally {
     isLoading = false
