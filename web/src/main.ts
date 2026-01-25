@@ -1189,7 +1189,7 @@ function renderComment(
   // "Load more" button for unfetched children
   const loadMoreHtml = hasUnfetchedChildren
     ? `
-      <div class="comment-load-more" data-parent-id="${comment.id}" data-depth="${depth + 1}">
+      <div class="comment-load-more" data-parent-id="${comment.id}" data-depth="${depth + 1}" data-reply-count="${totalKids}">
         <button class="load-more-replies-btn">
           ${icons.expand}
           <span>Load ${totalKids} ${totalKids === 1 ? 'reply' : 'replies'}</span>
@@ -1380,8 +1380,10 @@ async function renderStoryDetail(
   try {
     // Check if we have cached data from prefetching
     const cachedData = getCachedStoryDetail(storyId)
+    // Use depth=1 for lazy loading - fetch only top-level comments initially
+    // Users can expand individual threads to load more
     const { story, comments } =
-      cachedData || (await fetchStoryWithComments(storyId, 3))
+      cachedData || (await fetchStoryWithComments(storyId, 1))
     currentStoryAuthor = story.by // Store for "load more" functionality
     const domain = extractDomain(story.url)
     const timeAgo = formatTimeAgo(story.time)
@@ -1840,16 +1842,17 @@ function setupCommentCollapse(): void {
 
       const parentId = Number(loadMoreContainer.dataset.parentId)
       const depth = Number(loadMoreContainer.dataset.depth)
+      const replyCount = Number(loadMoreContainer.dataset.replyCount) || 3
 
-      // Show loading state
-      loadMoreBtn.disabled = true
-      loadMoreBtn.innerHTML = `
-        <div class="loading-spinner small"></div>
-        <span>Loading...</span>
-      `
+      // Show loading skeleton instead of button
+      const skeletonCount = Math.min(replyCount, 3) // Show up to 3 skeletons
+      loadMoreContainer.innerHTML = renderCommentSkeletons(skeletonCount)
+      loadMoreContainer.classList.add('loading')
 
       try {
-        const children = await fetchCommentChildren(parentId, 2)
+        // Use depth=1 for lazy loading - only load immediate children
+        // Each child will have its own "load more" button if it has kids
+        const children = await fetchCommentChildren(parentId, 1)
 
         if (children.length > 0) {
           // Render the new comments
@@ -1890,10 +1893,13 @@ function setupCommentCollapse(): void {
         }
       } catch (error) {
         console.error('Failed to load replies:', error)
-        loadMoreBtn.disabled = false
-        loadMoreBtn.innerHTML = `
-          ${icons.expand}
-          <span>Failed to load. Retry?</span>
+        // Restore the button on error
+        loadMoreContainer.classList.remove('loading')
+        loadMoreContainer.innerHTML = `
+          <button class="load-more-replies-btn error">
+            ${icons.expand}
+            <span>Failed to load. Retry?</span>
+          </button>
         `
       }
     }

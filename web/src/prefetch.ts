@@ -53,7 +53,8 @@ export async function prefetchStoryDetail(id: number): Promise<void> {
   pendingPrefetches.add(`story:${id}`)
 
   try {
-    const result = await fetchStoryWithComments(id, 3)
+    // Use depth=1 for lazy loading - only prefetch top-level comments
+    const result = await fetchStoryWithComments(id, 1)
     storyDetailCache.set(id, result)
     prefetchedStories.add(id)
   } catch {

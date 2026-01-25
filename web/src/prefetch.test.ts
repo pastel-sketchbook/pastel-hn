@@ -60,7 +60,7 @@ describe('prefetch', () => {
 
       await prefetchStoryDetail(123)
 
-      expect(mockFetchStoryWithComments).toHaveBeenCalledWith(123, 3)
+      expect(mockFetchStoryWithComments).toHaveBeenCalledWith(123, 1)
       expect(isStoryCached(123)).toBe(true)
       expect(getCachedStoryDetail(123)).toEqual(mockStory)
     })
@@ -139,7 +139,7 @@ describe('prefetch', () => {
       vi.advanceTimersByTime(200)
       await vi.runAllTimersAsync()
 
-      expect(mockFetchStoryWithComments).toHaveBeenCalledWith(100, 3)
+      expect(mockFetchStoryWithComments).toHaveBeenCalledWith(100, 1)
     })
 
     it('cancels prefetch when hover ends before delay', () => {

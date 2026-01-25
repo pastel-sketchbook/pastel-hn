@@ -67,7 +67,7 @@
 - [x] In-memory item cache with 5min TTL (10,000 items max)
 - [x] Story IDs cache with 2min TTL
 - [x] User cache with 10min TTL
-- [ ] Intelligent prefetching for visible stories
+- [x] Intelligent prefetching for visible stories
 - [ ] Background refresh for stale data
 - [ ] Persistent cache (SQLite) for offline support
 
@@ -115,8 +115,8 @@
 - [x] Page transition animations
 - [x] List item stagger animations
 - [x] Collapse/expand animations for comments
-- [ ] **Loading shimmer effect for article content**
-- [ ] **Success/error toast slide animations**
+- [x] **Loading shimmer effect for article content**
+- [x] **Success/error toast slide animations**
 
 ---
 
@@ -154,7 +154,7 @@
 - [x] Relative timestamp
 - [x] HTML content rendering (safe)
 - [x] Collapse/expand toggle
-- [ ] Reply count badge
+- [x] Reply count badge
 - [x] Nested indent styling
 - [x] Highlight OP comments
 
@@ -199,12 +199,12 @@
 - [x] Scroll position preservation on back
 - [ ] "New comments" indicator on revisit
 - [x] Mark stories as read (visual indicator)
-- [ ] Reading time estimates (backend `word_count` exists, wire to UI)
+- [x] Reading time estimates (displayed for text posts and articles)
 - [x] Distraction-free reading mode (Zen mode with 'z' key)
-- [ ] **Article Reader Mode** (use existing `fetch_article_content` command to render articles inline)
+- [x] **Article Reader Mode** (renders articles inline with reading time)
 
 ### 4.3 Smart Features
-- [ ] Intelligent prefetching (next page, hovered stories)
+- [x] Intelligent prefetching (next page, hovered stories)
 - [ ] Comment count change detection
 - [ ] Story score trending indicator
 - [ ] "Hot" story detection algorithm
