@@ -114,6 +114,8 @@
 - [x] Page transition animations
 - [x] List item stagger animations
 - [ ] Collapse/expand animations for comments
+- [ ] **Loading shimmer effect for article content**
+- [ ] **Success/error toast slide animations**
 
 ---
 
@@ -168,6 +170,9 @@
 - [x] Information density (compact/normal/comfortable)
 - [x] Default feed selection
 - [ ] Keyboard shortcut reference
+- [ ] **Clear reading history option**
+- [ ] **Cache management (view size, clear)**
+- [ ] **Export/import settings**
 
 ---
 
@@ -190,8 +195,9 @@
 - [x] Scroll position preservation on back
 - [ ] "New comments" indicator on revisit
 - [x] Mark stories as read (visual indicator)
-- [ ] Reading time estimates
+- [ ] Reading time estimates (backend `word_count` exists, wire to UI)
 - [ ] Distraction-free reading mode
+- [ ] **Article Reader Mode** (use existing `fetch_article_content` command to render articles inline)
 
 ### 4.3 Smart Features
 - [ ] Intelligent prefetching (next page, hovered stories)
@@ -199,14 +205,21 @@
 - [ ] Story score trending indicator
 - [ ] "Hot" story detection algorithm
 - [ ] Duplicate story detection
+- [ ] **Rate limit detection and retry UI** (ApiError::RateLimited exists but unused)
 
-### 4.4 Offline Support
+### 4.4 Error Handling UX
+- [ ] **Connection error recovery with retry button**
+- [ ] **Graceful degradation when offline**
+- [ ] **Error boundaries to prevent full app crashes**
+- [ ] **User-friendly error messages (not raw API errors)**
+
+### 4.5 Offline Support
 - [ ] Offline indicator in header
 - [ ] Cache stories for offline reading (SQLite)
 - [ ] Queue actions for when online
 - [ ] Sync status indicators
 
-### 4.5 Bookmarks & History
+### 4.6 Bookmarks & History
 - [ ] Bookmark stories locally
 - [ ] Reading history with timestamps
 - [ ] Export bookmarks
@@ -253,20 +266,29 @@
 - [ ] Lazy comment loading (fetch on expand)
 - [ ] Bundle size optimization (<100KB JS)
 - [ ] First contentful paint <500ms
+- [ ] **Image/favicon lazy loading for story domains**
+- [ ] **Request deduplication for concurrent fetches**
 
 ### 6.2 Accessibility
 - [x] Full keyboard navigation
 - [x] ARIA labels for all interactive elements
-- [ ] Screen reader announcements
-- [ ] Focus trap in modals
+- [ ] Screen reader announcements (live regions for loading/errors)
+- [ ] Focus trap in modals (settings, search, help)
 - [ ] High contrast mode
 - [x] Reduced motion support
+- [ ] **Skip-to-content link**
+- [ ] **Proper heading hierarchy audit**
 
 ### 6.3 Testing
 - [x] Unit tests for API functions (api.test.ts - 18 tests)
 - [x] Unit tests for theme module (theme.test.ts - 11 tests)
 - [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 7 tests)
-- [ ] Rust unit tests for HnClient
+- [ ] **Unit tests for keyboard.ts** (navigation, shortcuts, callbacks)
+- [ ] **Unit tests for storage.ts** (localStorage, scroll positions, read tracking)
+- [ ] **Unit tests for settings.ts** (preferences, persistence)
+- [ ] **Unit tests for toast.ts** (notification display, timing)
+- [ ] Rust unit tests for HnClient (fetch, caching, error handling)
+- [ ] **Rust unit tests for types.rs** (serialization, From impls)
 - [ ] Component tests for UI
 - [ ] E2E tests with Playwright
 - [ ] Visual regression tests
@@ -278,6 +300,9 @@
 - [ ] Keyboard shortcut reference
 - [ ] Contributing guide
 - [x] Architecture overview (this document + ADRs)
+- [ ] **API module documentation (rustdoc)**
+- [ ] **TypeScript JSDoc for public functions**
+- [ ] **CHANGELOG.md for release notes**
 
 ---
 
