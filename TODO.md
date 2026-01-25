@@ -273,7 +273,7 @@
 - [x] Full keyboard navigation
 - [x] ARIA labels for all interactive elements
 - [ ] Screen reader announcements (live regions for loading/errors)
-- [ ] Focus trap in modals (settings, search, help)
+- [x] Focus trap in modals (settings, search, help)
 - [ ] High contrast mode
 - [x] Reduced motion support
 - [ ] **Skip-to-content link**
