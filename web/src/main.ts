@@ -14,6 +14,7 @@ import {
   type SearchSort,
   searchHN,
 } from './api'
+import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import {
   initKeyboard,
   KEYBOARD_SHORTCUTS,
@@ -53,6 +54,7 @@ let isLoadingMore = false
 let currentView: 'list' | 'detail' | 'user' = 'list'
 let currentStories: HNItem[] = []
 let helpModalOpen = false
+let helpModalFocusTrap: FocusTrapInstance | null = null
 let currentOffset = 0
 let hasMoreStories = true
 let currentStoryAuthor: string | null = null // Track OP for comment highlighting
@@ -281,6 +283,7 @@ let virtualScroll: VirtualScroll<HNItem> | null = null
 
 // Search modal state
 let searchModalOpen = false
+let searchModalFocusTrap: FocusTrapInstance | null = null
 let searchQuery = ''
 let searchResults: SearchResult[] = []
 let searchSort: SearchSort = 'relevance'
@@ -1798,6 +1801,13 @@ function showHelpModal(): void {
 
   document.body.appendChild(modal)
 
+  // Set up focus trap
+  const modalContent = modal.querySelector('.help-modal') as HTMLElement
+  if (modalContent) {
+    helpModalFocusTrap = createFocusTrap(modalContent)
+    helpModalFocusTrap.activate()
+  }
+
   // Close on click outside or escape
   modal.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
@@ -1808,6 +1818,12 @@ function showHelpModal(): void {
 }
 
 function closeHelpModal(): void {
+  // Deactivate focus trap first
+  if (helpModalFocusTrap) {
+    helpModalFocusTrap.deactivate()
+    helpModalFocusTrap = null
+  }
+
   const modal = document.querySelector('.help-modal-overlay')
   if (modal) {
     modal.remove()
@@ -1864,6 +1880,13 @@ function showSearchModal(): void {
   `
 
   document.body.appendChild(modal)
+
+  // Set up focus trap
+  const modalContent = modal.querySelector('.search-modal') as HTMLElement
+  if (modalContent) {
+    searchModalFocusTrap = createFocusTrap(modalContent)
+    searchModalFocusTrap.activate()
+  }
 
   // Get input element
   const input = modal.querySelector('.search-input') as HTMLInputElement
@@ -1977,6 +2000,12 @@ function showSearchModal(): void {
 }
 
 function closeSearchModal(): void {
+  // Deactivate focus trap first
+  if (searchModalFocusTrap) {
+    searchModalFocusTrap.deactivate()
+    searchModalFocusTrap = null
+  }
+
   const modal = document.querySelector('.search-modal-overlay')
   if (modal) {
     modal.remove()

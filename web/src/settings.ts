@@ -2,6 +2,7 @@
  * Settings panel for user preferences
  */
 
+import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import { setTheme, type Theme } from './theme'
 
 export type FontSize = 'compact' | 'normal' | 'comfortable'
@@ -26,6 +27,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 let currentSettings: Settings = { ...DEFAULT_SETTINGS }
 let settingsModalOpen = false
+let focusTrap: FocusTrapInstance | null = null
 
 // SVG icons for settings
 const settingsIcons = {
@@ -214,6 +216,13 @@ export function showSettingsModal(): void {
 
   document.body.appendChild(modal)
 
+  // Set up focus trap
+  const modalContent = modal.querySelector('.settings-modal') as HTMLElement
+  if (modalContent) {
+    focusTrap = createFocusTrap(modalContent)
+    focusTrap.activate()
+  }
+
   // Handle clicks
   modal.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
@@ -266,6 +275,12 @@ export function showSettingsModal(): void {
  * Close the settings modal
  */
 export function closeSettingsModal(): void {
+  // Deactivate focus trap first
+  if (focusTrap) {
+    focusTrap.deactivate()
+    focusTrap = null
+  }
+
   const modal = document.querySelector('.settings-modal-overlay')
   if (modal) {
     modal.remove()
