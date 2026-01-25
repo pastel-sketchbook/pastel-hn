@@ -337,7 +337,7 @@ header.scrolled {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 0.5rem;
+  margin-left: 1rem;
 }
 
 /* Subtle border in light mode */
