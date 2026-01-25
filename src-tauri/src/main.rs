@@ -21,6 +21,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(hn_client)
         .invoke_handler(tauri::generate_handler![
             // HN API commands
