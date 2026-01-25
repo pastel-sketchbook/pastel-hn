@@ -205,13 +205,13 @@
 - [ ] Story score trending indicator
 - [ ] "Hot" story detection algorithm
 - [ ] Duplicate story detection
-- [ ] **Rate limit detection and retry UI** (ApiError::RateLimited exists but unused)
+- [x] Rate limit detection and retry UI
 
 ### 4.4 Error Handling UX
-- [ ] **Connection error recovery with retry button**
-- [ ] **Graceful degradation when offline**
-- [ ] **Error boundaries to prevent full app crashes**
-- [ ] **User-friendly error messages (not raw API errors)**
+- [ ] Connection error recovery with retry button
+- [ ] Graceful degradation when offline
+- [ ] Error boundaries to prevent full app crashes
+- [x] User-friendly error messages (not raw API errors)
 
 ### 4.5 Offline Support
 - [ ] Offline indicator in header
