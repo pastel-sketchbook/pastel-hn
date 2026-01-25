@@ -43,7 +43,6 @@ import {
   type HNItem,
   ItemType,
   type StoryFeed,
-  type StoryWithComments,
 } from './types'
 import { VirtualScroll } from './virtual-scroll'
 import './styles/main.css'
@@ -428,7 +427,11 @@ async function triggerRefresh(): Promise<void> {
   }, 300)
 }
 
-async function renderStories(feed: StoryFeed, refresh = false, animateIn = false): Promise<void> {
+async function renderStories(
+  feed: StoryFeed,
+  refresh = false,
+  animateIn = false,
+): Promise<void> {
   if (isLoading) return
   isLoading = true
   resetSelection()
@@ -1003,7 +1006,9 @@ function setupStoryTabs(container: HTMLElement): void {
       if (!tabName) return
 
       // Update active tab
-      tabs.forEach((t) => t.classList.remove('active'))
+      tabs.forEach((t) => {
+        t.classList.remove('active')
+      })
       tab.classList.add('active')
 
       // Show/hide content
@@ -1070,7 +1075,10 @@ async function fetchAndDisplayArticle(
   }
 }
 
-async function renderStoryDetail(storyId: number, clickedStoryEl?: HTMLElement): Promise<void> {
+async function renderStoryDetail(
+  storyId: number,
+  clickedStoryEl?: HTMLElement,
+): Promise<void> {
   if (isLoading) return
   isLoading = true
   currentView = 'detail'
@@ -1181,7 +1189,9 @@ async function renderStoryDetail(storyId: number, clickedStoryEl?: HTMLElement):
         </div>
         
         <div class="story-tab-content" data-tab-content="story">
-          ${hasExternalUrl ? `
+          ${
+            hasExternalUrl
+              ? `
             <div class="article-content" data-url="${escapeHtml(story.url || '')}">
               <div class="article-loading">
                 <div class="skeleton skeleton-title" style="height: 1.5rem; width: 60%; margin-bottom: 1rem;"></div>
@@ -1192,9 +1202,12 @@ async function renderStoryDetail(storyId: number, clickedStoryEl?: HTMLElement):
                 <div class="skeleton" style="height: 1rem; width: 80%;"></div>
               </div>
             </div>
-          ` : story.text ? `
+          `
+              : story.text
+                ? `
             <div class="story-detail-text">${sanitizeHtml(story.text)}</div>
-          ` : `
+          `
+                : `
             <div class="no-content">
               <p>This story links to an external URL.</p>
               <a href="${story.url}" target="_blank" rel="noopener" class="external-link-btn">
@@ -1202,7 +1215,8 @@ async function renderStoryDetail(storyId: number, clickedStoryEl?: HTMLElement):
                 <span>Open in browser</span>
               </a>
             </div>
-          `}
+          `
+          }
         </div>
         
         <div class="story-tab-content hidden" data-tab-content="comments">

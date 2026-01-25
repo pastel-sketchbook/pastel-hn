@@ -168,7 +168,9 @@ import type { ArticleContent } from './types'
 /**
  * Fetch and extract article content from an external URL
  */
-export async function fetchArticleContent(url: string): Promise<ArticleContent> {
+export async function fetchArticleContent(
+  url: string,
+): Promise<ArticleContent> {
   return invoke('fetch_article_content', { url })
 }
 
