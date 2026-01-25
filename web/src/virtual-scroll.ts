@@ -180,18 +180,6 @@ export class VirtualScroll<T> {
   }
 
   /**
-   * Get the offset of the container from the top of the scroll element
-   */
-  private getContainerOffset(): number {
-    if (this.scrollElement) {
-      const containerRect = this.container.getBoundingClientRect()
-      const scrollRect = this.scrollElement.getBoundingClientRect()
-      return containerRect.top - scrollRect.top + this.scrollTop
-    }
-    return this.container.getBoundingClientRect().top + window.scrollY
-  }
-
-  /**
    * Update container height based on scroll element
    */
   private updateContainerHeight(): void {

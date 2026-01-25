@@ -22,6 +22,7 @@
 [data-theme="dark"] {
   --bg-primary: #050a0e;
   --bg-secondary: #0a1014;
+  --bg-page: #041518; /* Dark cyanish background for page sides */
   --bg-panel: rgba(10, 16, 20, 0.92);
   --bg-panel-inner: rgba(20, 30, 40, 0.6);
   --bg-hover: rgba(0, 217, 255, 0.08);
@@ -119,7 +120,7 @@ html {
 body {
   font-family: var(--font-sans);
   font-weight: 500;
-  background: var(--bg-primary);
+  background: var(--bg-page, var(--bg-primary));
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
@@ -401,13 +402,14 @@ main {
   min-height: 400px;
 }
 
-/* Inner glow bar at top */
+/* Inner glow bar at top - stays fixed at top of scroll container */
 #stories::before {
   content: "";
-  position: absolute;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
+  display: block;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--cyan), transparent);
   box-shadow: 0 0 20px var(--cyan-glow);
@@ -616,8 +618,9 @@ main {
 /* Rank badge styling */
 .story-rank {
   font-family: var(--font-mono);
+  font-weight: 600;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   min-width: 2.25rem;
   height: 2.25rem;
   display: flex;
@@ -709,7 +712,7 @@ main {
 }
 
 .story-title {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
   line-height: 1.4;
@@ -748,7 +751,7 @@ main {
 }
 
 .story-domain {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
   margin-left: 0.75rem;
@@ -759,7 +762,7 @@ main {
   flex-wrap: wrap;
   align-items: center;
   gap: 0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   font-family: var(--font-mono);
 }
@@ -2663,7 +2666,7 @@ main {
 
 .search-modal {
   width: 90%;
-  max-width: 600px;
+  max-width: 800px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
@@ -2695,7 +2698,7 @@ main {
   width: 100%;
   padding: 1rem 1rem 1rem 3rem;
   font-family: var(--font-sans);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   background: var(--bg-panel-inner);
   border: 2px solid var(--border);
   border-radius: 4px;
@@ -2725,7 +2728,7 @@ main {
   color: var(--text-secondary);
   padding: 0.4rem 0.8rem;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.25s ease;
   border-radius: 2px;
@@ -2806,7 +2809,7 @@ main {
 }
 
 .search-result-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 0.35rem;
@@ -2826,7 +2829,7 @@ main {
   align-items: center;
   gap: 0;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
