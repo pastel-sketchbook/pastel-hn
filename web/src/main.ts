@@ -1,6 +1,7 @@
 import {
   clearStoryIdsCache,
   extractDomain,
+  fetchArticleContent,
   fetchCommentChildren,
   fetchStoriesPaginated,
   fetchStoryWithComments,
@@ -42,6 +43,7 @@ import {
   type HNItem,
   ItemType,
   type StoryFeed,
+  type StoryWithComments,
 } from './types'
 import { VirtualScroll } from './virtual-scroll'
 import './styles/main.css'
@@ -61,51 +63,101 @@ let readStoryIds: Set<number> = new Set() // Cache of read stories
 const STORIES_PER_PAGE = 30
 const SUBMISSIONS_PER_PAGE = 20
 
-// Page transition utilities
-type TransitionDirection = 'forward' | 'back' | 'fade'
+// Animation duration constants
+const TRANSITION_DURATION = 350 // ms - matches CSS animation duration
 
-async function _transitionView(
-  container: HTMLElement,
-  direction: TransitionDirection,
-  renderFn: () => void | Promise<void>,
-): Promise<void> {
-  // Determine exit animation based on direction
-  const exitClass =
-    direction === 'forward'
-      ? 'view-exit-to-left'
-      : direction === 'back'
-        ? 'view-exit-to-right'
-        : 'view-fade-out'
+/**
+ * Check if user prefers reduced motion
+ */
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
-  const enterClass =
-    direction === 'forward'
-      ? 'view-enter-from-right'
-      : direction === 'back'
-        ? 'view-enter-from-left'
-        : 'view-fade-in'
+/**
+ * Animate stories away from clicked story (contextual open animation)
+ * - Stories above the clicked one slide up
+ * - Stories below the clicked one slide down
+ * - Clicked story fades out
+ */
+async function animateStoriesAway(clickedStoryEl: HTMLElement): Promise<void> {
+  if (prefersReducedMotion()) return
 
-  // Check for reduced motion preference
-  const prefersReducedMotion = window.matchMedia(
-    '(prefers-reduced-motion: reduce)',
-  ).matches
-  const duration = prefersReducedMotion ? 0 : 150
+  const container = document.getElementById('stories')
+  if (!container) return
 
-  // Exit animation
-  if (duration > 0) {
-    container.classList.add('view-transition', exitClass)
-    await new Promise((resolve) => setTimeout(resolve, duration))
-    container.classList.remove('view-transition', exitClass)
-  }
+  const allStories = Array.from(container.querySelectorAll('.story'))
+  const clickedIndex = allStories.indexOf(clickedStoryEl)
 
-  // Render new content
-  await renderFn()
+  if (clickedIndex === -1) return
 
-  // Enter animation
-  if (duration > 0) {
-    container.classList.add('view-transition', enterClass)
-    await new Promise((resolve) => setTimeout(resolve, duration * 2))
-    container.classList.remove('view-transition', enterClass)
-  }
+  // Apply animations to each story based on position relative to clicked
+  allStories.forEach((story, index) => {
+    const el = story as HTMLElement
+    el.classList.add('view-transition')
+
+    if (index < clickedIndex) {
+      // Stories above: slide up
+      el.classList.add('view-exit-up')
+    } else if (index > clickedIndex) {
+      // Stories below: slide down
+      el.classList.add('view-exit-down')
+    } else {
+      // Clicked story: fade out in place
+      el.classList.add('view-anchor-fade')
+    }
+  })
+
+  // Wait for animation to complete
+  await new Promise((resolve) => setTimeout(resolve, TRANSITION_DURATION))
+}
+
+/**
+ * Animate detail view entering
+ */
+async function animateDetailEnter(container: HTMLElement): Promise<void> {
+  if (prefersReducedMotion()) return
+
+  container.classList.add('view-transition', 'view-enter-from-bottom')
+  await new Promise((resolve) => setTimeout(resolve, TRANSITION_DURATION))
+  container.classList.remove('view-transition', 'view-enter-from-bottom')
+}
+
+/**
+ * Animate detail view exiting (going back to list)
+ */
+async function animateDetailExit(container: HTMLElement): Promise<void> {
+  if (prefersReducedMotion()) return
+
+  container.classList.add('view-transition', 'view-fade-out')
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  container.classList.remove('view-transition', 'view-fade-out')
+}
+
+/**
+ * Animate list view entering (coming back from detail)
+ */
+async function animateListEnter(container: HTMLElement): Promise<void> {
+  if (prefersReducedMotion()) return
+
+  container.classList.add('view-transition', 'view-enter-from-top')
+  await new Promise((resolve) => setTimeout(resolve, TRANSITION_DURATION))
+  container.classList.remove('view-transition', 'view-enter-from-top')
+}
+
+/**
+ * Navigate back to list view with animation
+ */
+async function navigateBackToList(): Promise<void> {
+  const container = document.getElementById('stories')
+  if (!container) return
+
+  // Animate detail view exiting
+  await animateDetailExit(container)
+
+  // Update state and render list with animation
+  currentView = 'list'
+  window.location.hash = ''
+  await renderStories(currentFeed, false, true)
 }
 
 function applyStaggerAnimation(container: HTMLElement, selector: string): void {
@@ -376,7 +428,7 @@ async function triggerRefresh(): Promise<void> {
   }, 300)
 }
 
-async function renderStories(feed: StoryFeed, refresh = false): Promise<void> {
+async function renderStories(feed: StoryFeed, refresh = false, animateIn = false): Promise<void> {
   if (isLoading) return
   isLoading = true
   resetSelection()
@@ -412,6 +464,11 @@ async function renderStories(feed: StoryFeed, refresh = false): Promise<void> {
 
   // Show skeleton loading state
   container.innerHTML = renderStorySkeletons(6)
+
+  // Animate list entering if coming back from detail
+  if (animateIn) {
+    await animateListEnter(container)
+  }
 
   try {
     const { stories, hasMore } = await fetchStoriesPaginated(
@@ -669,6 +726,9 @@ const icons = {
   expand: `<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`,
   search: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
   sort: `<svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/></svg>`,
+  externalLink: `<svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  document: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  article: `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>`,
 }
 
 // ===== SKELETON LOADING COMPONENTS =====
@@ -930,7 +990,87 @@ function renderComment(
   `
 }
 
-async function renderStoryDetail(storyId: number): Promise<void> {
+/**
+ * Set up tab switching for story detail view
+ */
+function setupStoryTabs(container: HTMLElement): void {
+  const tabs = container.querySelectorAll('.story-tab')
+  const contents = container.querySelectorAll('.story-tab-content')
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const tabName = (tab as HTMLElement).dataset.tab
+      if (!tabName) return
+
+      // Update active tab
+      tabs.forEach((t) => t.classList.remove('active'))
+      tab.classList.add('active')
+
+      // Show/hide content
+      contents.forEach((content) => {
+        const contentName = (content as HTMLElement).dataset.tabContent
+        if (contentName === tabName) {
+          content.classList.remove('hidden')
+        } else {
+          content.classList.add('hidden')
+        }
+      })
+
+      // Scroll to top when switching tabs
+      setScrollTop(0)
+    })
+  })
+}
+
+/**
+ * Fetch article content from external URL and display it
+ */
+async function fetchAndDisplayArticle(
+  url: string,
+  container: HTMLElement,
+): Promise<void> {
+  const articleContainer = container.querySelector('.article-content')
+  if (!articleContainer) return
+
+  try {
+    const article = await fetchArticleContent(url)
+
+    if (article.content) {
+      articleContainer.innerHTML = `
+        <div class="article-reader">
+          ${article.title ? `<h2 class="article-title">${escapeHtml(article.title)}</h2>` : ''}
+          ${article.byline ? `<div class="article-byline">${escapeHtml(article.byline)}</div>` : ''}
+          ${article.siteName ? `<div class="article-source">${escapeHtml(article.siteName)}</div>` : ''}
+          <div class="article-body">${article.content}</div>
+          ${article.wordCount ? `<div class="article-word-count">${article.wordCount} words</div>` : ''}
+        </div>
+      `
+    } else {
+      articleContainer.innerHTML = `
+        <div class="article-error">
+          <p>Could not extract article content.</p>
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="external-link-btn">
+            ${icons.link}
+            <span>Open in browser</span>
+          </a>
+        </div>
+      `
+    }
+  } catch (error) {
+    console.error('Failed to fetch article:', error)
+    articleContainer.innerHTML = `
+      <div class="article-error">
+        <p>Failed to load article content.</p>
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="external-link-btn">
+          ${icons.link}
+          <span>Open in browser</span>
+        </a>
+      </div>
+    `
+  }
+}
+
+async function renderStoryDetail(storyId: number, clickedStoryEl?: HTMLElement): Promise<void> {
   if (isLoading) return
   isLoading = true
   currentView = 'detail'
@@ -947,6 +1087,11 @@ async function renderStoryDetail(storyId: number): Promise<void> {
 
   const container = document.getElementById('stories')
   if (!container) return
+
+  // Animate stories away if we have a clicked element
+  if (clickedStoryEl) {
+    await animateStoriesAway(clickedStoryEl)
+  }
 
   // Show skeleton loading state for story detail
   container.innerHTML = `
@@ -975,6 +1120,9 @@ async function renderStoryDetail(storyId: number): Promise<void> {
     </div>
   `
 
+  // Animate detail view entering
+  await animateDetailEnter(container)
+
   try {
     const { story, comments } = await fetchStoryWithComments(storyId, 3)
     currentStoryAuthor = story.by // Store for "load more" functionality
@@ -991,6 +1139,11 @@ async function renderStoryDetail(storyId: number): Promise<void> {
       comments.length > 0
         ? comments.map((c) => renderComment(c, 0, story.by)).join('')
         : '<div class="no-comments">No comments yet</div>'
+
+    // For stories with URLs, we'll show a "Story" tab for article content
+    // For Ask HN / text posts, show the text directly
+    const hasExternalUrl = !!story.url && !story.url.startsWith('item?id=')
+    const commentCount = story.descendants || 0
 
     container.innerHTML = `
       <div class="story-detail"${typeAttr}>
@@ -1012,18 +1165,58 @@ async function renderStoryDetail(storyId: number): Promise<void> {
             <span class="meta-sep"></span>
             <span class="story-time">${icons.clock}${timeAgo}</span>
             <span class="meta-sep"></span>
-            <span class="story-comments-count">${icons.comment}${story.descendants || 0} comments</span>
+            <span class="story-comments-count">${icons.comment}${commentCount} comments</span>
           </div>
-          ${story.text ? `<div class="story-detail-text">${sanitizeHtml(story.text)}</div>` : ''}
         </article>
-        <section class="comments-section">
-          <h2 class="comments-header">${icons.comment}Comments</h2>
-          <div class="comments-list">
-            ${commentsHtml}
-          </div>
-        </section>
+        
+        <div class="story-tabs">
+          <button class="story-tab active" data-tab="story">
+            ${icons.article}
+            <span>Story</span>
+          </button>
+          <button class="story-tab" data-tab="comments">
+            ${icons.comment}
+            <span>Comments${commentCount > 0 ? ` (${commentCount})` : ''}</span>
+          </button>
+        </div>
+        
+        <div class="story-tab-content" data-tab-content="story">
+          ${hasExternalUrl ? `
+            <div class="article-content" data-url="${escapeHtml(story.url || '')}">
+              <div class="article-loading">
+                <div class="skeleton skeleton-title" style="height: 1.5rem; width: 60%; margin-bottom: 1rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.5rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 100%; margin-bottom: 0.5rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 90%; margin-bottom: 0.5rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 95%; margin-bottom: 0.5rem;"></div>
+                <div class="skeleton" style="height: 1rem; width: 80%;"></div>
+              </div>
+            </div>
+          ` : story.text ? `
+            <div class="story-detail-text">${sanitizeHtml(story.text)}</div>
+          ` : `
+            <div class="no-content">
+              <p>This story links to an external URL.</p>
+              <a href="${story.url}" target="_blank" rel="noopener" class="external-link-btn">
+                ${icons.link}
+                <span>Open in browser</span>
+              </a>
+            </div>
+          `}
+        </div>
+        
+        <div class="story-tab-content hidden" data-tab-content="comments">
+          <section class="comments-section">
+            <div class="comments-list">
+              ${commentsHtml}
+            </div>
+          </section>
+        </div>
       </div>
     `
+
+    // Set up tab switching
+    setupStoryTabs(container)
 
     // Set up comment collapse handlers
     setupCommentCollapse()
@@ -1032,6 +1225,11 @@ async function renderStoryDetail(storyId: number): Promise<void> {
     const commentsList = container.querySelector('.comments-list')
     if (commentsList) {
       applyStaggerAnimation(commentsList as HTMLElement, ':scope > .comment')
+    }
+
+    // If there's an external URL, fetch the article content
+    if (hasExternalUrl && story.url) {
+      fetchAndDisplayArticle(story.url, container)
     }
 
     // Restore scroll position for this story (defer to allow DOM to render)
@@ -1802,6 +2000,12 @@ function setupKeyboardNavigation(): void {
     onSelect: (index) => {
       if (currentView === 'list' && currentStories[index]) {
         const storyId = currentStories[index].id
+        // Find the selected story card element for contextual animation
+        const storyCards = document.querySelectorAll('.story-card')
+        const clickedEl = storyCards[index] as HTMLElement | undefined
+        // Call renderStoryDetail directly with element for animation
+        // then update hash (renderStoryDetail sets isLoading, preventing double render)
+        renderStoryDetail(storyId, clickedEl)
         window.location.hash = `item/${storyId}`
       }
     },
@@ -1823,14 +2027,15 @@ function setupKeyboardNavigation(): void {
       } else if (helpModalOpen) {
         closeHelpModal()
       } else if (currentView === 'detail') {
-        currentView = 'list'
-        window.location.hash = ''
-        renderStories(currentFeed)
+        navigateBackToList()
       }
     },
     onRefresh: () => {
       if (currentView === 'list') {
         renderStories(currentFeed)
+      } else if (currentView === 'detail' && currentStoryId) {
+        // Refresh the current story
+        renderStoryDetail(currentStoryId)
       }
     },
     onFeedChange: (feed) => {
@@ -1861,7 +2066,7 @@ function setupKeyboardNavigation(): void {
       }
     },
     onFocusComments: () => {
-      // Only works in detail view
+      // Only works in detail view - scroll to comments section
       if (currentView !== 'detail') return
 
       const commentsSection = document.querySelector('.comments-section')
@@ -1908,15 +2113,13 @@ function setupNavigation(): void {
     renderStories(feed)
   })
 
-  // Handle back button clicks
+  // Handle back button clicks - use animated transition
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
     const backBtn = target.closest('[data-action="back"]')
     if (backBtn) {
       e.preventDefault()
-      currentView = 'list'
-      window.location.hash = ''
-      renderStories(currentFeed)
+      navigateBackToList()
     }
   })
 
@@ -1929,6 +2132,9 @@ function setupNavigation(): void {
       const match = link.href.match(/#item\/(\d+)/)
       if (match) {
         const storyId = Number.parseInt(match[1], 10)
+        // Find the parent story card if we're clicking the comments link
+        const storyCard = link.closest('.story[data-id]') as HTMLElement | null
+        renderStoryDetail(storyId, storyCard || undefined)
         window.location.hash = `item/${storyId}`
       }
     }
@@ -1948,7 +2154,7 @@ function setupNavigation(): void {
     }
   })
 
-  // Handle story card clicks (navigate to detail view)
+  // Handle story card clicks (navigate to detail view with animation)
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
     // Don't handle if clicking on a link, button, or interactive element
@@ -1958,6 +2164,8 @@ function setupNavigation(): void {
     if (storyCard && currentView === 'list') {
       const storyId = storyCard.dataset.id
       if (storyId) {
+        // Use animated transition with the clicked card
+        renderStoryDetail(Number.parseInt(storyId, 10), storyCard)
         window.location.hash = `item/${storyId}`
       }
     }

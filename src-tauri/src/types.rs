@@ -298,6 +298,28 @@ pub struct AlgoliaResponse {
 
 // ===== Error Types =====
 
+/// Extracted article content from external URL
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArticleContent {
+    /// Article title (may differ from HN title)
+    pub title: Option<String>,
+    /// Main article content as HTML
+    pub content: String,
+    /// Extracted text content (plain text)
+    pub text_content: String,
+    /// Article byline/author if found
+    pub byline: Option<String>,
+    /// Article excerpt/description
+    pub excerpt: Option<String>,
+    /// Site name
+    pub site_name: Option<String>,
+    /// Content language
+    pub lang: Option<String>,
+    /// Word count estimate
+    pub word_count: usize,
+}
+
 #[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum ApiError {
@@ -318,6 +340,9 @@ pub enum ApiError {
 
     #[error("API error: {0}")]
     Api(String),
+
+    #[error("Failed to extract article content: {0}")]
+    ArticleExtraction(String),
 }
 
 // Implement Serialize for ApiError so it can be returned from Tauri commands

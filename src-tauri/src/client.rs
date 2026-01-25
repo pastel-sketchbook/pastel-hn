@@ -339,6 +339,46 @@ impl HnClient {
             debug!("All story IDs caches cleared");
         }
     }
+
+    /// Fetch and extract article content from an external URL
+    #[instrument(skip(self))]
+    pub async fn fetch_article_content(&self, url: &str) -> Result<ArticleContent, ApiError> {
+        info!(url = %url, "Fetching article content");
+
+        let response = self.http.get(url).send().await?;
+        
+        if !response.status().is_success() {
+            return Err(ApiError::ArticleExtraction(format!(
+                "HTTP {} fetching URL",
+                response.status()
+            )));
+        }
+
+        let html = response.text().await?;
+        
+        // Parse the URL for readability
+        let parsed_url = url::Url::parse(url)
+            .map_err(|e| ApiError::ArticleExtraction(format!("Invalid URL: {}", e)))?;
+        
+        // Use readability to extract the main content
+        let mut cursor = std::io::Cursor::new(html.as_bytes());
+        let extracted = readability::extractor::extract(&mut cursor, &parsed_url)
+            .map_err(|e| ApiError::ArticleExtraction(e.to_string()))?;
+
+        // Count words in the text content
+        let word_count = extracted.text.split_whitespace().count();
+
+        Ok(ArticleContent {
+            title: if extracted.title.is_empty() { None } else { Some(extracted.title) },
+            content: extracted.content,
+            text_content: extracted.text,
+            byline: None, // readability-rs doesn't expose byline directly
+            excerpt: None,
+            site_name: None,
+            lang: None,
+            word_count,
+        })
+    }
 }
 
 impl Default for HnClient {

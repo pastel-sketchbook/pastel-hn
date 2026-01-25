@@ -1189,6 +1189,242 @@ main {
   color: var(--orange);
 }
 
+/* ===== STORY TABS ===== */
+.story-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+
+.story-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.story-tab:hover {
+  color: var(--text-primary);
+  background: rgba(0, 217, 255, 0.05);
+}
+
+.story-tab.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+
+.story-tab svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.story-tab-content {
+  min-height: 200px;
+}
+
+.story-tab-content.hidden {
+  display: none;
+}
+
+/* ===== ARTICLE CONTENT ===== */
+.article-content {
+  padding: 1rem 0;
+}
+
+.article-loading {
+  padding: 1.5rem;
+  background: var(--bg-panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.article-reader {
+  background: var(--bg-panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.5rem 2rem;
+}
+
+.article-title {
+  font-family: var(--font-body);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.article-byline {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.article-source {
+  font-size: 0.85rem;
+  color: var(--cyan);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.article-body {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.article-body p {
+  margin-bottom: 1.25em;
+}
+
+.article-body p:last-child {
+  margin-bottom: 0;
+}
+
+.article-body h1,
+.article-body h2,
+.article-body h3,
+.article-body h4 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.article-body h1 { font-size: 1.5rem; }
+.article-body h2 { font-size: 1.3rem; }
+.article-body h3 { font-size: 1.15rem; }
+.article-body h4 { font-size: 1.05rem; }
+
+.article-body a {
+  color: var(--cyan);
+  text-decoration: none;
+}
+
+.article-body a:hover {
+  text-decoration: underline;
+}
+
+.article-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.article-body blockquote {
+  border-left: 3px solid var(--cyan-dim);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.article-body pre,
+.article-body code {
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  border-radius: 2px;
+}
+
+.article-body code {
+  padding: 0.2em 0.4em;
+  font-size: 0.9em;
+}
+
+.article-body pre {
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.article-body pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.article-body ul,
+.article-body ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.article-body li {
+  margin-bottom: 0.5em;
+}
+
+.article-word-count {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.article-error,
+.no-content {
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.article-error p,
+.no-content p {
+  margin-bottom: 1rem;
+}
+
+.external-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(162, 155, 254, 0.1));
+  border: 1px solid var(--cyan-dim);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.external-link-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(162, 155, 254, 0.2));
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+}
+
+.external-link-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
 /* ===== COMMENTS SECTION ===== */
 .comments-section {
   padding-top: 1rem;
@@ -1234,6 +1470,7 @@ main {
 /* ===== COMMENT COMPONENT ===== */
 .comment {
   display: flex;
+  flex-wrap: wrap;
   position: relative;
   margin-bottom: 0.5rem;
 }
@@ -1425,6 +1662,8 @@ main {
 }
 
 .comment-children {
+  flex-basis: 100%;
+  width: 100%;
   margin-left: 0;
 }
 
@@ -3060,6 +3299,63 @@ main {
   }
 }
 
+/* Vertical slide animations for open/close panel effect */
+@keyframes slideOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Anchor story stays in place and fades/morphs */
+@keyframes anchorFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
 /* Simple fade for feed switching */
 @keyframes fadeIn {
   from {
@@ -3102,6 +3398,32 @@ main {
 
 .view-fade-out {
   animation-name: fadeOut;
+}
+
+/* Vertical transition classes for open/close panel effect */
+.view-exit-up {
+  animation-name: slideOutUp;
+  animation-duration: 0.35s;
+}
+
+.view-exit-down {
+  animation-name: slideOutDown;
+  animation-duration: 0.35s;
+}
+
+.view-enter-from-bottom {
+  animation-name: slideInFromBottom;
+  animation-duration: 0.35s;
+}
+
+.view-enter-from-top {
+  animation-name: slideInFromTop;
+  animation-duration: 0.35s;
+}
+
+.view-anchor-fade {
+  animation-name: anchorFadeOut;
+  animation-duration: 0.25s;
 }
 
 /* Stagger animation for list items */

@@ -41,3 +41,14 @@ export interface HNUser {
 }
 
 export type StoryFeed = 'top' | 'new' | 'best' | 'ask' | 'show' | 'jobs'
+
+export interface ArticleContent {
+  title: string | null
+  content: string
+  textContent: string
+  byline: string | null
+  excerpt: string | null
+  siteName: string | null
+  lang: string | null
+  wordCount: number
+}

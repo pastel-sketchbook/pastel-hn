@@ -34,6 +34,8 @@ fn main() {
             commands::search_hn,
             commands::clear_cache,
             commands::clear_story_ids_cache,
+            // Article extraction
+            commands::fetch_article_content,
             // Utility commands
             commands::open_external,
             commands::get_app_version,

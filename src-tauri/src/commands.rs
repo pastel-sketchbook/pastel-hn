@@ -108,6 +108,15 @@ pub async fn clear_story_ids_cache(
     Ok(())
 }
 
+/// Fetch and extract article content from an external URL
+#[tauri::command]
+pub async fn fetch_article_content(
+    client: State<'_, SharedHnClient>,
+    url: String,
+) -> Result<ArticleContent, ApiError> {
+    client.fetch_article_content(&url).await
+}
+
 /// Open a URL in the system browser
 #[tauri::command]
 pub fn open_external(url: &str) -> Result<(), String> {
