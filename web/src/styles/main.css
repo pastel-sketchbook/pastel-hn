@@ -54,45 +54,56 @@
 }
 
 /* ===== LIGHT THEME ===== */
-/* Cyberpunk aesthetic with pastel tones on light background */
+/* Cyberpunk aesthetic with warm paper gradient tinting */
 [data-theme="light"] {
-  --bg-primary: #f0f4f8;
-  --bg-secondary: #e4eaf0;
-  --bg-panel: rgba(255, 255, 255, 0.92);
-  --bg-panel-inner: rgba(240, 244, 248, 0.8);
-  --bg-hover: rgba(0, 180, 216, 0.1);
+  /* Warm paper gradient tones */
+  --bg-primary: #faf6f1;
+  --bg-secondary: #f5ede4;
+  --bg-panel: rgba(255, 252, 247, 0.94);
+  --bg-panel-inner: rgba(250, 246, 241, 0.85);
+  --bg-hover: rgba(0, 168, 199, 0.08);
 
-  /* Deeper cyan for light backgrounds */
-  --cyan: #00a8c7;
-  --cyan-dim: #008ba3;
-  --cyan-glow: rgba(0, 168, 199, 0.4);
-  --cyan-soft: rgba(0, 168, 199, 0.12);
+  /* Paper gradient for body background */
+  --paper-gradient: linear-gradient(
+    145deg,
+    #fdfbf7 0%,
+    #faf6f1 25%,
+    #f7f0e8 50%,
+    #f5ede4 75%,
+    #f2e8dc 100%
+  );
 
-  /* Warmer orange for light mode */
-  --orange: #e67e22;
-  --orange-dim: #d35400;
-  --orange-glow: rgba(230, 126, 34, 0.4);
+  /* Deeper cyan for paper backgrounds */
+  --cyan: #0097a7;
+  --cyan-dim: #00838f;
+  --cyan-glow: rgba(0, 151, 167, 0.35);
+  --cyan-soft: rgba(0, 151, 167, 0.1);
 
-  /* Deeper purple for readability */
-  --purple: #7c3aed;
-  --purple-dim: #6d28d9;
-  --purple-glow: rgba(124, 58, 237, 0.4);
+  /* Warm orange complementing paper tone */
+  --orange: #d35400;
+  --orange-dim: #bf4a00;
+  --orange-glow: rgba(211, 84, 0, 0.35);
 
-  /* Richer pink */
-  --pink: #db2777;
-  --pink-glow: rgba(219, 39, 119, 0.4);
+  /* Deep purple for readability on warm paper */
+  --purple: #6d28d9;
+  --purple-dim: #5b21b6;
+  --purple-glow: rgba(109, 40, 217, 0.35);
 
-  /* Dark text for light backgrounds */
-  --text-primary: #1a2332;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  /* Rich pink */
+  --pink: #be185d;
+  --pink-glow: rgba(190, 24, 93, 0.35);
 
-  /* Stronger borders for light mode */
-  --border: rgba(0, 168, 199, 0.35);
-  --border-bright: rgba(0, 168, 199, 0.8);
+  /* Dark text for warm paper backgrounds */
+  --text-primary: #2d2419;
+  --text-secondary: #5c4d3d;
+  --text-muted: #9a8b78;
 
-  /* Grid pattern - more subtle on light */
-  --grid-opacity: 0.06;
+  /* Borders with warm undertone */
+  --border: rgba(0, 151, 167, 0.3);
+  --border-bright: rgba(0, 151, 167, 0.7);
+
+  /* Grid pattern - subtle on paper */
+  --grid-opacity: 0.05;
 }
 
 * {
@@ -114,6 +125,12 @@ body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+}
+
+/* Paper gradient background for light theme */
+[data-theme="light"] body {
+  background: var(--paper-gradient);
+  background-attachment: fixed;
 }
 
 /* Grid background pattern */
