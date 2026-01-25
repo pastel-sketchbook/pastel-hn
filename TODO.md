@@ -40,7 +40,7 @@
 ### 1.3 Caching & Performance
 - [x] Implement in-memory cache for items
 - [x] Add TTL-based cache invalidation
-- [ ] Cache story lists with shorter TTL
+- [x] Cache story lists with shorter TTL (2 min TTL in storyIdsCache)
 - [ ] Intelligent prefetching for visible stories
 - [ ] Background refresh for stale data
 
@@ -67,7 +67,7 @@
 - [x] Display font: Orbitron (headers, logo)
 - [x] Body font: Rajdhani (content, readable)
 - [x] Mono font: Share Tech Mono (meta, code)
-- [ ] Font size scaling options (compact/normal/comfortable)
+- [x] Font size scaling options (compact/normal/comfortable)
 
 ### 2.3 Component Design System
 - [x] Cyber-frame panels with corner accents
@@ -76,15 +76,16 @@
 - [x] Animated hover states with glow
 - [x] Score heat indicators (warm/hot/fire)
 - [x] Type-based accent colors (Ask/Show/Jobs)
-- [ ] Skeleton loading states
-- [ ] Toast notifications
+- [x] Skeleton loading states
+- [x] Toast notifications
 
 ### 2.4 Animations & Micro-interactions
 - [x] Smooth hover transitions (0.25s ease)
 - [x] Corner accent expansion on hover
 - [x] Score pulse animation for hot stories
-- [ ] Page transition animations
-- [ ] List item stagger animations
+- [x] Skeleton loading stagger animations
+- [x] Page transition animations
+- [x] List item stagger animations
 - [ ] Collapse/expand animations for comments
 
 ---
@@ -96,7 +97,7 @@
 - [x] Feed switching (top/new/best/ask/show/jobs)
 - [x] Active state indicators
 - [x] Theme toggle button
-- [ ] Search button/modal
+- [x] Search button/modal (Algolia HN Search integrated)
 - [ ] User menu (future: auth)
 
 ### 3.2 Story List View
@@ -107,7 +108,7 @@
 - [x] Comment count links
 - [x] Infinite scroll with loading indicator
 - [x] Pull-to-refresh gesture
-- [ ] "Back to top" floating button
+- [x] "Back to top" floating button
 
 ### 3.3 Story Detail View
 - [x] Full story header (title, meta, URL)
@@ -135,10 +136,10 @@
 - [x] Recent comments list
 
 ### 3.6 Settings Panel
-- [ ] Theme selection (dark/light/system)
-- [ ] Font size adjustment
-- [ ] Information density (compact/normal/comfortable)
-- [ ] Default feed selection
+- [x] Theme selection (dark/light/system)
+- [x] Font size adjustment
+- [x] Information density (compact/normal/comfortable)
+- [x] Default feed selection
 - [ ] Keyboard shortcut reference
 
 ---
@@ -149,12 +150,13 @@
 - [x] `j`/`k` - Navigate stories up/down
 - [x] `Enter` - Open story/expand comments
 - [x] `o` - Open link in browser
-- [ ] `c` - Focus comments
+- [x] `c` - Focus comments
 - [x] `Escape` - Go back/close modal
 - [x] `r` - Refresh current feed
 - [x] `1-6` - Switch feeds (top/new/best/ask/show/jobs)
-- [ ] `/` - Focus search
+- [x] `/` - Focus search
 - [x] `?` - Show keyboard shortcuts
+- [x] `t` - Scroll to top
 
 ### 4.2 Reading Experience
 - [x] Reading position memory (per story)
@@ -218,22 +220,24 @@
 ## Phase 6: Polish & Performance
 
 ### 6.1 Performance Optimization
-- [ ] Virtual scrolling for 500+ items
-- [ ] Lazy comment loading (fetch on expand)
+- [x] Virtual scrolling for 500+ items (VirtualScroll class implemented)
+- [ ] Lazy comment loading (fetch on expand) - partial: "load more" exists
 - [ ] Image lazy loading (user avatars, if added)
 - [ ] Bundle size optimization (<100KB JS)
 - [ ] First contentful paint <500ms
 
 ### 6.2 Accessibility
-- [ ] Full keyboard navigation
-- [ ] ARIA labels for all interactive elements
+- [x] Full keyboard navigation
+- [x] ARIA labels for all interactive elements
 - [ ] Screen reader announcements
 - [ ] Focus trap in modals
 - [ ] High contrast mode
-- [ ] Reduced motion support
+- [x] Reduced motion support
 
 ### 6.3 Testing
-- [ ] Unit tests for API functions
+- [x] Unit tests for API functions (api.test.ts - 14 tests)
+- [x] Unit tests for theme module (theme.test.ts - 11 tests)
+- [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 7 tests)
 - [ ] Component tests for UI
 - [ ] E2E tests with Playwright
 - [ ] Visual regression tests

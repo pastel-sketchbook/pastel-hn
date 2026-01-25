@@ -20,6 +20,13 @@ import {
   setKeyboardCallbacks,
 } from './keyboard'
 import {
+  closeSettingsModal,
+  getSettings,
+  initSettings,
+  isSettingsModalOpen,
+  showSettingsModal,
+} from './settings'
+import {
   clearFeedScrollPosition,
   getFeedScrollPosition,
   getReadStoryIds,
@@ -29,6 +36,7 @@ import {
   saveStoryScrollPosition,
 } from './storage'
 import { initTheme, toggleTheme } from './theme'
+import { toastError, toastInfo, toastSuccess } from './toast'
 import {
   type CommentWithChildren,
   type HNItem,
@@ -52,6 +60,68 @@ let currentUserId: string | null = null // Track current user profile
 let readStoryIds: Set<number> = new Set() // Cache of read stories
 const STORIES_PER_PAGE = 30
 const SUBMISSIONS_PER_PAGE = 20
+
+// Page transition utilities
+type TransitionDirection = 'forward' | 'back' | 'fade'
+
+async function transitionView(
+  container: HTMLElement,
+  direction: TransitionDirection,
+  renderFn: () => void | Promise<void>,
+): Promise<void> {
+  // Determine exit animation based on direction
+  const exitClass =
+    direction === 'forward'
+      ? 'view-exit-to-left'
+      : direction === 'back'
+        ? 'view-exit-to-right'
+        : 'view-fade-out'
+
+  const enterClass =
+    direction === 'forward'
+      ? 'view-enter-from-right'
+      : direction === 'back'
+        ? 'view-enter-from-left'
+        : 'view-fade-in'
+
+  // Check for reduced motion preference
+  const prefersReducedMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches
+  const duration = prefersReducedMotion ? 0 : 150
+
+  // Exit animation
+  if (duration > 0) {
+    container.classList.add('view-transition', exitClass)
+    await new Promise((resolve) => setTimeout(resolve, duration))
+    container.classList.remove('view-transition', exitClass)
+  }
+
+  // Render new content
+  await renderFn()
+
+  // Enter animation
+  if (duration > 0) {
+    container.classList.add('view-transition', enterClass)
+    await new Promise((resolve) => setTimeout(resolve, duration * 2))
+    container.classList.remove('view-transition', enterClass)
+  }
+}
+
+function applyStaggerAnimation(container: HTMLElement, selector: string): void {
+  const prefersReducedMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches
+  if (prefersReducedMotion) return
+
+  const items = container.querySelectorAll(selector)
+  items.forEach((item, index) => {
+    if (index < 10) {
+      // Only stagger first 10
+      item.classList.add('stagger-in')
+    }
+  })
+}
 
 // Virtual scroll configuration
 const STORY_ITEM_HEIGHT = 95 // Estimated height of each story item in pixels
@@ -297,6 +367,7 @@ async function triggerRefresh(): Promise<void> {
 
   if (currentView === 'list') {
     await renderStories(currentFeed, true)
+    toastSuccess('Feed refreshed')
   }
 
   // Hide indicator after refresh completes
@@ -357,6 +428,9 @@ async function renderStories(feed: StoryFeed, refresh = false): Promise<void> {
     // when we exceed the threshold
     renderStoriesStandard(container, stories)
 
+    // Update accessibility state
+    container.setAttribute('aria-busy', 'false')
+
     // Restore scroll position (defer to allow DOM to render)
     requestAnimationFrame(() => {
       const savedPosition = getFeedScrollPosition(feed)
@@ -365,12 +439,14 @@ async function renderStories(feed: StoryFeed, refresh = false): Promise<void> {
       }
     })
   } catch (error) {
+    container.setAttribute('aria-busy', 'false')
     container.innerHTML = `
-      <div class="error">
-        <span class="error-icon">⚠</span>
+      <div class="error" role="alert">
+        <span class="error-icon" aria-hidden="true">⚠</span>
         <span>Failed to load stories. Please try again.</span>
       </div>
     `
+    toastError('Failed to load stories. Check your connection and try again.')
     console.error('Failed to load stories:', error)
   } finally {
     isLoading = false
@@ -387,6 +463,9 @@ function renderStoriesStandard(
   container.innerHTML =
     stories.map((story, idx) => renderStory(story, idx + 1)).join('') +
     renderLoadMoreIndicator()
+
+  // Apply stagger animation to stories
+  applyStaggerAnimation(container, '.story')
 
   // Setup infinite scroll observer
   setupInfiniteScroll()
@@ -733,21 +812,22 @@ function renderStory(story: HNItem, rank: number): string {
   const typeAttr = storyType ? ` data-type="${storyType}"` : ''
   const heatAttr = scoreHeat ? ` data-heat="${scoreHeat}"` : ''
   const readClass = isRead ? ' story-read' : ''
+  const readStatus = isRead ? 'Previously read. ' : ''
 
   return `
-    <article class="story${readClass}" data-id="${story.id}"${typeAttr}>
-      <div class="story-rank">${rank}</div>
+    <article class="story${readClass}" data-id="${story.id}"${typeAttr} aria-label="${readStatus}${escapeHtml(story.title || 'Untitled')} - ${story.score} points, ${story.descendants || 0} comments">
+      <div class="story-rank" aria-hidden="true">${rank}</div>
       <div class="story-vote">
-        <button class="vote-btn" title="Upvote">${icons.upvote}</button>
+        <button class="vote-btn" title="Upvote" aria-label="Upvote this story">${icons.upvote}</button>
       </div>
       <div class="story-content">
         <h2 class="story-title">
           <a href="${story.url || `#item/${story.id}`}" target="_blank" rel="noopener">
             ${escapeHtml(story.title || 'Untitled')}
           </a>
-          ${domain ? `<span class="story-domain">(${domain})</span>` : ''}
+          ${domain ? `<span class="story-domain" aria-label="from ${domain}">(${domain})</span>` : ''}
         </h2>
-        <div class="story-meta">
+        <div class="story-meta" aria-hidden="true">
           <span class="story-score"${heatAttr}>${icons.points}${story.score} points</span>
           <span class="meta-sep"></span>
           <span class="story-by">${icons.user}<a href="#user/${encodeURIComponent(story.by || 'unknown')}" class="user-link">${escapeHtml(story.by || 'unknown')}</a></span>
@@ -755,7 +835,7 @@ function renderStory(story: HNItem, rank: number): string {
           <span class="story-time">${icons.clock}${timeAgo}</span>
           <span class="meta-sep"></span>
           <span class="story-comments">
-            <a href="#item/${story.id}">${icons.comment}${story.descendants || 0} comments</a>
+            <a href="#item/${story.id}" aria-label="${story.descendants || 0} comments">${icons.comment}${story.descendants || 0} comments</a>
           </span>
         </div>
       </div>
@@ -948,6 +1028,12 @@ async function renderStoryDetail(storyId: number): Promise<void> {
     // Set up comment collapse handlers
     setupCommentCollapse()
 
+    // Apply stagger animation to top-level comments
+    const commentsList = container.querySelector('.comments-list')
+    if (commentsList) {
+      applyStaggerAnimation(commentsList as HTMLElement, ':scope > .comment')
+    }
+
     // Restore scroll position for this story (defer to allow DOM to render)
     requestAnimationFrame(() => {
       const savedPosition = getStoryScrollPosition(storyId)
@@ -968,6 +1054,7 @@ async function renderStoryDetail(storyId: number): Promise<void> {
         <span>Back to stories</span>
       </button>
     `
+    toastError('Failed to load story')
     console.error('Failed to load story:', error)
   } finally {
     isLoading = false
@@ -1149,6 +1236,7 @@ async function renderUserProfile(userId: string): Promise<void> {
         <span>Back</span>
       </button>
     `
+    toastError('User not found')
     console.error('Failed to load user:', error)
   } finally {
     isLoading = false
@@ -1722,11 +1810,15 @@ function setupKeyboardNavigation(): void {
         const story = currentStories[index]
         if (story.url) {
           window.open(story.url, '_blank', 'noopener')
+        } else {
+          toastInfo('No external link for this story')
         }
       }
     },
     onBack: () => {
-      if (searchModalOpen) {
+      if (isSettingsModalOpen()) {
+        closeSettingsModal()
+      } else if (searchModalOpen) {
         closeSearchModal()
       } else if (helpModalOpen) {
         closeHelpModal()
@@ -1768,6 +1860,24 @@ function setupKeyboardNavigation(): void {
         showSearchModal()
       }
     },
+    onFocusComments: () => {
+      // Only works in detail view
+      if (currentView !== 'detail') return
+
+      const commentsSection = document.querySelector('.comments-section')
+      if (commentsSection) {
+        commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+        // Focus the first comment for keyboard navigation
+        const firstComment = document.querySelector(
+          '.comment[data-depth="0"]',
+        ) as HTMLElement
+        if (firstComment) {
+          firstComment.focus()
+          firstComment.classList.add('keyboard-selected')
+        }
+      }
+    },
   })
 
   initKeyboard()
@@ -1787,8 +1897,10 @@ function setupNavigation(): void {
 
     document.querySelectorAll('[data-feed]').forEach((btn) => {
       btn.classList.remove('active')
+      btn.setAttribute('aria-pressed', 'false')
     })
     feedBtn.classList.add('active')
+    feedBtn.setAttribute('aria-pressed', 'true')
 
     currentFeed = feed
     currentView = 'list'
@@ -1835,6 +1947,21 @@ function setupNavigation(): void {
       }
     }
   })
+
+  // Handle story card clicks (navigate to detail view)
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    // Don't handle if clicking on a link, button, or interactive element
+    if (target.closest('a, button, .vote-btn')) return
+    
+    const storyCard = target.closest('.story[data-id]') as HTMLElement | null
+    if (storyCard && currentView === 'list') {
+      const storyId = storyCard.dataset.id
+      if (storyId) {
+        window.location.hash = `item/${storyId}`
+      }
+    }
+  })
 }
 
 function setupThemeToggle(): void {
@@ -1843,6 +1970,15 @@ function setupThemeToggle(): void {
 
   toggle.addEventListener('click', () => {
     toggleTheme()
+  })
+}
+
+function setupSettingsToggle(): void {
+  const toggle = document.getElementById('settings-toggle')
+  if (!toggle) return
+
+  toggle.addEventListener('click', () => {
+    showSettingsModal()
   })
 }
 
@@ -1865,18 +2001,29 @@ function handleHashChange(): void {
 }
 
 async function main(): Promise<void> {
-  // Initialize theme first to prevent flash of wrong theme
+  // Initialize theme and settings first to prevent flash of wrong theme
   initTheme()
+  initSettings()
 
   // Load cached read stories
   readStoryIds = getReadStoryIds()
+
+  // Use default feed from settings
+  const settings = getSettings()
+  currentFeed = settings.defaultFeed
 
   try {
     await init()
     setupNavigation()
     setupThemeToggle()
+    setupSettingsToggle()
     setupKeyboardNavigation()
     setupPullToRefresh()
+
+    // Update nav to show correct default feed as active
+    document.querySelectorAll('[data-feed]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-feed') === currentFeed)
+    })
 
     // Handle hash routing
     window.addEventListener('hashchange', handleHashChange)

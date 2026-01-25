@@ -7,25 +7,25 @@
   </head>
   <body>
     <div id="app">
-      <header>
+      <header role="banner">
         <div class="header-inner cyber-frame">
           <span class="corner-tr"></span>
           <span class="corner-bl"></span>
-          <a href="/" class="logo">
-            <div class="logo-icon">Y</div>
+          <a href="/" class="logo" aria-label="pastel-hn home">
+            <div class="logo-icon" aria-hidden="true">Y</div>
             <span>pastel-hn</span>
           </a>
-          <nav id="nav">
-            <button class="nav-btn active" data-feed="top">Top</button>
-            <button class="nav-btn" data-feed="new">New</button>
-            <button class="nav-btn" data-feed="best">Best</button>
-            <button class="nav-btn" data-feed="ask">Ask</button>
-            <button class="nav-btn" data-feed="show">Show</button>
-            <button class="nav-btn" data-feed="jobs">Jobs</button>
+          <nav id="nav" role="navigation" aria-label="Feed navigation">
+            <button class="nav-btn active" data-feed="top" aria-pressed="true">Top</button>
+            <button class="nav-btn" data-feed="new" aria-pressed="false">New</button>
+            <button class="nav-btn" data-feed="best" aria-pressed="false">Best</button>
+            <button class="nav-btn" data-feed="ask" aria-pressed="false">Ask</button>
+            <button class="nav-btn" data-feed="show" aria-pressed="false">Show</button>
+            <button class="nav-btn" data-feed="jobs" aria-pressed="false">Jobs</button>
           </nav>
           <button id="theme-toggle" class="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
             <!-- Sun icon (shown in dark mode) -->
-            <svg class="icon-sun" viewBox="0 0 24 24">
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="5"></circle>
               <line x1="12" y1="1" x2="12" y2="3"></line>
               <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -37,18 +37,24 @@
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
             <!-- Moon icon (shown in light mode) -->
-            <svg class="icon-moon" viewBox="0 0 24 24">
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+          <button id="settings-toggle" class="settings-toggle" title="Settings" aria-label="Open settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
           </button>
         </div>
       </header>
-      <main>
-        <section id="stories" class="cyber-frame">
-          <span class="corner-tr"></span>
-          <span class="corner-bl"></span>
-          <div class="loading">
-            <div class="loading-spinner"></div>
+      <main role="main" aria-label="Story content">
+        <section id="stories" class="cyber-frame" aria-live="polite" aria-busy="true">
+          <span class="corner-tr" aria-hidden="true"></span>
+          <span class="corner-bl" aria-hidden="true"></span>
+          <div class="loading" role="status">
+            <div class="loading-spinner" aria-hidden="true"></div>
             <span>INITIALIZING...</span>
           </div>
         </section>
