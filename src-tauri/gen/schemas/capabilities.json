@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capability for wasm-hn","local":true,"windows":["main"],"permissions":["core:default","shell:allow-open"]}}
+{"default":{"identifier":"default","description":"Default capability for pastel-hn","local":true,"windows":["main"],"permissions":["core:default","shell:allow-open"]}}

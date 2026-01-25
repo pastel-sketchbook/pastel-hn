@@ -31,22 +31,37 @@ You are a senior TypeScript and Tauri engineer who evaluates changes for quality
 
 # SCOPE OF THIS REPOSITORY
 
-This repository contains `pastel-hn`, a Hacker News desktop client:
+This repository contains `pastel-hn`, the best UI/UX Hacker News desktop client:
 
-**Goal:** Build a native desktop Hacker News reader with a Cyberpunk futuristic aesthetic featuring pastel tones and line-only icons.
+**Goal:** Build the definitive Hacker News desktop experience - a native app that surpasses all existing HN clients in usability, visual design, and reading comfort. We aim to make browsing Hacker News a delightful, distraction-free experience with a unique Cyberpunk Pastel aesthetic.
+
+**Design Philosophy:**
+- **Reader-First**: Optimize for comfortable, extended reading sessions
+- **Visual Hierarchy**: Clear distinction between content types (stories, comments, meta)
+- **Responsive Feedback**: Every interaction should feel immediate and satisfying
+- **Keyboard-Centric**: Power users can navigate entirely without a mouse
+- **Beautiful by Default**: Stunning visuals that don't sacrifice usability
 
 **Tech Stack:**
 - **TypeScript + Bun**: Frontend application and API client (Bun for runtime & package management)
 - **HTML/CSS**: UI with Cyberpunk Pastel aesthetic
 - **Tauri**: Desktop shell for macOS, Windows, Linux (minimal Rust backend)
 
-**Features:**
-- Fetches stories, comments, and user data from HN Firebase API
-- Displays top/new/best/ask/show/jobs story feeds
-- Renders threaded comment views
-- Opens external links in system browser
-- Dark/light theme with Cyberpunk styling
-- Minimal, fast, native desktop experience
+**Core Features:**
+- All HN feeds: top/new/best/ask/show/jobs with instant switching
+- Threaded comment views with smart collapsing
+- Story and comment detail views
+- User profiles with submission history
+- Dark/light themes with Cyberpunk styling
+- Native desktop integration (system browser, notifications)
+
+**UX Differentiators:**
+- Smooth animations and micro-interactions
+- Intelligent prefetching for instant navigation
+- Reading position memory across sessions
+- Customizable information density
+- Keyboard shortcuts for all actions
+- Offline reading support (planned)
 
 > **Note:** This project originally included a Zig/WASM layer which was removed in v0.2.0.
 > See [ADR-0001](docs/rationale/0001_removing_zig_wasm_layer.md) for the rationale.

@@ -23,6 +23,15 @@ export interface HNItem {
   deleted: boolean
 }
 
+export interface CommentWithChildren extends HNItem {
+  children?: CommentWithChildren[]
+}
+
+export interface StoryWithComments {
+  story: HNItem
+  comments: CommentWithChildren[]
+}
+
 export interface HNUser {
   id: string
   created: number

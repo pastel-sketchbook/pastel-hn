@@ -30,7 +30,7 @@ tasks:
     desc: Run TypeScript/web tests
     dir: web
     cmds:
-      - bun test
+      - bun run test:run
 
   test:e2e:
     desc: Run Playwright end-to-end tests
