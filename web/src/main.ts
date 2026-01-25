@@ -142,6 +142,67 @@ function showErrorToast(error: unknown, context: string): void {
   }
 }
 
+type RetryAction = 'retry-stories' | 'retry-story' | 'retry-user'
+
+/**
+ * Render an error state with optional retry button
+ * For network errors, shows a retry button that can reload the content
+ */
+function renderErrorWithRetry(
+  parsed: ParsedError,
+  context: string,
+  retryAction?: RetryAction,
+  showBackButton = false,
+): string {
+  let errorMessage: string
+  let showRetry = false
+
+  if (parsed.type === 'rate_limited') {
+    errorMessage = `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+  } else if (parsed.type === 'not_found') {
+    errorMessage =
+      context === 'Story'
+        ? 'Story not found. It may have been deleted.'
+        : context === 'User'
+          ? 'User not found. The account may not exist.'
+          : `${context} not found.`
+  } else if (parsed.type === 'network') {
+    errorMessage = 'Connection error. Check your network and try again.'
+    showRetry = true
+  } else {
+    errorMessage = `Failed to load ${context.toLowerCase()}. Please try again.`
+    showRetry = true
+  }
+
+  const retryButton =
+    showRetry && retryAction
+      ? `<button class="retry-btn" data-action="${retryAction}">
+          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span>Try Again</span>
+        </button>`
+      : ''
+
+  const backButton = showBackButton
+    ? `<button class="back-btn" data-action="back">
+        <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        <span>Go Back</span>
+      </button>`
+    : ''
+
+  return `
+    <div class="error-state" role="alert">
+      <div class="error-content">
+        <span class="error-icon" aria-hidden="true">⚠</span>
+        <span class="error-message">${errorMessage}</span>
+      </div>
+      <div class="error-actions">
+        ${retryButton}
+        ${backButton}
+      </div>
+    </div>
+  `
+}
+
 /**
  * Calculate estimated reading time from word count
  * Average reading speed: ~200-250 words per minute
@@ -604,16 +665,7 @@ async function renderStories(
   } catch (error) {
     container.setAttribute('aria-busy', 'false')
     const parsed = parseApiError(error)
-    const errorMessage =
-      parsed.type === 'rate_limited'
-        ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
-        : 'Failed to load stories. Please try again.'
-    container.innerHTML = `
-      <div class="error" role="alert">
-        <span class="error-icon" aria-hidden="true">⚠</span>
-        <span>${errorMessage}</span>
-      </div>
-    `
+    container.innerHTML = renderErrorWithRetry(parsed, 'Stories', 'retry-stories')
     showErrorToast(error, 'Load stories')
     console.error('Failed to load stories:', error)
   } finally {
@@ -841,6 +893,7 @@ const icons = {
   document: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
   article: `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/></svg>`,
   book: `<svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+  retry: `<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
 }
 
 // ===== SKELETON LOADING COMPONENTS =====
@@ -1374,22 +1427,7 @@ async function renderStoryDetail(
     })
   } catch (error) {
     const parsed = parseApiError(error)
-    const errorMessage =
-      parsed.type === 'rate_limited'
-        ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
-        : parsed.type === 'not_found'
-          ? 'Story not found. It may have been deleted.'
-          : 'Failed to load story. Please try again.'
-    container.innerHTML = `
-      <div class="error">
-        <span class="error-icon">⚠</span>
-        <span>${errorMessage}</span>
-      </div>
-      <button class="back-btn" data-action="back" style="margin: 2rem auto; display: flex;">
-        ${icons.back}
-        <span>Back to stories</span>
-      </button>
-    `
+    container.innerHTML = renderErrorWithRetry(parsed, 'Story', 'retry-story', true)
     showErrorToast(error, 'Load story')
     console.error('Failed to load story:', error)
   } finally {
@@ -1563,22 +1601,7 @@ async function renderUserProfile(userId: string): Promise<void> {
     setScrollTop(0)
   } catch (error) {
     const parsed = parseApiError(error)
-    const errorMessage =
-      parsed.type === 'rate_limited'
-        ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
-        : parsed.type === 'not_found'
-          ? 'User not found. The account may not exist.'
-          : 'Failed to load user profile. Please try again.'
-    container.innerHTML = `
-      <div class="error">
-        <span class="error-icon">⚠</span>
-        <span>${errorMessage}</span>
-      </div>
-      <button class="back-btn" data-action="back" style="margin: 2rem auto; display: flex;">
-        ${icons.back}
-        <span>Back</span>
-      </button>
-    `
+    container.innerHTML = renderErrorWithRetry(parsed, 'User', 'retry-user', true)
     showErrorToast(error, 'Load user')
     console.error('Failed to load user:', error)
   } finally {
@@ -2291,6 +2314,23 @@ function setupNavigation(): void {
     if (backBtn) {
       e.preventDefault()
       navigateBackToList()
+    }
+  })
+
+  // Handle retry button clicks for error recovery
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    const retryBtn = target.closest('[data-action^="retry-"]') as HTMLElement | null
+    if (retryBtn) {
+      e.preventDefault()
+      const action = retryBtn.dataset.action
+      if (action === 'retry-stories') {
+        renderStories(currentFeed)
+      } else if (action === 'retry-story' && currentStoryId) {
+        renderStoryDetail(currentStoryId)
+      } else if (action === 'retry-user' && currentUserId) {
+        renderUserProfile(currentUserId)
+      }
     }
   })
 
