@@ -4369,7 +4369,9 @@ main {
   cursor: pointer;
   z-index: 9999;
   opacity: 0.7;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   animation: zenBadgeFadeIn 0.3s ease;
 }
 
@@ -4413,7 +4415,7 @@ main {
   .zen-mode main {
     transition: none;
   }
-  
+
   .zen-mode-badge {
     animation: none;
   }

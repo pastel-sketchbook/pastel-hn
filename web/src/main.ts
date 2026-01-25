@@ -1886,7 +1886,7 @@ async function toggleZenMode(): Promise<void> {
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const appWindow = getCurrentWindow()
-    
+
     if (zenModeActive) {
       await appWindow.setFullscreen(true)
       showZenModeBadge()
@@ -1915,7 +1915,7 @@ async function exitZenMode(): Promise<void> {
     zenModeActive = false
     document.documentElement.classList.remove('zen-mode')
     hideZenModeBadge()
-    
+
     // Exit fullscreen via Tauri API
     try {
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -1933,7 +1933,7 @@ async function exitZenMode(): Promise<void> {
 function showZenModeBadge(): void {
   // Remove existing badge if any
   hideZenModeBadge()
-  
+
   const badge = document.createElement('div')
   badge.className = 'zen-mode-badge'
   badge.innerHTML = `
