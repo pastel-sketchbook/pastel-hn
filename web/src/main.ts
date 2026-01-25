@@ -22,6 +22,14 @@ import {
   setKeyboardCallbacks,
 } from './keyboard'
 import {
+  clearPrefetchCache,
+  getCachedStoryDetail,
+  onStoryHoverEnd,
+  onStoryHoverStart,
+  prefetchNextPage,
+  prefetchVisibleStories,
+} from './prefetch'
+import {
   closeSettingsModal,
   getSettings,
   initSettings,
@@ -623,6 +631,7 @@ async function renderStories(
   if (refresh) {
     clearStoryIdsCache(feed)
     clearFeedScrollPosition(feed)
+    clearPrefetchCache() // Clear prefetched data on refresh
   }
 
   // Load read stories cache
@@ -696,8 +705,35 @@ function renderStoriesStandard(
   // Apply stagger animation to stories
   applyStaggerAnimation(container, '.story')
 
+  // Setup hover prefetch for story cards
+  setupStoryHoverPrefetch(container)
+
+  // Prefetch visible stories during idle time
+  const storyIds = stories.map((s) => s.id)
+  prefetchVisibleStories(storyIds)
+
   // Setup infinite scroll observer
   setupInfiniteScroll()
+}
+
+/**
+ * Set up hover event listeners on story cards for prefetching
+ */
+function setupStoryHoverPrefetch(container: HTMLElement): void {
+  const storyCards = container.querySelectorAll('.story[data-id]')
+
+  storyCards.forEach((card) => {
+    const storyId = Number((card as HTMLElement).dataset.id)
+    if (!storyId) return
+
+    card.addEventListener('mouseenter', () => {
+      onStoryHoverStart(storyId)
+    })
+
+    card.addEventListener('mouseleave', () => {
+      onStoryHoverEnd(storyId)
+    })
+  })
 }
 
 /**
@@ -814,6 +850,18 @@ async function loadMoreStories(): Promise<void> {
       container.insertAdjacentHTML('beforeend', newStoriesHtml)
       container.insertAdjacentHTML('beforeend', renderLoadMoreIndicator())
 
+      // Setup hover prefetch for newly added story cards
+      const newStoryCards = container.querySelectorAll(
+        '.story[data-id]:not([data-prefetch-bound])',
+      )
+      newStoryCards.forEach((card) => {
+        const storyId = Number((card as HTMLElement).dataset.id)
+        if (!storyId) return
+        ;(card as HTMLElement).dataset.prefetchBound = 'true'
+        card.addEventListener('mouseenter', () => onStoryHoverStart(storyId))
+        card.addEventListener('mouseleave', () => onStoryHoverEnd(storyId))
+      })
+
       currentStories = [...currentStories, ...stories]
       currentOffset += stories.length
       hasMoreStories = hasMore
@@ -873,6 +921,12 @@ function setupInfiniteScroll(): void {
     (entries) => {
       const entry = entries[0]
       if (entry.isIntersecting && hasMoreStories && !isLoadingMore) {
+        // Prefetch the next page while loading current
+        prefetchNextPage(
+          currentFeed,
+          currentOffset + STORIES_PER_PAGE,
+          STORIES_PER_PAGE,
+        )
         loadMoreStories()
       }
     },
@@ -1046,7 +1100,8 @@ function renderStory(story: HNItem, rank: number): string {
 
   // Calculate reading time for text posts (Ask HN, etc.)
   const textWordCount = story.text ? countWords(story.text) : 0
-  const readingTime = textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
+  const readingTime =
+    textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
 
   const typeAttr = storyType ? ` data-type="${storyType}"` : ''
   const heatAttr = scoreHeat ? ` data-heat="${scoreHeat}"` : ''
@@ -1323,7 +1378,10 @@ async function renderStoryDetail(
   await animateDetailEnter(container)
 
   try {
-    const { story, comments } = await fetchStoryWithComments(storyId, 3)
+    // Check if we have cached data from prefetching
+    const cachedData = getCachedStoryDetail(storyId)
+    const { story, comments } =
+      cachedData || (await fetchStoryWithComments(storyId, 3))
     currentStoryAuthor = story.by // Store for "load more" functionality
     const domain = extractDomain(story.url)
     const timeAgo = formatTimeAgo(story.time)
@@ -1976,10 +2034,10 @@ async function toggleZenMode(): Promise<void> {
 async function exitZenMode(): Promise<void> {
   // Prevent rapid toggling while transition is in progress
   if (zenModeTransitioning) return
-  
+
   if (zenModeActive) {
     zenModeTransitioning = true
-    
+
     // Exit fullscreen and restore decorations via Tauri API first
     try {
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
