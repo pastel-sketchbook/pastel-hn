@@ -837,7 +837,7 @@ async function loadMoreStories(): Promise<void> {
   }
 }
 // Expose retry function globally for the retry button
-;(window as unknown as { retryLoadMore: () => void }).retryLoadMore =
+; (window as unknown as { retryLoadMore: () => void }).retryLoadMore =
   loadMoreStories
 
 function renderLoadMoreIndicator(): string {
@@ -1117,8 +1117,8 @@ function renderComment(
 
   const childrenHtml = hasChildren
     ? comment.children
-        ?.map((child) => renderComment(child, depth + 1, storyAuthor))
-        .join('')
+      ?.map((child) => renderComment(child, depth + 1, storyAuthor))
+      .join('')
     : ''
 
   // "Load more" button for unfetched children
@@ -1367,9 +1367,8 @@ async function renderStoryDetail(
         </div>
         
         <div class="story-tab-content" data-tab-content="story">
-          ${
-            hasExternalUrl
-              ? `
+          ${hasExternalUrl
+        ? `
             <div class="article-content" data-url="${escapeHtml(story.url || '')}">
               <div class="article-loading">
                 <div class="skeleton skeleton-title" style="height: 1.5rem; width: 60%; margin-bottom: 1rem;"></div>
@@ -1381,11 +1380,11 @@ async function renderStoryDetail(
               </div>
             </div>
           `
-              : story.text
-                ? `
+        : story.text
+          ? `
             <div class="story-detail-text">${sanitizeHtml(story.text)}</div>
           `
-                : `
+          : `
             <div class="no-content">
               <p>This story links to an external URL.</p>
               <a href="${story.url}" target="_blank" rel="noopener" class="external-link-btn">
@@ -1394,7 +1393,7 @@ async function renderStoryDetail(
               </a>
             </div>
           `
-          }
+      }
         </div>
         
         <div class="story-tab-content hidden" data-tab-content="comments">
@@ -1570,16 +1569,15 @@ async function renderUserProfile(userId: string): Promise<void> {
             ${user.submitted ? `<div class="user-submission-count">${user.submitted.length.toLocaleString()} submissions</div>` : ''}
           </div>
           
-          ${
-            user.about
-              ? `
+          ${user.about
+        ? `
             <div class="user-about">
               <h3 class="user-about-title">About</h3>
               <div class="user-about-content">${sanitizeHtml(user.about)}</div>
             </div>
           `
-              : ''
-          }
+        : ''
+      }
         </div>
         
         <section class="user-submissions">
@@ -1594,15 +1592,14 @@ async function renderUserProfile(userId: string): Promise<void> {
           <div class="submissions-list" data-user="${escapeHtml(userId)}" data-filter="all" data-offset="${SUBMISSIONS_PER_PAGE}">
             ${submissionsHtml}
           </div>
-          ${
-            user.submitted && user.submitted.length > SUBMISSIONS_PER_PAGE
-              ? `
+          ${user.submitted && user.submitted.length > SUBMISSIONS_PER_PAGE
+        ? `
             <div class="submissions-load-more">
               <button class="load-more-submissions-btn">Load more</button>
             </div>
           `
-              : ''
-          }
+        : ''
+      }
         </section>
       </div>
     `
@@ -1828,13 +1825,13 @@ function showHelpModal(): void {
       <h2 class="help-modal-title">Keyboard Shortcuts</h2>
       <div class="help-shortcuts">
         ${KEYBOARD_SHORTCUTS.map(
-          (s) => `
+    (s) => `
           <div class="help-shortcut">
             <kbd>${s.key}</kbd>
             <span>${s.description}</span>
           </div>
         `,
-        ).join('')}
+  ).join('')}
       </div>
       <button class="help-close-btn" data-action="close-help">Close (Esc)</button>
     </div>
@@ -1882,17 +1879,29 @@ async function toggleZenMode(): Promise<void> {
   zenModeActive = !zenModeActive
   document.documentElement.classList.toggle('zen-mode', zenModeActive)
 
-  // Toggle fullscreen via Tauri API
+  // Force virtual scroll to re-render with new styling
+  // Use requestAnimationFrame to ensure CSS classes have been applied
+  if (virtualScroll) {
+    requestAnimationFrame(() => {
+      virtualScroll?.forceRender()
+    })
+  }
+
+  // Toggle fullscreen and hide decorations via Tauri API
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const appWindow = getCurrentWindow()
 
     if (zenModeActive) {
+      // Hide window decorations (title bar) and go fullscreen
+      await appWindow.setDecorations(false)
       await appWindow.setFullscreen(true)
       showZenModeBadge()
       toastInfo('Zen mode enabled. Press Z or Escape to exit.')
     } else {
+      // Restore window decorations and exit fullscreen
       await appWindow.setFullscreen(false)
+      await appWindow.setDecorations(true)
       hideZenModeBadge()
     }
   } catch (error) {
@@ -1916,11 +1925,20 @@ async function exitZenMode(): Promise<void> {
     document.documentElement.classList.remove('zen-mode')
     hideZenModeBadge()
 
-    // Exit fullscreen via Tauri API
+    // Force virtual scroll to re-render with normal styling
+    // Use requestAnimationFrame to ensure CSS classes have been removed
+    if (virtualScroll) {
+      requestAnimationFrame(() => {
+        virtualScroll?.forceRender()
+      })
+    }
+
+    // Exit fullscreen and restore decorations via Tauri API
     try {
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
       const appWindow = getCurrentWindow()
       await appWindow.setFullscreen(false)
+      await appWindow.setDecorations(true)
     } catch (error) {
       console.warn('Tauri window API not available:', error)
     }
@@ -2534,6 +2552,16 @@ async function main(): Promise<void> {
   // Initialize theme and settings first to prevent flash of wrong theme
   initTheme()
   initSettings()
+
+  // Ensure window decorations are visible on startup
+  // (may have been hidden if app was closed during Zen mode)
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const appWindow = getCurrentWindow()
+    await appWindow.setDecorations(true)
+  } catch {
+    // Not in Tauri environment
+  }
 
   // Load cached read stories
   readStoryIds = getReadStoryIds()

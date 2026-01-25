@@ -128,10 +128,14 @@ export class VirtualScroll<T> {
       window.addEventListener('scroll', this.scrollHandler, { passive: true })
     }
 
-    // Set up resize observer
+    // Set up resize observer with debounce
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null
     this.resizeObserver = new ResizeObserver(() => {
-      this.updateContainerHeight()
-      this.render()
+      if (resizeTimeout) clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(() => {
+        this.updateContainerHeight()
+        this.render()
+      }, 100)
     })
     if (this.scrollElement) {
       this.resizeObserver.observe(this.scrollElement)
@@ -254,6 +258,16 @@ export class VirtualScroll<T> {
       .join('')
 
     this.itemsContainer.innerHTML = html
+  }
+
+  /**
+   * Force re-render of all visible items (useful when styling changes)
+   */
+  forceRender(): void {
+    // Reset indices to force a full re-render
+    this.startIndex = -1
+    this.endIndex = -1
+    this.render()
   }
 
   /**
