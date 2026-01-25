@@ -194,6 +194,25 @@ tasks:
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
         echo "Released v$NEW_VERSION - run 'git push --tags' to publish"
 
+  release:publish:
+    desc: Push commits and tags to remote (with safety checks)
+    cmds:
+      - |
+        # Safety checks
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Error: Working tree is not clean. Commit or stash changes first."
+          exit 1
+        fi
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$BRANCH" != "main" ]; then
+          echo "Error: Not on main branch (currently on '$BRANCH'). Switch to main first."
+          exit 1
+        fi
+        # Push commits and tags
+        git push
+        git push --tags
+        echo "Published to remote successfully!"
+
   # ===== Utility Tasks =====
 
   version:
