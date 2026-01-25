@@ -17,6 +17,7 @@ type KeyboardCallback = {
   onFocusComments?: () => void
   onZenMode?: () => void
   onToggleTheme?: () => void
+  onQuit?: () => void
 }
 
 let callbacks: KeyboardCallback = {}
@@ -127,6 +128,13 @@ function handleKeydown(e: KeyboardEvent): void {
 
   const key = e.key.toLowerCase()
 
+  // Handle Cmd+Q (macOS) or Ctrl+Q (Windows/Linux) to quit
+  if (key === 'q' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    callbacks.onQuit?.()
+    return
+  }
+
   switch (key) {
     case 'j':
     case 'arrowdown':
@@ -236,4 +244,5 @@ export const KEYBOARD_SHORTCUTS = [
   { key: '/', description: 'Search' },
   { key: '1-6', description: 'Switch feeds' },
   { key: '?', description: 'Show shortcuts' },
+  { key: '⌘Q', description: 'Quit app' },
 ]

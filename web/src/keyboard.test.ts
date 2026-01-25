@@ -259,6 +259,44 @@ describe('keyboard', () => {
     })
   })
 
+  describe('quit shortcut', () => {
+    beforeEach(() => {
+      document.body.innerHTML = '<div class="story"></div>'
+      initKeyboard()
+    })
+
+    it('Cmd+Q calls onQuit (macOS)', () => {
+      const onQuit = vi.fn()
+      setKeyboardCallbacks({ onQuit })
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'q', metaKey: true }),
+      )
+
+      expect(onQuit).toHaveBeenCalled()
+    })
+
+    it('Ctrl+Q calls onQuit (Windows/Linux)', () => {
+      const onQuit = vi.fn()
+      setKeyboardCallbacks({ onQuit })
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'q', ctrlKey: true }),
+      )
+
+      expect(onQuit).toHaveBeenCalled()
+    })
+
+    it('Q without modifier does not call onQuit', () => {
+      const onQuit = vi.fn()
+      setKeyboardCallbacks({ onQuit })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }))
+
+      expect(onQuit).not.toHaveBeenCalled()
+    })
+  })
+
   describe('keyboard enable/disable', () => {
     beforeEach(() => {
       document.body.innerHTML = '<div class="story"></div>'

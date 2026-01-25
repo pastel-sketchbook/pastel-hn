@@ -4,7 +4,7 @@
 
 Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
-![Version](https://img.shields.io/badge/version-0.4.0-cyan)
+![Version](https://img.shields.io/badge/version-0.7.7-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -17,12 +17,14 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 ## Features
 
 - **All HN Feeds** - Top, New, Best, Ask, Show, Jobs with instant switching
-- **Threaded Comments** - Collapsible comment trees with depth indicators
+- **Threaded Comments** - Collapsible comment trees with smooth animations and depth indicators
+- **Zen Mode** - Distraction-free reading with fullscreen and hidden UI (`z` key)
 - **Search** - Algolia-powered search with filters (stories/comments, date/relevance)
 - **User Profiles** - View karma, about, and submission history
 - **Keyboard Navigation** - Full keyboard support for power users
 - **Dark/Light Themes** - Cyberpunk Pastel aesthetic with system preference support
 - **Customizable** - Font size, density, and default feed settings
+- **Window State** - Remembers window position and size across sessions
 
 ## Tech Stack
 
@@ -52,12 +54,15 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 | `Enter` | Open story / expand comments |
 | `o` | Open link in browser |
 | `c` | Focus comments section |
-| `Escape` | Go back / close modal |
+| `z` | Toggle Zen mode |
+| `d` | Toggle dark/light theme |
+| `Escape` | Go back / exit Zen mode |
 | `r` | Refresh current feed |
 | `1-6` | Switch feeds (top/new/best/ask/show/jobs) |
 | `/` | Focus search |
-| `?` | Show keyboard shortcuts |
 | `t` | Scroll to top |
+| `?` | Show keyboard shortcuts |
+| `⌘Q` | Quit app (Ctrl+Q on Windows/Linux) |
 
 ## Development
 

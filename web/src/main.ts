@@ -2413,6 +2413,15 @@ function setupKeyboardNavigation(): void {
     onToggleTheme: () => {
       toggleTheme()
     },
+    onQuit: async () => {
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        const appWindow = getCurrentWindow()
+        await appWindow.close()
+      } catch {
+        // Not in Tauri environment, ignore
+      }
+    },
   })
 
   initKeyboard()

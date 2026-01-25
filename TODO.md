@@ -114,7 +114,7 @@
 - [x] Skeleton loading stagger animations
 - [x] Page transition animations
 - [x] List item stagger animations
-- [ ] Collapse/expand animations for comments
+- [x] Collapse/expand animations for comments
 - [ ] **Loading shimmer effect for article content**
 - [ ] **Success/error toast slide animations**
 
@@ -190,6 +190,9 @@
 - [x] `/` - Focus search
 - [x] `?` - Show keyboard shortcuts
 - [x] `t` - Scroll to top
+- [x] `d` - Toggle dark/light theme
+- [x] `z` - Toggle Zen mode
+- [x] `⌘Q` / `Ctrl+Q` - Quit app
 
 ### 4.2 Reading Experience
 - [x] Reading position memory (per story)
@@ -233,7 +236,7 @@
 ### 5.1 Window Management
 - [x] Default size: 1920x1080
 - [x] Minimum size: 1024x768
-- [ ] Remember window position and size
+- [x] Remember window position and size
 - [ ] Multi-window support (story in new window)
 
 ### 5.2 Native Commands
