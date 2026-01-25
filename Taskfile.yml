@@ -159,6 +159,12 @@ tasks:
         IFS='.' read -r major minor patch <<< "$VERSION"
         NEW_VERSION="$major.$minor.$((patch + 1))"
         echo "$NEW_VERSION" > VERSION
+        # Update Cargo.toml version
+        sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+        # Update tauri.conf.json version
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
+        # Update web package.json version
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" web/package.json
         git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
@@ -174,6 +180,12 @@ tasks:
         IFS='.' read -r major minor patch <<< "$VERSION"
         NEW_VERSION="$major.$((minor + 1)).0"
         echo "$NEW_VERSION" > VERSION
+        # Update Cargo.toml version
+        sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+        # Update tauri.conf.json version
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
+        # Update web package.json version
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" web/package.json
         git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
@@ -189,6 +201,12 @@ tasks:
         IFS='.' read -r major minor patch <<< "$VERSION"
         NEW_VERSION="$((major + 1)).0.0"
         echo "$NEW_VERSION" > VERSION
+        # Update Cargo.toml version
+        sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+        # Update tauri.conf.json version
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
+        # Update web package.json version
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" web/package.json
         git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
