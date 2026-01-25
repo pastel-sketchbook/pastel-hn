@@ -1102,6 +1102,9 @@ main {
 /* ===== STORY DETAIL VIEW ===== */
 .story-detail {
   padding: 1.5rem;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .story-detail-header {
@@ -4453,9 +4456,9 @@ main {
   margin-right: auto;
 }
 
-/* Story detail in zen mode - centered readable width */
+/* Story detail in zen mode - match list view width */
 .zen-mode .story-detail {
-  max-width: 900px;
+  max-width: 95%;
   margin: 0 auto;
   padding: 2rem;
 }
