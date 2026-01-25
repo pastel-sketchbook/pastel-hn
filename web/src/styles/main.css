@@ -1820,7 +1820,9 @@ main {
 .comment-text,
 .comment-children {
   overflow: hidden;
-  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+  transition:
+    max-height 0.3s ease-out,
+    opacity 0.2s ease-out;
   max-height: 5000px; /* Large enough to contain any comment */
   opacity: 1;
 }
@@ -1839,7 +1841,7 @@ main {
   .comment-children {
     transition: none;
   }
-  
+
   .comment[data-collapsed="true"] .comment-text,
   .comment[data-collapsed="true"] .comment-children {
     display: none;
@@ -4279,7 +4281,9 @@ main {
   transform: translateY(-100%);
   opacity: 0;
   pointer-events: none;
-  transition: transform var(--zen-transition), opacity var(--zen-transition);
+  transition:
+    transform var(--zen-transition),
+    opacity var(--zen-transition);
 }
 
 .zen-mode main {

@@ -26,12 +26,13 @@ export function createFocusTrap(container: HTMLElement): FocusTrapInstance {
   let handleKeyDown: ((e: KeyboardEvent) => void) | null = null
 
   function getFocusableElements(): HTMLElement[] {
-    return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS))
-      .filter(el => {
-        // Check if element is visible
-        const style = window.getComputedStyle(el)
-        return style.display !== 'none' && style.visibility !== 'hidden'
-      })
+    return Array.from(
+      container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS),
+    ).filter((el) => {
+      // Check if element is visible
+      const style = window.getComputedStyle(el)
+      return style.display !== 'none' && style.visibility !== 'hidden'
+    })
   }
 
   function activate(): void {
@@ -80,7 +81,10 @@ export function createFocusTrap(container: HTMLElement): FocusTrapInstance {
     }
 
     // Restore focus to previously focused element
-    if (previouslyFocusedElement && previouslyFocusedElement instanceof HTMLElement) {
+    if (
+      previouslyFocusedElement &&
+      previouslyFocusedElement instanceof HTMLElement
+    ) {
       previouslyFocusedElement.focus()
     }
     previouslyFocusedElement = null

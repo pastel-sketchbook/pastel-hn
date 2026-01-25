@@ -666,7 +666,11 @@ async function renderStories(
   } catch (error) {
     container.setAttribute('aria-busy', 'false')
     const parsed = parseApiError(error)
-    container.innerHTML = renderErrorWithRetry(parsed, 'Stories', 'retry-stories')
+    container.innerHTML = renderErrorWithRetry(
+      parsed,
+      'Stories',
+      'retry-stories',
+    )
     showErrorToast(error, 'Load stories')
     console.error('Failed to load stories:', error)
   } finally {
@@ -1204,7 +1208,9 @@ async function fetchAndDisplayArticle(
     const article = await fetchArticleContent(url)
 
     if (article.content) {
-      const readingTime = article.wordCount ? calculateReadingTime(article.wordCount) : ''
+      const readingTime = article.wordCount
+        ? calculateReadingTime(article.wordCount)
+        : ''
       articleContainer.innerHTML = `
         <div class="article-reader">
           ${article.title ? `<h2 class="article-title">${escapeHtml(article.title)}</h2>` : ''}
@@ -1321,7 +1327,8 @@ async function renderStoryDetail(
 
     // Calculate reading time for text posts (Ask HN, etc.)
     const textWordCount = story.text ? countWords(story.text) : 0
-    const textReadingTime = textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
+    const textReadingTime =
+      textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
 
     container.innerHTML = `
       <div class="story-detail"${typeAttr}>
@@ -1428,7 +1435,12 @@ async function renderStoryDetail(
     })
   } catch (error) {
     const parsed = parseApiError(error)
-    container.innerHTML = renderErrorWithRetry(parsed, 'Story', 'retry-story', true)
+    container.innerHTML = renderErrorWithRetry(
+      parsed,
+      'Story',
+      'retry-story',
+      true,
+    )
     showErrorToast(error, 'Load story')
     console.error('Failed to load story:', error)
   } finally {
@@ -1602,7 +1614,12 @@ async function renderUserProfile(userId: string): Promise<void> {
     setScrollTop(0)
   } catch (error) {
     const parsed = parseApiError(error)
-    container.innerHTML = renderErrorWithRetry(parsed, 'User', 'retry-user', true)
+    container.innerHTML = renderErrorWithRetry(
+      parsed,
+      'User',
+      'retry-user',
+      true,
+    )
     showErrorToast(error, 'Load user')
     console.error('Failed to load user:', error)
   } finally {
@@ -2351,7 +2368,9 @@ function setupNavigation(): void {
   // Handle retry button clicks for error recovery
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement
-    const retryBtn = target.closest('[data-action^="retry-"]') as HTMLElement | null
+    const retryBtn = target.closest(
+      '[data-action^="retry-"]',
+    ) as HTMLElement | null
     if (retryBtn) {
       e.preventDefault()
       const action = retryBtn.dataset.action
