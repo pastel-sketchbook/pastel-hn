@@ -487,6 +487,8 @@ main {
   );
   border: 1px solid rgba(0, 217, 255, 0.08);
   backdrop-filter: blur(4px);
+  /* Breathing glow animation */
+  animation: card-breathe 6s ease-in-out infinite;
 }
 
 [data-theme="light"] .story {
@@ -497,6 +499,7 @@ main {
     rgba(0, 151, 167, 0.04) 100%
   );
   border: 1px solid rgba(0, 151, 167, 0.12);
+  animation: card-breathe-light 6s ease-in-out infinite;
 }
 
 .story:first-child {
@@ -1095,8 +1098,75 @@ main {
   }
 }
 
+/* Subtle breathing glow for story cards - orange/amber */
+@keyframes card-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(255, 159, 67, 0.08);
+    border-color: rgba(255, 159, 67, 0.08);
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(255, 159, 67, 0.15);
+    border-color: rgba(255, 159, 67, 0.18);
+  }
+}
+
+/* Light theme story breathing glow - deep orange */
+@keyframes card-breathe-light {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(211, 84, 0, 0.08);
+    border-color: rgba(211, 84, 0, 0.12);
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(211, 84, 0, 0.18);
+    border-color: rgba(211, 84, 0, 0.22);
+  }
+}
+
+/* Comment body breathing glow - purple */
+@keyframes comment-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(162, 155, 254, 0.05);
+    border-color: rgba(162, 155, 254, 0.08);
+  }
+
+  50% {
+    box-shadow: 0 0 10px rgba(162, 155, 254, 0.12);
+    border-color: rgba(162, 155, 254, 0.15);
+  }
+}
+
+/* Light theme comment breathing glow - deep purple */
+@keyframes comment-breathe-light {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(109, 40, 217, 0.05);
+    border-color: rgba(109, 40, 217, 0.12);
+  }
+
+  50% {
+    box-shadow: 0 0 10px rgba(109, 40, 217, 0.12);
+    border-color: rgba(109, 40, 217, 0.18);
+  }
+}
+
 .cyber-frame {
   animation: glow-pulse 4s ease-in-out infinite;
+}
+
+/* Disable breathing animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .story,
+  [data-theme="light"] .story,
+  .comment-body,
+  [data-theme="light"] .comment-body,
+  .cyber-frame {
+    animation: none;
+  }
 }
 
 /* ===== STORY DETAIL VIEW ===== */
@@ -1670,6 +1740,8 @@ main {
   border-radius: 0 4px 4px 0;
   padding: 0.75rem 1rem;
   transition: all 0.2s ease;
+  /* Breathing glow animation */
+  animation: comment-breathe 6s ease-in-out infinite;
 }
 
 [data-theme="light"] .comment-body {
@@ -1679,6 +1751,7 @@ main {
     transparent 100%
   );
   border-color: rgba(0, 151, 167, 0.12);
+  animation: comment-breathe-light 6s ease-in-out infinite;
 }
 
 .comment-body:hover {
