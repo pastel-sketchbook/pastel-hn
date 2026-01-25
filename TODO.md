@@ -283,12 +283,12 @@
 - [x] Unit tests for API functions (api.test.ts - 18 tests)
 - [x] Unit tests for theme module (theme.test.ts - 11 tests)
 - [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 7 tests)
-- [ ] **Unit tests for keyboard.ts** (navigation, shortcuts, callbacks)
-- [ ] **Unit tests for storage.ts** (localStorage, scroll positions, read tracking)
-- [ ] **Unit tests for settings.ts** (preferences, persistence)
-- [ ] **Unit tests for toast.ts** (notification display, timing)
+- [x] Unit tests for keyboard.ts (keyboard.test.ts - 27 tests)
+- [x] Unit tests for storage.ts (storage.test.ts - 22 tests)
+- [x] Unit tests for settings.ts (settings.test.ts - 29 tests)
+- [x] Unit tests for toast.ts (toast.test.ts - 30 tests)
 - [ ] Rust unit tests for HnClient (fetch, caching, error handling)
-- [ ] **Rust unit tests for types.rs** (serialization, From impls)
+- [ ] Rust unit tests for types.rs (serialization, From impls)
 - [ ] Component tests for UI
 - [ ] E2E tests with Playwright
 - [ ] Visual regression tests
