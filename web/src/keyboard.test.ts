@@ -204,6 +204,15 @@ describe('keyboard', () => {
       expect(onFocusComments).toHaveBeenCalled()
     })
 
+    it('b key calls onBackToList', () => {
+      const onBackToList = vi.fn()
+      setKeyboardCallbacks({ onBackToList })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }))
+
+      expect(onBackToList).toHaveBeenCalled()
+    })
+
     it('o key calls onOpenExternal', () => {
       const onOpenExternal = vi.fn()
       setKeyboardCallbacks({ onOpenExternal })

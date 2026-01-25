@@ -2535,6 +2535,12 @@ function setupKeyboardNavigation(): void {
     onZenMode: () => {
       toggleZenMode()
     },
+    onBackToList: () => {
+      // Navigate back to list without exiting zen mode
+      if (currentView === 'detail') {
+        navigateBackToList()
+      }
+    },
     onToggleTheme: () => {
       toggleTheme()
     },

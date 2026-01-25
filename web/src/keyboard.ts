@@ -8,6 +8,7 @@ type KeyboardCallback = {
   onNavigate?: (index: number) => void
   onSelect?: (index: number) => void
   onBack?: () => void
+  onBackToList?: () => void
   onRefresh?: () => void
   onOpenExternal?: (index: number) => void
   onFeedChange?: (feed: StoryFeed) => void
@@ -195,6 +196,11 @@ function handleKeydown(e: KeyboardEvent): void {
       callbacks.onZenMode?.()
       break
 
+    case 'b':
+      e.preventDefault()
+      callbacks.onBackToList?.()
+      break
+
     case 'd':
       e.preventDefault()
       callbacks.onToggleTheme?.()
@@ -236,6 +242,7 @@ export const KEYBOARD_SHORTCUTS = [
   { key: 'Enter', description: 'Open story / expand' },
   { key: 'o', description: 'Open link in browser' },
   { key: 'c', description: 'Focus comments' },
+  { key: 'b', description: 'Back to list' },
   { key: 'z', description: 'Toggle Zen mode' },
   { key: 'd', description: 'Toggle dark/light' },
   { key: 'Escape', description: 'Go back / exit Zen' },

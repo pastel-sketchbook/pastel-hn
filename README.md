@@ -4,7 +4,7 @@
 
 Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
-![Version](https://img.shields.io/badge/version-0.7.7-cyan)
+![Version](https://img.shields.io/badge/version-0.8.5-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -18,13 +18,17 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 ## Features
 
 - **All HN Feeds** - Top, New, Best, Ask, Show, Jobs with instant switching
+- **Article Reader** - Read articles inline without leaving the app (Mozilla Readability extraction)
 - **Threaded Comments** - Collapsible comment trees with smooth animations and depth indicators
+- **Lazy Comment Loading** - Initial shallow fetch with on-demand deep loading for fast performance
+- **Intelligent Prefetching** - Prefetches stories on hover, near scroll end, and during idle time
 - **Zen Mode** - Distraction-free reading with fullscreen and hidden UI (`z` key)
 - **Search** - Algolia-powered search with filters (stories/comments, date/relevance)
 - **User Profiles** - View karma, about, and submission history
 - **Keyboard Navigation** - Full keyboard support for power users
 - **Dark/Light Themes** - Cyberpunk Pastel aesthetic with system preference support
-- **Customizable** - Font size, density, and default feed settings
+- **Customizable** - Font size (compact/normal/comfortable), density, and default feed settings
+- **Reading Time** - Estimated read time displayed for articles
 - **Window State** - Remembers window position and size across sessions
 
 ## Tech Stack
@@ -55,6 +59,7 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 | `Enter` | Open story / expand comments |
 | `o` | Open link in browser |
 | `c` | Focus comments section |
+| `b` | Back to list (preserves Zen mode) |
 | `z` | Toggle Zen mode |
 | `d` | Toggle dark/light theme |
 | `Escape` | Go back / exit Zen mode |
@@ -111,6 +116,8 @@ pastel-hn/
 │   │   ├── theme.ts         # Theme management
 │   │   ├── settings.ts      # Settings panel
 │   │   ├── toast.ts         # Toast notifications
+│   │   ├── prefetch.ts      # Intelligent prefetching
+│   │   ├── storage.ts       # Local storage utilities
 │   │   ├── virtual-scroll.ts# Virtual scrolling
 │   │   └── styles/main.css  # Cyberpunk styles
 │   └── index.html
@@ -130,6 +137,9 @@ pastel-hn/
 
 - [ADR-0001: Removing Zig/WASM Layer](docs/rationale/0001_removing_zig_wasm_layer.md)
 - [ADR-0002: Rust API Layer](docs/rationale/0002_rust_api_layer.md)
+- [ADR-0003: Tabbed Story Detail with Reader Mode](docs/rationale/0003_tabbed_story_detail_with_reader_mode.md)
+- [ADR-0004: Error Handling Pattern](docs/rationale/0004_error_handling_pattern.md)
+- [ADR-0005: UI Design System](docs/rationale/0005_ui_design_system.md)
 
 ## Design Philosophy
 
