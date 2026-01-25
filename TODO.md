@@ -170,7 +170,7 @@
 - [x] Font size adjustment
 - [x] Information density (compact/normal/comfortable)
 - [x] Default feed selection
-- [ ] Keyboard shortcut reference
+- [x] Keyboard shortcut reference
 - [ ] **Clear reading history option**
 - [ ] **Cache management (view size, clear)**
 - [ ] **Export/import settings**
