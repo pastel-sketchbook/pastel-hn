@@ -10,10 +10,11 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 
 ## Screenshots
 
-|  | Dark Theme | Light Theme |
-|:-:|:----------:|:-----------:|
-| **Story List** | ![Dark Theme](screenshots/dark.png) | ![Light Theme](screenshots/light.png) |
-| **Comments** | ![Story Detail](screenshots/story.png) | ![Comments](screenshots/comments.png) |
+| Dark Theme | Light Theme |
+|:----------:|:-----------:|
+| ![Dark Theme](screenshots/dark.png) | ![Light Theme](screenshots/light.png) |
+| **Article View** | **Comments View** |
+| ![Article View](screenshots/story.png) | ![Comments View](screenshots/comments.png) |
 
 ## Features
 
