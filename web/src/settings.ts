@@ -4,6 +4,7 @@
 
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import { KEYBOARD_SHORTCUTS } from './keyboard'
+import { clearReadingHistory, getReadStoriesCount } from './storage'
 import { setTheme, type Theme } from './theme'
 
 export type FontSize = 'compact' | 'normal' | 'comfortable'
@@ -41,6 +42,8 @@ const settingsIcons = {
   layout: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
   home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   keyboard: `<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg>`,
+  history: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
 }
 
 /**
@@ -213,6 +216,18 @@ export function showSettingsModal(): void {
           </div>
         </div>
         
+        <!-- Reading History -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">${settingsIcons.history}Reading History</h3>
+          <div class="settings-history">
+            <span class="history-count">${getReadStoriesCount()} stories read</span>
+            <button class="settings-clear-btn" data-action="clear-history">
+              ${settingsIcons.trash}
+              <span>Clear History</span>
+            </button>
+          </div>
+        </div>
+        
         <!-- Keyboard Shortcuts -->
         <div class="settings-section">
           <h3 class="settings-section-title">${settingsIcons.keyboard}Keyboard Shortcuts</h3>
@@ -275,6 +290,18 @@ export function showSettingsModal(): void {
         // Save setting
         saveSettings({ [setting]: value })
       }
+    }
+
+    // Clear history button click
+    if (target.closest('[data-action="clear-history"]')) {
+      clearReadingHistory()
+      // Update the count display
+      const countEl = modal.querySelector('.history-count')
+      if (countEl) {
+        countEl.textContent = '0 stories read'
+      }
+      // Dispatch event so main.ts can update its readStoryIds cache
+      window.dispatchEvent(new CustomEvent('reading-history-cleared'))
     }
   })
 

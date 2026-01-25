@@ -2481,6 +2481,21 @@ async function main(): Promise<void> {
     // Handle hash routing
     window.addEventListener('hashchange', handleHashChange)
 
+    // Handle reading history cleared event from settings
+    window.addEventListener('reading-history-cleared', () => {
+      readStoryIds.clear()
+      // Re-render stories if on list view to update read indicators
+      if (currentView === 'list') {
+        const container = document.getElementById('stories')
+        if (container) {
+          // Just update the read state classes without full re-render
+          container.querySelectorAll('.story').forEach((storyEl) => {
+            storyEl.classList.remove('story-read')
+          })
+        }
+      }
+    })
+
     // Set up scroll position saving, header shadow, and back to top
     // Listen on the main scroll container instead of window
     const scrollContainer = getScrollContainer()

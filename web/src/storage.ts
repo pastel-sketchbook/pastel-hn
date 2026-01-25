@@ -197,3 +197,21 @@ export function clearAllReadingData(): void {
     // Ignore
   }
 }
+
+/**
+ * Clear only reading history (read stories), keeping scroll positions
+ */
+export function clearReadingHistory(): void {
+  try {
+    localStorage.removeItem(READ_STORIES_KEY)
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Get the count of read stories
+ */
+export function getReadStoriesCount(): number {
+  return getReadStories().length
+}
