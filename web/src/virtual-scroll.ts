@@ -89,6 +89,7 @@ export class VirtualScroll<T> {
     this.itemsContainer.style.top = '0'
     this.itemsContainer.style.left = '0'
     this.itemsContainer.style.right = '0'
+    this.itemsContainer.style.zIndex = '1' // Stay below sticky header (z-index: 100)
     this.scrollSpacer.appendChild(this.itemsContainer)
 
     // Set up scroll listener on window

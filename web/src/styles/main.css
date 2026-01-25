@@ -229,7 +229,9 @@ header {
   z-index: 100;
   margin-bottom: 1.5rem;
   background: var(--bg-primary);
-  /* Ensure header covers grid pattern */
+  /* Force new stacking context above transformed content */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Sticky header background for light theme */
@@ -386,6 +388,8 @@ nav {
 /* ===== MAIN CONTENT ===== */
 main {
   position: relative;
+  /* Ensure main content stays below sticky header */
+  z-index: 1;
 }
 
 #stories {
@@ -2233,10 +2237,13 @@ main {
 /* ===== VIRTUAL SCROLL ===== */
 .virtual-scroll-spacer {
   width: 100%;
+  position: relative;
 }
 
 .virtual-scroll-items {
   width: 100%;
+  /* Ensure items stay below sticky header */
+  z-index: 1;
 }
 
 /* Ensure story items have consistent height in virtual scroll mode */
