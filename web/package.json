@@ -8,6 +8,11 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@fontsource/orbitron": "latest",
+    "@fontsource/rajdhani": "latest",
+    "@fontsource/share-tech-mono": "latest"
+  },
   "devDependencies": {
     "@biomejs/biome": "latest",
     "typescript": "latest",

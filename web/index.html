@@ -4,17 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hacker News | Cyberpunk Edition</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <div id="app">
       <header>
-        <div class="header-inner">
+        <div class="header-inner cyber-frame">
+          <span class="corner-tr"></span>
+          <span class="corner-bl"></span>
           <a href="/" class="logo">
             <div class="logo-icon">Y</div>
             <span>HACKER NEWS</span>
@@ -30,10 +26,12 @@
         </div>
       </header>
       <main>
-        <section id="stories">
+        <section id="stories" class="cyber-frame">
+          <span class="corner-tr"></span>
+          <span class="corner-bl"></span>
           <div class="loading">
             <div class="loading-spinner"></div>
-            <span>Initializing...</span>
+            <span>INITIALIZING...</span>
           </div>
         </section>
       </main>

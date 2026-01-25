@@ -1,17 +1,16 @@
-import type { HNItem, StoryFeed } from './types'
-import { initWasm, parseItem, parseStoryIds } from './wasm'
+import type { HNItem, ItemType, StoryFeed } from './types'
 
 const BASE_URL = 'https://hacker-news.firebaseio.com/v0'
 
 const itemCache = new Map<number, { item: HNItem; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000
 
-async function fetchJson(url: string): Promise<string> {
+async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status}`)
   }
-  return response.text()
+  return response.json()
 }
 
 function getCachedItem(id: number): HNItem | null {
@@ -28,8 +27,53 @@ function cacheItem(item: HNItem): void {
   itemCache.set(item.id, { item, timestamp: Date.now() })
 }
 
+function parseItemType(type: string | undefined): ItemType {
+  const types: Record<string, ItemType> = {
+    story: 0,
+    comment: 1,
+    job: 2,
+    poll: 3,
+    pollopt: 4,
+  }
+  return types[type ?? ''] ?? 5
+}
+
+interface RawHNItem {
+  id: number
+  type?: string
+  by?: string
+  time?: number
+  text?: string
+  url?: string
+  score?: number
+  title?: string
+  descendants?: number
+  kids?: number[]
+  parent?: number
+  dead?: boolean
+  deleted?: boolean
+}
+
+function rawToItem(raw: RawHNItem): HNItem {
+  return {
+    id: raw.id,
+    type: parseItemType(raw.type),
+    by: raw.by ?? null,
+    time: raw.time ?? 0,
+    text: raw.text ?? null,
+    url: raw.url ?? null,
+    score: raw.score ?? 0,
+    title: raw.title ?? null,
+    descendants: raw.descendants ?? 0,
+    kids: raw.kids ?? null,
+    parent: raw.parent ?? null,
+    dead: raw.dead ?? false,
+    deleted: raw.deleted ?? false,
+  }
+}
+
 export async function init(): Promise<void> {
-  await initWasm()
+  // No WASM init needed for now - using native JSON
 }
 
 export async function fetchStoryIds(
@@ -45,10 +89,7 @@ export async function fetchStoryIds(
     jobs: 'jobstories',
   }[feed]
 
-  const json = await fetchJson(`${BASE_URL}/${endpoint}.json`)
-  const ids = parseStoryIds(json)
-  if (!ids) throw new Error('Failed to parse story IDs')
-
+  const ids = await fetchJson<number[]>(`${BASE_URL}/${endpoint}.json`)
   return limit ? ids.slice(0, limit) : ids
 }
 
@@ -56,9 +97,8 @@ export async function fetchItem(id: number): Promise<HNItem> {
   const cached = getCachedItem(id)
   if (cached) return cached
 
-  const json = await fetchJson(`${BASE_URL}/item/${id}.json`)
-  const item = parseItem(json)
-  if (!item) throw new Error(`Failed to parse item ${id}`)
+  const raw = await fetchJson<RawHNItem>(`${BASE_URL}/item/${id}.json`)
+  const item = rawToItem(raw)
 
   cacheItem(item)
   return item
