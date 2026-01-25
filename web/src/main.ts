@@ -83,7 +83,9 @@ function parseApiError(error: unknown): ParsedError {
   const errorStr = String(error)
 
   // Check for rate limiting
-  const rateLimitMatch = errorStr.match(/Rate limited, retry after (\d+) seconds/)
+  const rateLimitMatch = errorStr.match(
+    /Rate limited, retry after (\d+) seconds/,
+  )
   if (rateLimitMatch) {
     const retryAfter = Number.parseInt(rateLimitMatch[1], 10)
     return {
@@ -574,9 +576,10 @@ async function renderStories(
   } catch (error) {
     container.setAttribute('aria-busy', 'false')
     const parsed = parseApiError(error)
-    const errorMessage = parsed.type === 'rate_limited'
-      ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
-      : 'Failed to load stories. Please try again.'
+    const errorMessage =
+      parsed.type === 'rate_limited'
+        ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+        : 'Failed to load stories. Please try again.'
     container.innerHTML = `
       <div class="error" role="alert">
         <span class="error-icon" aria-hidden="true">⚠</span>
@@ -1334,11 +1337,12 @@ async function renderStoryDetail(
     })
   } catch (error) {
     const parsed = parseApiError(error)
-    const errorMessage = parsed.type === 'rate_limited'
-      ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
-      : parsed.type === 'not_found'
-        ? 'Story not found. It may have been deleted.'
-        : 'Failed to load story. Please try again.'
+    const errorMessage =
+      parsed.type === 'rate_limited'
+        ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+        : parsed.type === 'not_found'
+          ? 'Story not found. It may have been deleted.'
+          : 'Failed to load story. Please try again.'
     container.innerHTML = `
       <div class="error">
         <span class="error-icon">⚠</span>
@@ -1522,11 +1526,12 @@ async function renderUserProfile(userId: string): Promise<void> {
     setScrollTop(0)
   } catch (error) {
     const parsed = parseApiError(error)
-    const errorMessage = parsed.type === 'rate_limited'
-      ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
-      : parsed.type === 'not_found'
-        ? 'User not found. The account may not exist.'
-        : 'Failed to load user profile. Please try again.'
+    const errorMessage =
+      parsed.type === 'rate_limited'
+        ? `Too many requests. Please wait ${parsed.retryAfter} seconds.`
+        : parsed.type === 'not_found'
+          ? 'User not found. The account may not exist.'
+          : 'Failed to load user profile. Please try again.'
     container.innerHTML = `
       <div class="error">
         <span class="error-icon">⚠</span>
