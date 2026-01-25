@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getTheme,
-  setTheme,
-  toggleTheme,
   initTheme,
+  setTheme,
   THEME_STORAGE_KEY,
-  type Theme,
+  toggleTheme,
 } from './theme'
 
 describe('theme', () => {
@@ -15,26 +14,35 @@ describe('theme', () => {
     // Reset document attribute
     document.documentElement.removeAttribute('data-theme')
     // Reset matchMedia mock
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-    }))
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+      }),
+    )
   })
 
   describe('getTheme', () => {
     it('returns dark when no preference is stored and system prefers dark', () => {
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: true,
+          addEventListener: vi.fn(),
+        }),
+      )
       expect(getTheme()).toBe('dark')
     })
 
     it('returns light when no preference is stored and system prefers light', () => {
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: false,
-        addEventListener: vi.fn(),
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: false,
+          addEventListener: vi.fn(),
+        }),
+      )
       expect(getTheme()).toBe('light')
     })
 
@@ -48,10 +56,13 @@ describe('theme', () => {
 
     it('ignores invalid localStorage values and falls back to system preference', () => {
       localStorage.setItem(THEME_STORAGE_KEY, 'invalid')
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: true,
+          addEventListener: vi.fn(),
+        }),
+      )
       expect(getTheme()).toBe('dark')
     })
   })
@@ -98,22 +109,31 @@ describe('theme', () => {
     })
 
     it('initializes theme based on system preference when no stored value', () => {
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: true,
+          addEventListener: vi.fn(),
+        }),
+      )
       initTheme()
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     })
 
     it('listens for system theme changes', () => {
       const addEventListenerMock = vi.fn()
-      vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-        matches: false,
-        addEventListener: addEventListenerMock,
-      }))
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockReturnValue({
+          matches: false,
+          addEventListener: addEventListenerMock,
+        }),
+      )
       initTheme()
-      expect(addEventListenerMock).toHaveBeenCalledWith('change', expect.any(Function))
+      expect(addEventListenerMock).toHaveBeenCalledWith(
+        'change',
+        expect.any(Function),
+      )
     })
   })
 })

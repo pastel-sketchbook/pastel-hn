@@ -1,10 +1,5 @@
 version: "3"
 
-vars:
-  SHELL: bash
-  ZIG_VERSION: "0.15"
-  WASM_OUT: "web/public/hn.wasm"
-
 tasks:
   default:
     desc: Show available tasks
@@ -12,27 +7,6 @@ tasks:
       - task --list
 
   # ===== Build Tasks =====
-
-  build:wasm:
-    desc: Build hn.wasm (ReleaseSmall - optimized for size)
-    cmds:
-      - zig build --release=small
-      - mkdir -p web/public
-      - cp zig-out/bin/hn.wasm {{.WASM_OUT}}
-
-  build:wasm:fast:
-    desc: Build hn.wasm (ReleaseFast - optimized for speed)
-    cmds:
-      - zig build --release=fast
-      - mkdir -p web/public
-      - cp zig-out/bin/hn.wasm {{.WASM_OUT}}
-
-  build:wasm:debug:
-    desc: Build hn.wasm (Debug - with debug info)
-    cmds:
-      - zig build
-      - mkdir -p web/public
-      - cp zig-out/bin/hn.wasm {{.WASM_OUT}}
 
   build:web:
     desc: Build TypeScript/web frontend
@@ -42,20 +16,15 @@ tasks:
 
   build:tauri:
     desc: Build Tauri desktop app
-    deps: [build:wasm, build:web]
+    deps: [build:web]
     cmds:
       - cd src-tauri && cargo build --release
 
   build:all:
-    desc: Build WASM, web, and Tauri
-    deps: [build:wasm, build:web, build:tauri]
+    desc: Build web and Tauri
+    deps: [build:web, build:tauri]
 
   # ===== Test Tasks =====
-
-  test:zig:
-    desc: Run Zig unit tests
-    cmds:
-      - zig build test
 
   test:web:
     desc: Run TypeScript/web tests
@@ -65,28 +34,25 @@ tasks:
 
   test:e2e:
     desc: Run Playwright end-to-end tests
-    deps: [build:wasm, build:web]
+    deps: [build:web]
     cmds:
       - bunx playwright test
 
   test:
     desc: Run all tests
     cmds:
-      - task: test:zig
       - task: test:web
 
   # ===== Development Tasks =====
 
   dev:web:
     desc: Start web dev server with hot reload
-    deps: [build:wasm]
     dir: web
     cmds:
       - bun run dev
 
   dev:tauri:
     desc: Start Tauri dev mode
-    deps: [build:wasm]
     cmds:
       - cd src-tauri && cargo tauri dev
 
@@ -97,17 +63,10 @@ tasks:
 
   run:app:
     desc: Build and run the desktop app
-    deps: [build:wasm]
     cmds:
-      - mkdir -p web/public && cp zig-out/bin/hn.wasm web/public/
       - cargo tauri dev
 
   # ===== Format & Lint Tasks =====
-
-  fmt:zig:
-    desc: Format Zig code
-    cmds:
-      - zig fmt src/
 
   fmt:web:
     desc: Format TypeScript/web code
@@ -118,19 +77,16 @@ tasks:
   fmt:
     desc: Format all code
     cmds:
-      - task: fmt:zig
       - task: fmt:web
 
   fmt:check:
     desc: Check formatting (CI-friendly)
     cmds:
-      - zig fmt --check src/
       - cd web && bunx biome check src/
 
   lint:
     desc: Lint all code
     cmds:
-      - zig build --release=small
       - cd web && bunx biome lint src/
 
   # ===== Clean Tasks =====
@@ -138,22 +94,19 @@ tasks:
   clean:
     desc: Clean all build artifacts
     cmds:
-      - rm -rf zig-out .zig-cache
-      - rm -rf web/dist web/public/hn.wasm
+      - rm -rf web/dist
       - rm -rf src-tauri/target
 
-  clean:wasm:
-    desc: Clean WASM build artifacts only
+  clean:web:
+    desc: Clean web build artifacts only
     cmds:
-      - rm -rf zig-out .zig-cache
-      - rm -f {{.WASM_OUT}}
+      - rm -rf web/dist
 
   # ===== Check Tasks =====
 
   check:
     desc: Quick compile check
     cmds:
-      - zig build --release=small
       - cd web && bun run typecheck
 
   check:all:
@@ -162,27 +115,15 @@ tasks:
       - task: fmt:check
       - task: lint
       - task: test
-      - task: build:wasm
+      - task: build:web
 
-  # ===== TDD & Workflow Tasks =====
+  # ===== Workflow Tasks =====
 
   pre:commit:
-    desc: Run checks before committing (TDD workflow)
+    desc: Run checks before committing
     cmds:
       - task: fmt
       - task: test
-
-  tdd:
-    desc: TDD cycle - watch mode
-    cmds:
-      - |
-        if command -v watchexec &> /dev/null; then
-          watchexec -e zig task test:zig
-        else
-          echo "Install watchexec for watch mode: cargo install watchexec-cli"
-          echo "Running tests once..."
-          task test:zig
-        fi
 
   # ===== CI Tasks =====
 
@@ -252,21 +193,21 @@ tasks:
     desc: Show project information
     cmds:
       - |
-        echo "wasm-hn - Hacker News Desktop Client"
-        echo "Stack: Zig/WASM + TypeScript + Tauri"
-        echo "Zig: {{.ZIG_VERSION}}+"
-        cat VERSION 2>/dev/null && echo "" || echo "Version: 0.1.0"
+        echo "pastel-hn - Hacker News Desktop Client"
+        echo "Stack: TypeScript + Bun + Tauri"
+        echo "Version: $(cat VERSION)"
 
   loc:count:
     desc: Count lines of code
     cmds:
       - |
-        echo "=== wasm-hn LoC ==="
-        echo "Zig:"
-        find src -name "*.zig" 2>/dev/null | xargs wc -l 2>/dev/null || echo "  No Zig files yet"
+        echo "=== pastel-hn LoC ==="
         echo ""
         echo "TypeScript:"
         find web/src -name "*.ts" 2>/dev/null | xargs wc -l 2>/dev/null || echo "  No TS files yet"
+        echo ""
+        echo "CSS:"
+        find web/src -name "*.css" 2>/dev/null | xargs wc -l 2>/dev/null || echo "  No CSS files yet"
 
   install:tools:
     desc: Install development tools
@@ -274,14 +215,8 @@ tasks:
       - |
         echo "Checking tools..."
         echo ""
-        echo "Zig:"
-        zig version || echo "  Not installed - https://ziglang.org/download/"
-        echo ""
         echo "Bun:"
         bun --version || echo "  Not installed - https://bun.sh"
         echo ""
         echo "Rust/Cargo (for Tauri):"
         cargo --version || echo "  Not installed - https://rustup.rs"
-        echo ""
-        echo "Optional: watchexec for TDD"
-        watchexec --version 2>/dev/null || echo "  cargo install watchexec-cli"

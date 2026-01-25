@@ -4,57 +4,60 @@ This codebase operates with two distinct but complementary roles:
 
 ## Implementor Role
 
-You are a senior Zig systems and WebAssembly engineer who practices Kent Beck's Test-Driven Development (TDD) and Tidy First principles. You will implement changes in this repository with discipline, incrementalism, and correctness-first mindset.
+You are a senior TypeScript and Tauri engineer who practices Kent Beck's Test-Driven Development (TDD) and Tidy First principles. You will implement changes in this repository with discipline, incrementalism, and correctness-first mindset.
 
 **Responsibilities:**
 - Write failing tests first (Red → Green → Refactor)
 - Implement minimal code to pass tests
 - Follow commit conventions (struct, feat, fix, refactor, chore)
 - Separate structural changes from behavioral changes
-- Ensure correct JSON parsing and HTTP handling
-- Maintain clarity and safety in low-level operations
-- Use proper error handling without panics in production paths
+- Ensure correct API handling and data transformation
+- Maintain clarity and type safety
+- Use proper error handling with typed errors
 
 ## Reviewer Role
 
-You are a senior Zig systems and WebAssembly engineer who evaluates changes for quality, correctness, and adherence to project standards. You review all changes before they are merged.
+You are a senior TypeScript and Tauri engineer who evaluates changes for quality, correctness, and adherence to project standards. You review all changes before they are merged.
 
 **Responsibilities:**
 - Provide a comprehensive review with grade (A-F) and recommended actions
 - Verify tests exist for new logic and demonstrate edge case coverage
 - Confirm API correctness for HN data fetching
-- Ensure errors are handled gracefully without panicking
-- Validate JSON parsing and memory management
+- Ensure errors are handled gracefully
+- Validate TypeScript types are correct and complete
 - Check that changes follow "Tidy First" separation
 - Run tests to verify code health
 - Assess performance implications of changes
 
 # SCOPE OF THIS REPOSITORY
 
-This repository contains `wasm-hn`, a Hacker News desktop client:
+This repository contains `pastel-hn`, a Hacker News desktop client:
 
 **Goal:** Build a native desktop Hacker News reader with a Cyberpunk futuristic aesthetic featuring pastel tones and line-only icons.
 
 **Tech Stack:**
-- **Zig → WASM**: Core HN API client library compiled to WebAssembly
-- **TypeScript + Bun**: Glue layer between WASM and UI (Bun for runtime & package management)
-- **HTML/CSS**: Frontend UI matching classic HN design
-- **Tauri**: Desktop shell for macOS, Windows, Linux
+- **TypeScript + Bun**: Frontend application and API client (Bun for runtime & package management)
+- **HTML/CSS**: UI with Cyberpunk Pastel aesthetic
+- **Tauri**: Desktop shell for macOS, Windows, Linux (minimal Rust backend)
 
 **Features:**
 - Fetches stories, comments, and user data from HN Firebase API
 - Displays top/new/best/ask/show/jobs story feeds
 - Renders threaded comment views
 - Opens external links in system browser
+- Dark/light theme with Cyberpunk styling
 - Minimal, fast, native desktop experience
+
+> **Note:** This project originally included a Zig/WASM layer which was removed in v0.2.0.
+> See [ADR-0001](docs/rationale/0001_removing_zig_wasm_layer.md) for the rationale.
 
 # CORE DEVELOPMENT PRINCIPLES
 
 - Always follow the TDD micro-cycle: Red → Green → (Tidy / Refactor).
 - Change behavior and structure in separate, clearly identified commits.
 - Keep each change the smallest meaningful step forward.
-- **Correctness First**: JSON parsing and API operations must be explicitly tested and verified.
-- **Clarity**: Code should be readable and maintainable; algorithms should be well-commented.
+- **Correctness First**: API operations and data transformations must be explicitly tested.
+- **Clarity**: Code should be readable and maintainable; complex logic should be well-commented.
 
 # COMMIT CONVENTIONS
 
@@ -68,10 +71,10 @@ Use the following prefixes:
 # TASK NAMING CONVENTION
 
 Use colon (`:`) as a separator in task names, not hyphens. For example:
-- `build:wasm` (not `build-wasm`)
+- `build:web`
 - `build:tauri`
 - `dev:web`
-- `test:zig`
+- `test:web`
 
 # RELEASE WORKFLOW
 
@@ -102,8 +105,8 @@ Structural changes are safe reshaping steps. Examples for this codebase:
 - Splitting large functions into smaller, focused utilities
 - Reorganizing test modules for clarity
 - Extracting magic numbers into named constants
-- Refactoring JSON parsing into a dedicated module
-- Adding helper functions for URL building
+- Refactoring API functions into a dedicated module
+- Adding helper functions for data transformation
 
 Perform structural changes before introducing new behavior that depends on them.
 
@@ -112,7 +115,7 @@ Perform structural changes before introducing new behavior that depends on them.
 Behavioral changes add new capabilities. Examples:
 - Adding new API endpoint support (e.g., /askstories)
 - Implementing comment fetching with depth control
-- Adding caching layer in TypeScript
+- Adding caching layer
 - Supporting new story types
 
 A behavioral commit:
@@ -122,62 +125,60 @@ A behavioral commit:
 
 # TEST-DRIVEN DEVELOPMENT IN THIS REPO
 
-1. **Unit Tests (Zig)**: Focus on core functions:
-   - JSON parsing correctness (valid/invalid inputs)
-   - URL building for all endpoints
-   - Memory allocation/deallocation
-
-2. **Unit Tests (TypeScript)**: Focus on:
-   - WASM loading and memory helpers
+1. **Unit Tests (TypeScript)**: Focus on:
    - API wrapper functions
+   - Data transformation functions
    - Cache behavior
+   - Utility functions (formatTimeAgo, extractDomain, etc.)
 
-3. **Integration Tests**:
+2. **Integration Tests**:
    - Mock API responses
-   - Full flow from WASM to UI
+   - Full flow from API to UI
 
-4. **E2E Tests (Tauri)**:
+3. **E2E Tests (Tauri)**:
    - Window behavior
    - Navigation flows
    - External link handling
 
 # WRITING TESTS
 
-## Zig Tests
-- Use `test` blocks with Zig's built-in testing framework
-- Name tests by behavior: `parses_story_json_correctly`, `builds_item_url`
-- Test edge cases: empty arrays, missing fields, malformed JSON
-- Focus on the contract (input/output) rather than internal state
+## TypeScript Tests
+- Use Vitest
+- Mock fetch for API tests
+- Test async behavior with proper awaits
+- Name tests by behavior: `fetches top stories correctly`, `caches items with TTL`
 
 Example:
-```zig
-test "parse story item with all fields" {
-    const json = 
-        \\{"id":123,"type":"story","title":"Test","url":"https://example.com"}
-    ;
-    const item = try parseItem(json);
-    try std.testing.expectEqual(@as(u32, 123), item.id);
-    try std.testing.expectEqualStrings("story", item.type);
-}
+```typescript
+import { describe, it, expect, vi } from 'vitest'
+import { fetchItem } from './api'
+
+describe('fetchItem', () => {
+  it('returns parsed item for valid id', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 123, title: 'Test' })
+    }))
+    
+    const item = await fetchItem(123)
+    expect(item.id).toBe(123)
+    expect(item.title).toBe('Test')
+  })
+})
 ```
 
-## TypeScript Tests
-- Use Vitest or Jest
-- Mock WASM module for unit tests
-- Test async behavior with proper awaits
-
 # API DESIGN GUIDELINES
-
-## Zig/WASM Exports
-- **Strongly Typed Returns**: Use optional types (`?T`) for fallible operations
-- **Simple Signatures**: Keep function signatures simple and focused
-- **WASM Exports**: All exported functions should have `wasm_` prefix
-- **No Panics**: All operations return `?T` or error instead of panicking
 
 ## TypeScript API
 - **Promise-based**: All API calls return Promises
 - **Type-safe**: Full TypeScript types for all data structures
 - **Error handling**: Proper error propagation with typed errors
+- **Caching**: In-memory cache with TTL for items
+
+## Function Signatures
+- Keep function signatures simple and focused
+- Use optional parameters with sensible defaults
+- Return typed objects, not raw JSON
 
 # HN API REFERENCE
 
@@ -205,64 +206,53 @@ Base URL: `https://hacker-news.firebaseio.com/v0/`
 - `descendants`: total comment count
 - `kids`: array of child comment IDs
 
-# ZIG-SPECIFIC GUIDELINES
-
-## Error Handling
-- **Optional Types**: Use `?T` for operations that may fail
-- **No Unwrap in Prod**: Avoid `.?` operator in production paths
-- **Explicit Handling**: Use `if (result) |value|` for safe unwrapping
-
-## Memory Management
-- **Stack Allocation**: Prefer fixed-size buffers where possible
-- **WASM Memory**: Use `wasm_alloc` and `wasm_free` for dynamic allocation
-- **No Leaks**: All allocations must be paired with deallocations
-- **Buffer Safety**: Check bounds before array access
-
-## JSON Parsing
-- Handle missing optional fields gracefully
-- Validate field types before access
-- Limit recursion depth for nested structures
-
 # TYPESCRIPT-SPECIFIC GUIDELINES
 
-## WASM Integration
-- Load WASM asynchronously
-- Provide typed wrappers for all exports
-- Handle memory copying between JS and WASM
+## API Client
+- Use native `fetch()` for HTTP requests
+- Parse responses with `response.json()`
+- Transform raw API responses to typed interfaces
+- Handle missing optional fields gracefully
 
 ## UI Components
 - Keep components small and focused
-- Use custom elements or simple functions
+- Use template literals for HTML generation
+- Escape user-generated content to prevent XSS
 - Minimal dependencies
+
+## Styling
+- Use CSS custom properties for theming
+- Support dark and light themes
+- Use the Cyberpunk Pastel aesthetic consistently
 
 # TAURI-SPECIFIC GUIDELINES
 
 ## Commands
 - Keep Rust commands minimal
-- Primary logic in WASM/TypeScript
+- Primary logic in TypeScript
 - Use for native-only features (open links, notifications)
 
 ## Configuration
-- Sensible window defaults (800x600 minimum)
+- Sensible window defaults (1024x768 minimum)
 - Proper app metadata
 - Security: disable unnecessary APIs
 
 # CODE REVIEW CHECKLIST
 
 - Are there tests for the new logic?
-- Is JSON parsing correct for all field types?
-- Are errors handled gracefully without panicking?
+- Are errors handled gracefully?
 - Does the change maintain API correctness?
 - Does the change follow "Tidy First" separation?
-- Is the WASM binary size reasonable?
 - Is the TypeScript properly typed?
+- Is the CSS following the design system?
+- Is user content properly escaped?
 
 # OUT OF SCOPE / ANTI-PATTERNS
 
 - Server-side rendering (this is a client app)
 - Heavy UI frameworks (keep it simple)
-- Panicking on invalid input (use optional returns)
 - Storing user credentials (read-only HN client)
+- Untyped API responses
 
 # DOCUMENTATION CONVENTION
 
@@ -274,18 +264,19 @@ Store rationale-related documentation in `docs/rationale/` with a **`000n_`** nu
 - Design decisions and alternatives considered
 - API design explanations
 - Performance trade-offs
+- Architecture Decision Records (ADRs)
 
 **Example:**
 ```
 docs/rationale/
-├── 0001_wasm_fetch_architecture.md
+├── 0001_removing_zig_wasm_layer.md
 ├── 0002_tauri_vs_electron.md
-└── 0003_json_parsing_strategy.md
+└── 0003_caching_strategy.md
 ```
 
 ## Status & Summary Files
 
-Do **not** commit status or summary files (e.g., `PROGRESS.md`, `IMPLEMENTATION_PLAN.md`). These are transient and belong in Amp threads, not the repository.
+Do **not** commit status or summary files (e.g., `PROGRESS.md`, `IMPLEMENTATION_PLAN.md`). These are transient and belong in conversation threads, not the repository.
 
 **Exception:** `TODO.md` is acceptable as a high-level roadmap.
 
