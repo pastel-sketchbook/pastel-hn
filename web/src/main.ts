@@ -2556,8 +2556,9 @@ async function main(): Promise<void> {
   initTheme()
   initSettings()
 
-  // Ensure window decorations are visible on startup
-  // (may have been hidden if app was closed during Zen mode)
+  // Ensure window decorations are visible on startup (safety net)
+  // The window-state plugin is configured to NOT save decoration state,
+  // but we call this as a fallback in case of any edge cases
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const appWindow = getCurrentWindow()

@@ -4,6 +4,7 @@ mod client;
 mod commands;
 mod types;
 
+use tauri_plugin_window_state::StateFlags;
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
@@ -19,9 +20,18 @@ fn main() {
     // Create the HN client
     let hn_client = client::create_client();
 
+    // Only save/restore position and size, not decorations or fullscreen
+    // This ensures the window always starts with decorations visible
+    // (zen mode should not persist across app restarts)
+    let window_state_flags = StateFlags::POSITION | StateFlags::SIZE | StateFlags::VISIBLE;
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(window_state_flags)
+                .build(),
+        )
         .manage(hn_client)
         .invoke_handler(tauri::generate_handler![
             // HN API commands
