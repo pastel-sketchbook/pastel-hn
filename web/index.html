@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hacker News | Cyberpunk Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="header-inner">
+          <a href="/" class="logo">
+            <div class="logo-icon">Y</div>
+            <span>HACKER NEWS</span>
+          </a>
+          <nav id="nav">
+            <button class="nav-btn active" data-feed="top">Top</button>
+            <button class="nav-btn" data-feed="new">New</button>
+            <button class="nav-btn" data-feed="best">Best</button>
+            <button class="nav-btn" data-feed="ask">Ask</button>
+            <button class="nav-btn" data-feed="show">Show</button>
+            <button class="nav-btn" data-feed="jobs">Jobs</button>
+          </nav>
+        </div>
+      </header>
+      <main>
+        <section id="stories">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <span>Initializing...</span>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+# Zig
+zig-out/
+.zig-cache/
+*.wasm
+
+# Web / Node / Bun
+web/node_modules/
+web/dist/
+web/public/hn.wasm
+web/.vite/
+web/bun.lock
+*.log
+
+# Tauri / Rust
+src-tauri/target/
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.app/
+*.dmg
+*.msi
+*.deb
+*.AppImage
+
+# Test artifacts
+test-results/
+playwright-report/

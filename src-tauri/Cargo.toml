@@ -1,0 +1,18 @@
+[package]
+name = "wasm-hn"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "*", features = [] }
+
+[dependencies]
+tauri = { version = "*", features = [] }
+tauri-plugin-shell = "*"
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+open = "*"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
