@@ -6,6 +6,12 @@
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
+## Screenshots
+
+| Dark Theme | Light Theme |
+|:----------:|:-----------:|
+| ![Dark Theme](screenshots/dark.png) | ![Light Theme](screenshots/light.png) |
+
 ## Features
 
 - **All HN Feeds** - Top, New, Best, Ask, Show, Jobs with instant switching
