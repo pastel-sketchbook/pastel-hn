@@ -154,59 +154,53 @@ tasks:
     cmds:
       - task: fmt
       - task: test
-      - |
-        VERSION=$(cat VERSION)
-        IFS='.' read -r major minor patch <<< "$VERSION"
-        NEW_VERSION="$major.$minor.$((patch + 1))"
-        echo "$NEW_VERSION" > VERSION
-        # Update Cargo.toml version
-        sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
-        # Update tauri.conf.json version
-        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
-        # Update web package.json version
-        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" web/package.json
-        git add -A
-        git commit -m "chore: bump version to $NEW_VERSION"
-        git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
-        echo "Released v$NEW_VERSION - run 'git push --tags' to publish"
+      - task: version:bump
+        vars:
+          BUMP_TYPE: patch
 
   release:minor:
     desc: Release a minor version (new features)
     cmds:
       - task: fmt
       - task: test
-      - |
-        VERSION=$(cat VERSION)
-        IFS='.' read -r major minor patch <<< "$VERSION"
-        NEW_VERSION="$major.$((minor + 1)).0"
-        echo "$NEW_VERSION" > VERSION
-        # Update Cargo.toml version
-        sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
-        # Update tauri.conf.json version
-        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
-        # Update web package.json version
-        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" web/package.json
-        git add -A
-        git commit -m "chore: bump version to $NEW_VERSION"
-        git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
-        echo "Released v$NEW_VERSION - run 'git push --tags' to publish"
+      - task: version:bump
+        vars:
+          BUMP_TYPE: minor
 
   release:major:
     desc: Release a major version (breaking changes)
     cmds:
       - task: fmt
       - task: test
+      - task: version:bump
+        vars:
+          BUMP_TYPE: major
+
+  version:bump:
+    desc: Bump version in all config files (internal task)
+    internal: true
+    vars:
+      BUMP_TYPE: '{{.BUMP_TYPE}}'
+    cmds:
       - |
         VERSION=$(cat VERSION)
         IFS='.' read -r major minor patch <<< "$VERSION"
-        NEW_VERSION="$((major + 1)).0.0"
+        case "{{.BUMP_TYPE}}" in
+          patch) NEW_VERSION="$major.$minor.$((patch + 1))" ;;
+          minor) NEW_VERSION="$major.$((minor + 1)).0" ;;
+          major) NEW_VERSION="$((major + 1)).0.0" ;;
+        esac
         echo "$NEW_VERSION" > VERSION
-        # Update Cargo.toml version
-        sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+        
+        # Update Cargo.toml version (matches: version = "x.y.z" under [package])
+        awk -v ver="$NEW_VERSION" '/^version = "/{gsub(/version = "[^"]*"/, "version = \""ver"\"")}1' src-tauri/Cargo.toml > tmp && mv tmp src-tauri/Cargo.toml
+        
         # Update tauri.conf.json version
-        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" src-tauri/tauri.conf.json
+        awk -v ver="$NEW_VERSION" '/"version":/{gsub(/"version": "[^"]*"/, "\"version\": \""ver"\"")}1' src-tauri/tauri.conf.json > tmp && mv tmp src-tauri/tauri.conf.json
+        
         # Update web package.json version
-        sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" web/package.json
+        awk -v ver="$NEW_VERSION" '/"version":/{gsub(/"version": "[^"]*"/, "\"version\": \""ver"\"")}1' web/package.json > tmp && mv tmp web/package.json
+        
         git add -A
         git commit -m "chore: bump version to $NEW_VERSION"
         git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
