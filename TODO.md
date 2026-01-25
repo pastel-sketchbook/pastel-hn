@@ -171,7 +171,7 @@
 - [x] Information density (compact/normal/comfortable)
 - [x] Default feed selection
 - [x] Keyboard shortcut reference
-- [ ] **Clear reading history option**
+- [x] **Clear reading history option**
 - [ ] **Cache management (view size, clear)**
 - [ ] **Export/import settings**
 
