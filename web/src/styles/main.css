@@ -1826,14 +1826,31 @@ main {
   margin-left: 0;
 }
 
-/* Collapse/expand animation setup */
+/* Collapse/expand animation using CSS grid for smoother transitions */
+.comment-content-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s ease-out;
+}
+
+.comment-content-wrapper > div {
+  overflow: hidden;
+}
+
+.comment[data-collapsed="true"] .comment-content-wrapper {
+  grid-template-rows: 0fr;
+}
+
+/* Legacy fallback using max-height for browsers without grid animation support */
 .comment-text,
 .comment-children {
   overflow: hidden;
   transition:
     max-height 0.3s ease-out,
-    opacity 0.2s ease-out;
-  max-height: 5000px; /* Large enough to contain any comment */
+    opacity 0.25s ease-out,
+    padding 0.3s ease-out,
+    margin 0.3s ease-out;
+  max-height: 10000px; /* Large enough to contain any comment */
   opacity: 1;
 }
 
@@ -1843,12 +1860,30 @@ main {
   max-height: 0;
   opacity: 0;
   pointer-events: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Comment body subtle size transition */
+.comment-body {
+  transition: 
+    background 0.2s ease,
+    border-color 0.2s ease,
+    padding 0.3s ease;
+}
+
+.comment[data-collapsed="true"] .comment-body {
+  padding-bottom: 0.5rem;
 }
 
 /* Disable animations for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .comment-text,
-  .comment-children {
+  .comment-children,
+  .comment-content-wrapper,
+  .comment-body {
     transition: none;
   }
 
