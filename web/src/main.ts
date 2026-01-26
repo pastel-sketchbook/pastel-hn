@@ -1,5 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
-import { announce } from './accessibility'
+import { announce, escapeAttr } from './accessibility'
 import {
   clearStoryIdsCache,
   extractDomain,
@@ -1458,6 +1458,20 @@ async function renderStoryDetail(
             <span class="story-comments-count">${icons.comment}${commentCount} comments</span>
             ${textReadingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${textReadingTime}</span>` : ''}
           </div>
+          <div class="story-actions">
+            <button class="story-action-btn" data-action="copy-hn-link" data-id="${story.id}" title="Copy HN link">
+              ${icons.copy}
+              <span>Copy HN Link</span>
+            </button>
+            ${story.url ? `<button class="story-action-btn" data-action="copy-article-link" data-url="${escapeAttr(story.url)}" title="Copy article link">
+              ${icons.link}
+              <span>Copy Article Link</span>
+            </button>` : ''}
+            <button class="story-action-btn" data-action="share" data-id="${story.id}" data-title="${escapeAttr(story.title || 'Untitled')}" ${story.url ? `data-url="${escapeAttr(story.url)}"` : ''} title="Share story">
+              ${icons.share}
+              <span>Share</span>
+            </button>
+          </div>
         </article>
         
         <div class="story-tabs">
@@ -2654,6 +2668,70 @@ function setupNavigation(): void {
         renderStoryDetail(currentStoryId)
       } else if (action === 'retry-user' && currentUserId) {
         renderUserProfile(currentUserId)
+      }
+    }
+  })
+
+  // Handle share/copy action buttons in story detail
+  document.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement
+    const actionBtn = target.closest('[data-action]') as HTMLElement | null
+    if (!actionBtn) return
+
+    const action = actionBtn.dataset.action
+
+    if (action === 'copy-hn-link') {
+      e.preventDefault()
+      const id = actionBtn.dataset.id
+      if (id) {
+        const hnUrl = `https://news.ycombinator.com/item?id=${id}`
+        try {
+          await navigator.clipboard.writeText(hnUrl)
+          toastSuccess('HN link copied to clipboard')
+        } catch {
+          toastError('Failed to copy link')
+        }
+      }
+    } else if (action === 'copy-article-link') {
+      e.preventDefault()
+      const url = actionBtn.dataset.url
+      if (url) {
+        try {
+          await navigator.clipboard.writeText(url)
+          toastSuccess('Article link copied to clipboard')
+        } catch {
+          toastError('Failed to copy link')
+        }
+      }
+    } else if (action === 'share') {
+      e.preventDefault()
+      const id = actionBtn.dataset.id
+      const title = actionBtn.dataset.title || 'Hacker News Story'
+      const articleUrl = actionBtn.dataset.url
+      const hnUrl = `https://news.ycombinator.com/item?id=${id}`
+
+      // Use Web Share API if available
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: title,
+            text: `${title} - Hacker News`,
+            url: articleUrl || hnUrl,
+          })
+        } catch (err) {
+          // User cancelled or share failed - ignore AbortError
+          if (err instanceof Error && err.name !== 'AbortError') {
+            toastError('Failed to share')
+          }
+        }
+      } else {
+        // Fallback: copy HN link to clipboard
+        try {
+          await navigator.clipboard.writeText(hnUrl)
+          toastSuccess('Link copied to clipboard (share not available)')
+        } catch {
+          toastError('Failed to copy link')
+        }
       }
     }
   })

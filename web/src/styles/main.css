@@ -1415,6 +1415,57 @@ main {
   opacity: 0.7;
 }
 
+/* Story action buttons (share, copy) */
+.story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.story-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.story-action-btn:hover {
+  background: rgba(0, 217, 255, 0.08);
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+
+.story-action-btn:active {
+  transform: scale(0.98);
+}
+
+.story-action-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+[data-theme="light"] .story-action-btn {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .story-action-btn:hover {
+  background: rgba(0, 166, 195, 0.1);
+  border-color: var(--cyan-dim);
+}
+
 .story-detail-text {
   font-size: 1.05rem;
   line-height: 1.7;
