@@ -9,6 +9,7 @@ import {
   saveSettings,
   showSettingsModal,
   validateSettings,
+  showExportDialog,
 } from './settings'
 import { bookmarkStory } from './storage'
 import type { CacheStats, HNItem } from './types'
@@ -488,6 +489,8 @@ describe('settings', () => {
     })
 
     it('clicking export button triggers download', async () => {
+      vi.useFakeTimers()
+
       // Mock URL.createObjectURL and URL.revokeObjectURL
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
@@ -524,7 +527,12 @@ describe('settings', () => {
       expect(capturedLink?.download).toMatch(
         /^pastel-hn-bookmarks-\d{4}-\d{2}-\d{2}\.json$/,
       )
+
+      // URL.revokeObjectURL is now called after a delay
+      await vi.advanceTimersByTimeAsync(100)
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+
+      vi.useRealTimers()
     })
   })
 
@@ -872,6 +880,8 @@ describe('settings', () => {
     })
 
     it('clicking export settings button triggers download', async () => {
+      vi.useFakeTimers()
+
       // Mock URL.createObjectURL and URL.revokeObjectURL
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
@@ -907,7 +917,12 @@ describe('settings', () => {
       expect(capturedLink?.download).toMatch(
         /^pastel-hn-settings-\d{4}-\d{2}-\d{2}\.json$/,
       )
+
+      // URL.revokeObjectURL is now called after a delay
+      await vi.advanceTimersByTimeAsync(100)
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+
+      vi.useRealTimers()
     })
 
     it('clicking import settings button triggers file input click', async () => {
@@ -1170,6 +1185,234 @@ describe('settings', () => {
       await vi.waitFor(() => {
         expect(valueWasReset).toBe(true)
       })
+    })
+  })
+
+  describe('export dialog', () => {
+    beforeEach(() => {
+      loadSettings()
+    })
+
+    afterEach(() => {
+      // Clean up any open dialogs
+      const dialog = document.querySelector('.export-dialog-overlay')
+      dialog?.remove()
+    })
+
+    it('showExportDialog creates dialog element', () => {
+      showExportDialog('{"test": "data"}', 'test-file.json', 'Test')
+
+      const dialog = document.querySelector('.export-dialog-overlay')
+      expect(dialog).not.toBeNull()
+    })
+
+    it('dialog displays correct title', () => {
+      showExportDialog('{"test": "data"}', 'test-file.json', 'Settings')
+
+      const title = document.querySelector('.export-dialog-title')
+      expect(title?.textContent).toContain('Export Settings')
+    })
+
+    it('dialog displays filename in info text', () => {
+      showExportDialog('{"test": "data"}', 'my-export.json', 'Test')
+
+      const info = document.querySelector('.export-dialog-info')
+      expect(info?.textContent).toContain('my-export.json')
+    })
+
+    it('dialog contains textarea with content', () => {
+      const content = '{"version": 1, "data": "test"}'
+      showExportDialog(content, 'test.json', 'Test')
+
+      const textarea = document.querySelector(
+        '.export-dialog-textarea',
+      ) as HTMLTextAreaElement
+      expect(textarea).not.toBeNull()
+      expect(textarea.value).toBe(content)
+      expect(textarea.readOnly).toBe(true)
+    })
+
+    it('dialog contains copy button', () => {
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const copyBtn = document.querySelector('[data-action="copy-export"]')
+      expect(copyBtn).not.toBeNull()
+      expect(copyBtn?.textContent).toContain('Copy to Clipboard')
+    })
+
+    it('clicking close button removes dialog', () => {
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const closeBtn = document.querySelector(
+        '[data-action="close-export-dialog"]',
+      ) as HTMLElement
+      closeBtn.click()
+
+      const dialog = document.querySelector('.export-dialog-overlay')
+      expect(dialog).toBeNull()
+    })
+
+    it('clicking backdrop removes dialog', () => {
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const overlay = document.querySelector(
+        '.export-dialog-overlay',
+      ) as HTMLElement
+      overlay.click()
+
+      const dialog = document.querySelector('.export-dialog-overlay')
+      expect(dialog).toBeNull()
+    })
+
+    it('pressing Escape closes dialog', () => {
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' })
+      document.dispatchEvent(escapeEvent)
+
+      const dialog = document.querySelector('.export-dialog-overlay')
+      expect(dialog).toBeNull()
+    })
+
+    it('copy button copies content to clipboard', async () => {
+      const mockWriteText = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('navigator', {
+        clipboard: {
+          writeText: mockWriteText,
+        },
+      })
+
+      const content = '{"test": "data"}'
+      showExportDialog(content, 'test.json', 'Test')
+
+      const copyBtn = document.querySelector(
+        '[data-action="copy-export"]',
+      ) as HTMLElement
+      copyBtn.click()
+
+      await vi.waitFor(() => {
+        expect(mockWriteText).toHaveBeenCalledWith(content)
+      })
+    })
+
+    it('copy button shows success state after copy', async () => {
+      vi.useFakeTimers()
+
+      const mockWriteText = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('navigator', {
+        clipboard: {
+          writeText: mockWriteText,
+        },
+      })
+
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const copyBtn = document.querySelector(
+        '[data-action="copy-export"]',
+      ) as HTMLElement
+      copyBtn.click()
+
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(copyBtn.textContent).toContain('Copied!')
+
+      vi.useRealTimers()
+    })
+
+    it('copy button reverts to original state after timeout', async () => {
+      vi.useFakeTimers()
+
+      const mockWriteText = vi.fn().mockResolvedValue(undefined)
+      vi.stubGlobal('navigator', {
+        clipboard: {
+          writeText: mockWriteText,
+        },
+      })
+
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const copyBtn = document.querySelector(
+        '[data-action="copy-export"]',
+      ) as HTMLElement
+      copyBtn.click()
+
+      await vi.advanceTimersByTimeAsync(0)
+      expect(copyBtn.textContent).toContain('Copied!')
+
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(copyBtn.textContent).toContain('Copy to Clipboard')
+
+      vi.useRealTimers()
+    })
+
+    it('removes existing dialog before creating new one', () => {
+      showExportDialog('first', 'first.json', 'First')
+      showExportDialog('second', 'second.json', 'Second')
+
+      const dialogs = document.querySelectorAll('.export-dialog-overlay')
+      expect(dialogs.length).toBe(1)
+
+      const textarea = document.querySelector(
+        '.export-dialog-textarea',
+      ) as HTMLTextAreaElement
+      expect(textarea.value).toBe('second')
+    })
+
+    it('escapes HTML in content for safe display', () => {
+      const content = '<script>alert("xss")</script>'
+      showExportDialog(content, 'test.json', 'Test')
+
+      const textarea = document.querySelector(
+        '.export-dialog-textarea',
+      ) as HTMLTextAreaElement
+      // The textarea value property gives us the actual text content
+      // The escapeHtml function ensures HTML entities are safely rendered
+      // When setting via innerHTML with escaped content, the browser decodes it back
+      expect(textarea.value).toBe(content)
+    })
+
+    it('export triggers dialog after delay', async () => {
+      vi.useFakeTimers()
+
+      // Mock URL API
+      vi.stubGlobal('URL', {
+        createObjectURL: vi.fn().mockReturnValue('blob:mock-url'),
+        revokeObjectURL: vi.fn(),
+      })
+
+      // Mock anchor click
+      const originalCreateElement = document.createElement.bind(document)
+      vi.spyOn(document, 'createElement').mockImplementation(
+        (tagName: string) => {
+          const element = originalCreateElement(tagName)
+          if (tagName === 'a') {
+            vi.spyOn(element as HTMLAnchorElement, 'click').mockImplementation(
+              () => {},
+            )
+          }
+          return element
+        },
+      )
+
+      await showSettingsModal()
+
+      const exportBtn = document.querySelector(
+        '[data-action="export-settings"]',
+      ) as HTMLElement
+      exportBtn.click()
+
+      // Dialog should not exist immediately
+      let dialog = document.querySelector('.export-dialog-overlay')
+      expect(dialog).toBeNull()
+
+      // Advance past the 300ms delay
+      await vi.advanceTimersByTimeAsync(300)
+
+      // Dialog should now exist
+      dialog = document.querySelector('.export-dialog-overlay')
+      expect(dialog).not.toBeNull()
+
+      vi.useRealTimers()
     })
   })
 })

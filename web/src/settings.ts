@@ -57,6 +57,8 @@ const settingsIcons = {
   upload: `<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
   database: `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
   sliders: `<svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  check: `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
 }
 
 /**
@@ -469,17 +471,9 @@ export function isSettingsModalOpen(): boolean {
  */
 function downloadBookmarksExport(): void {
   const json = exportBookmarksAsJson()
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
+  const filename = `pastel-hn-bookmarks-${formatExportDate()}.json`
 
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `pastel-hn-bookmarks-${formatExportDate()}.json`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-
-  URL.revokeObjectURL(url)
+  triggerDownloadWithFallback(json, filename, 'Bookmarks')
 }
 
 /**
@@ -570,17 +564,152 @@ function downloadSettingsExport(): void {
     settings,
   }
   const json = JSON.stringify(exportData, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
+  const filename = `pastel-hn-settings-${formatExportDate()}.json`
+
+  triggerDownloadWithFallback(json, filename, 'Settings')
+}
+
+/**
+ * Attempt to download a file, showing a fallback dialog if it fails
+ */
+function triggerDownloadWithFallback(
+  content: string,
+  filename: string,
+  title: string,
+): void {
+  const blob = new Blob([content], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
 
   const link = document.createElement('a')
   link.href = url
-  link.download = `pastel-hn-settings-${formatExportDate()}.json`
+  link.download = filename
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
 
-  URL.revokeObjectURL(url)
+  // Delay revoking URL to allow download to start
+  setTimeout(() => URL.revokeObjectURL(url), 100)
+
+  // Show fallback dialog after a short delay
+  // This gives users an option to copy if download failed
+  setTimeout(() => {
+    showExportDialog(content, filename, title)
+  }, 300)
+}
+
+/**
+ * Show export dialog with JSON content for manual copy
+ */
+export function showExportDialog(
+  content: string,
+  filename: string,
+  title: string,
+): void {
+  // Remove any existing export dialog
+  const existingDialog = document.querySelector('.export-dialog-overlay')
+  existingDialog?.remove()
+
+  const dialog = document.createElement('div')
+  dialog.className = 'export-dialog-overlay'
+  dialog.innerHTML = `
+    <div class="export-dialog cyber-frame">
+      <div class="export-dialog-header">
+        <h2 class="export-dialog-title">
+          ${settingsIcons.download}
+          Export ${title}
+        </h2>
+        <button class="export-dialog-close" data-action="close-export-dialog">
+          ${settingsIcons.close}
+        </button>
+      </div>
+      <div class="export-dialog-content">
+        <p class="export-dialog-info">
+          If the download didn't start automatically, copy the content below and save it as <code>${filename}</code>
+        </p>
+        <div class="export-dialog-actions">
+          <button class="export-dialog-copy-btn" data-action="copy-export">
+            ${settingsIcons.copy}
+            <span>Copy to Clipboard</span>
+          </button>
+        </div>
+        <textarea class="export-dialog-textarea" readonly>${escapeHtml(content)}</textarea>
+      </div>
+    </div>
+  `
+
+  document.body.appendChild(dialog)
+
+  // Handle click events
+  dialog.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+
+    // Close on backdrop click
+    if (target === dialog) {
+      closeExportDialog()
+      return
+    }
+
+    // Close button
+    if (target.closest('[data-action="close-export-dialog"]')) {
+      closeExportDialog()
+      return
+    }
+
+    // Copy button
+    if (target.closest('[data-action="copy-export"]')) {
+      const btn = target.closest(
+        '[data-action="copy-export"]',
+      ) as HTMLButtonElement
+      const textarea = dialog.querySelector(
+        '.export-dialog-textarea',
+      ) as HTMLTextAreaElement
+
+      navigator.clipboard
+        .writeText(textarea.value)
+        .then(() => {
+          const spanEl = btn.querySelector('span')
+          if (spanEl) {
+            spanEl.textContent = 'Copied!'
+            btn.innerHTML = `${settingsIcons.check}<span>Copied!</span>`
+          }
+          setTimeout(() => {
+            btn.innerHTML = `${settingsIcons.copy}<span>Copy to Clipboard</span>`
+          }, 2000)
+        })
+        .catch(() => {
+          // Fallback: select the text
+          textarea.select()
+          textarea.setSelectionRange(0, textarea.value.length)
+        })
+      return
+    }
+  })
+
+  // Handle Escape key
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      closeExportDialog()
+      document.removeEventListener('keydown', handleKeydown)
+    }
+  }
+  document.addEventListener('keydown', handleKeydown)
+}
+
+/**
+ * Close the export dialog
+ */
+function closeExportDialog(): void {
+  const dialog = document.querySelector('.export-dialog-overlay')
+  dialog?.remove()
+}
+
+/**
+ * Escape HTML special characters
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
 }
 
 /**
