@@ -216,7 +216,7 @@
 ### 4.4 Error Handling UX
 - [x] Connection error recovery with retry button
 - [x] Graceful degradation when offline (shows cached bookmarks)
-- [ ] Error boundaries to prevent full app crashes
+- [x] Error boundaries to prevent full app crashes
 - [x] User-friendly error messages (not raw API errors)
 
 ### 4.5 Offline Support

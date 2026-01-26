@@ -32,6 +32,7 @@ import {
   setupBackToTop,
   updateBackToTopVisibility,
 } from './back-to-top'
+import { initErrorBoundary } from './error-boundary'
 import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
 import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
 import { icons } from './icons'
@@ -1763,6 +1764,9 @@ function handleHashChange(): void {
 }
 
 async function main(): Promise<void> {
+  // Initialize error boundary first to catch any initialization errors
+  initErrorBoundary()
+
   // Initialize settings first to prevent flash of wrong theme
   // Note: initSettings() handles theme initialization via applySettings()
   // We don't call initTheme() separately to avoid duplicate system theme listeners
