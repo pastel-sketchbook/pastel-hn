@@ -10,6 +10,7 @@ import {
   type CommentSummary,
   type DiscussionContext,
   getCopilotClient,
+  type ReplyContext,
   type StoryContext,
 } from './copilot-client'
 import type { CommentWithChildren, HNItem } from './types'
@@ -54,6 +55,7 @@ export async function initAssistant(): Promise<boolean> {
   renderToggleButton()
   renderPanel()
   setupKeyboardShortcut()
+  initContextMenu()
 
   return true
 }
@@ -534,4 +536,217 @@ function parseMarkdown(text: string): string {
   html = html.replace(/<p><\/p>/g, '')
 
   return html
+}
+
+// ============================================================================
+// Context Menu for Text Selection
+// ============================================================================
+
+let contextMenu: HTMLElement | null = null
+
+/**
+ * Initialize the context menu for text selection
+ * Call this after initAssistant
+ */
+export function initContextMenu(): void {
+  if (contextMenu) return
+
+  contextMenu = document.createElement('div')
+  contextMenu.id = 'assistant-context-menu'
+  contextMenu.className = 'assistant-context-menu'
+  contextMenu.setAttribute('role', 'menu')
+  contextMenu.innerHTML = `
+    <button class="context-menu-item" data-action="explain" role="menuitem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>Explain This</span>
+    </button>
+    <button class="context-menu-item" data-action="draft-reply" role="menuitem" style="display: none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <line x1="9" y1="10" x2="15" y2="10"/>
+      </svg>
+      <span>Draft Reply</span>
+    </button>
+  `
+  document.body.appendChild(contextMenu)
+
+  // Event handlers
+  contextMenu.addEventListener('click', handleContextMenuClick)
+  document.addEventListener('mousedown', hideContextMenu)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideContextMenu()
+  })
+
+  // Show context menu on text selection (mouseup)
+  document.addEventListener('mouseup', handleTextSelection)
+}
+
+function handleTextSelection(e: MouseEvent): void {
+  // Only in Zen mode + Detail view
+  if (!document.documentElement.classList.contains('zen-mode')) return
+
+  const selection = window.getSelection()
+  const selectedText = selection?.toString().trim()
+
+  if (!selectedText || selectedText.length < 3 || !contextMenu) {
+    return
+  }
+
+  // Check if selection is within story content or comments
+  const range = selection?.getRangeAt(0)
+  const container = range?.commonAncestorContainer as HTMLElement
+  const parent =
+    container?.nodeType === Node.TEXT_NODE ? container.parentElement : container
+
+  const isInComment = parent?.closest('.comment-text, .comment-body')
+  const isInArticle = parent?.closest(
+    '.article-content, .story-detail-text, .story-detail-content',
+  )
+
+  if (!isInComment && !isInArticle) {
+    return
+  }
+
+  // Store selection info for later use
+  contextMenu.dataset.selectedText = selectedText
+
+  // Show/hide Draft Reply button based on whether we're in a comment
+  const draftReplyBtn = contextMenu.querySelector(
+    '[data-action="draft-reply"]',
+  ) as HTMLElement
+  if (draftReplyBtn) {
+    if (isInComment) {
+      draftReplyBtn.style.display = 'flex'
+      // Store comment info for draft reply
+      const commentEl = parent?.closest('.comment[data-id]') as HTMLElement
+      if (commentEl) {
+        contextMenu.dataset.commentId = commentEl.dataset.id || ''
+        const authorEl = commentEl.querySelector('.comment-author')
+        contextMenu.dataset.commentAuthor = authorEl?.textContent || 'unknown'
+        const textEl = commentEl.querySelector('.comment-text')
+        contextMenu.dataset.commentText =
+          textEl?.textContent?.slice(0, 500) || ''
+      }
+    } else {
+      draftReplyBtn.style.display = 'none'
+    }
+  }
+
+  // Position context menu near the selection
+  const rect = range?.getBoundingClientRect()
+  if (rect && contextMenu) {
+    const menuWidth = 160
+    const menuHeight = 80
+
+    let left = rect.left + rect.width / 2 - menuWidth / 2
+    let top = rect.top - menuHeight - 8
+
+    // Keep within viewport
+    if (left < 8) left = 8
+    if (left + menuWidth > window.innerWidth - 8)
+      left = window.innerWidth - menuWidth - 8
+    if (top < 8) top = rect.bottom + 8
+
+    contextMenu.style.left = `${left}px`
+    contextMenu.style.top = `${top}px`
+    contextMenu.classList.add('visible')
+  }
+}
+
+function hideContextMenu(): void {
+  if (contextMenu) {
+    contextMenu.classList.remove('visible')
+  }
+}
+
+async function handleContextMenuClick(e: MouseEvent): Promise<void> {
+  const target = e.target as HTMLElement
+  const button = target.closest('[data-action]') as HTMLElement
+
+  if (!button || !contextMenu) return
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  const action = button.dataset.action
+  const selectedText = contextMenu.dataset.selectedText || ''
+
+  hideContextMenu()
+
+  if (action === 'explain') {
+    await handleExplainSelection(selectedText)
+  } else if (action === 'draft-reply') {
+    await handleDraftReplyFromSelection(
+      selectedText,
+      contextMenu.dataset.commentAuthor || 'unknown',
+      contextMenu.dataset.commentText || '',
+    )
+  }
+}
+
+async function handleExplainSelection(text: string): Promise<void> {
+  if (!text || state.isLoading) return
+
+  // Open assistant panel if not already open
+  if (!state.isOpen) {
+    toggleAssistant()
+  }
+
+  // Build context from current story
+  let context: string | undefined
+  if (state.currentStory) {
+    context = `From story: "${state.currentStory.title}"`
+  }
+
+  addMessage('user', `Explain: "${text}"`)
+
+  setLoading(true)
+  const client = getCopilotClient()
+  const response = await client.explain(text, context)
+  setLoading(false)
+
+  if (response) {
+    addMessage('assistant', response.content)
+  } else {
+    addMessage('assistant', 'Sorry, I encountered an error. Please try again.')
+  }
+}
+
+async function handleDraftReplyFromSelection(
+  selectedText: string,
+  commentAuthor: string,
+  commentText: string,
+): Promise<void> {
+  if (state.isLoading) return
+
+  // Open assistant panel if not already open
+  if (!state.isOpen) {
+    toggleAssistant()
+  }
+
+  const storyTitle = state.currentStory?.title || 'this story'
+
+  addMessage('user', `Help me reply to ${commentAuthor}'s comment`)
+
+  const context: ReplyContext = {
+    parent_comment: commentText,
+    parent_author: commentAuthor,
+    story_title: storyTitle,
+    user_draft: selectedText.length > 10 ? selectedText : null,
+  }
+
+  setLoading(true)
+  const client = getCopilotClient()
+  const response = await client.draftReply(context)
+  setLoading(false)
+
+  if (response) {
+    addMessage('assistant', response.content)
+  } else {
+    addMessage('assistant', 'Sorry, I encountered an error. Please try again.')
+  }
 }

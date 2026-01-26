@@ -5546,6 +5546,71 @@ main {
   color: #e2e8f0;
 }
 
+/* Context menu for text selection */
+.assistant-context-menu {
+  position: fixed;
+  z-index: 10001;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.375rem;
+  min-width: 150px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s;
+}
+
+.assistant-context-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+[data-theme="light"] .assistant-context-menu {
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+}
+
+.context-menu-item:hover {
+  background: rgba(0, 217, 255, 0.1);
+  color: var(--cyan);
+}
+
+.context-menu-item:active {
+  transform: scale(0.98);
+}
+
+.context-menu-item svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+[data-theme="light"] .context-menu-item:hover {
+  background: rgba(0, 166, 195, 0.1);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .assistant-panel {
