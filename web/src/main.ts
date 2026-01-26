@@ -86,6 +86,7 @@ const SUBMISSIONS_PER_PAGE = 20
 
 // Animation duration constants
 const TRANSITION_DURATION = 350 // ms - matches CSS animation duration
+const FULLSCREEN_EXIT_DELAY_MS = 300 // ms - delay for macOS fullscreen exit reliability
 
 /**
  * Error types for user-friendly messages
@@ -2046,10 +2047,9 @@ async function toggleZenMode(): Promise<void> {
     } else {
       // Restore window decorations and exit fullscreen
       // Important: Exit fullscreen first, then restore decorations
-      // Add a small delay between operations to allow OS to process
       await appWindow.setFullscreen(false)
       // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS))
       await appWindow.setDecorations(true)
     }
 
@@ -2108,9 +2108,9 @@ async function exitZenMode(): Promise<void> {
     try {
       const appWindow = getCurrentWindow()
       // Exit fullscreen first, then restore decorations
-      // Add a small delay between operations to allow OS to process
       await appWindow.setFullscreen(false)
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      // Wait for fullscreen exit to complete before restoring decorations
+      await new Promise((resolve) => setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS))
       await appWindow.setDecorations(true)
     } catch (error) {
       console.warn('Tauri window API not available:', error)
