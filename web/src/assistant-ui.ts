@@ -542,7 +542,22 @@ function parseMarkdown(text: string): string {
 // Context Menu for Text Selection
 // ============================================================================
 
+/** Context menu dimensions for positioning calculations */
+export const CONTEXT_MENU_WIDTH = 160
+export const CONTEXT_MENU_HEIGHT = 80
+
 let contextMenu: HTMLElement | null = null
+
+/**
+ * Reset context menu state (for testing only)
+ * @internal Exported for testing
+ */
+export function resetContextMenu(): void {
+  if (contextMenu && contextMenu.parentNode) {
+    contextMenu.parentNode.removeChild(contextMenu)
+  }
+  contextMenu = null
+}
 
 /**
  * Initialize the context menu for text selection
@@ -585,7 +600,19 @@ export function initContextMenu(): void {
   document.addEventListener('mouseup', handleTextSelection)
 }
 
-function handleTextSelection(e: MouseEvent): void {
+/**
+ * Get the context menu element (for testing)
+ * @internal Exported for testing
+ */
+export function getContextMenu(): HTMLElement | null {
+  return contextMenu
+}
+
+/**
+ * Handle text selection to show context menu
+ * @internal Exported for testing
+ */
+export function handleTextSelection(e: MouseEvent): void {
   // Only in Zen mode + Detail view
   if (!document.documentElement.classList.contains('zen-mode')) return
 
@@ -639,16 +666,13 @@ function handleTextSelection(e: MouseEvent): void {
   // Position context menu near the selection
   const rect = range?.getBoundingClientRect()
   if (rect && contextMenu) {
-    const menuWidth = 160
-    const menuHeight = 80
-
-    let left = rect.left + rect.width / 2 - menuWidth / 2
-    let top = rect.top - menuHeight - 8
+    let left = rect.left + rect.width / 2 - CONTEXT_MENU_WIDTH / 2
+    let top = rect.top - CONTEXT_MENU_HEIGHT - 8
 
     // Keep within viewport
     if (left < 8) left = 8
-    if (left + menuWidth > window.innerWidth - 8)
-      left = window.innerWidth - menuWidth - 8
+    if (left + CONTEXT_MENU_WIDTH > window.innerWidth - 8)
+      left = window.innerWidth - CONTEXT_MENU_WIDTH - 8
     if (top < 8) top = rect.bottom + 8
 
     contextMenu.style.left = `${left}px`
@@ -657,13 +681,21 @@ function handleTextSelection(e: MouseEvent): void {
   }
 }
 
-function hideContextMenu(): void {
+/**
+ * Hide the context menu
+ * @internal Exported for testing
+ */
+export function hideContextMenu(): void {
   if (contextMenu) {
     contextMenu.classList.remove('visible')
   }
 }
 
-async function handleContextMenuClick(e: MouseEvent): Promise<void> {
+/**
+ * Handle context menu click actions
+ * @internal Exported for testing
+ */
+export async function handleContextMenuClick(e: MouseEvent): Promise<void> {
   const target = e.target as HTMLElement
   const button = target.closest('[data-action]') as HTMLElement
 
@@ -688,7 +720,11 @@ async function handleContextMenuClick(e: MouseEvent): Promise<void> {
   }
 }
 
-async function handleExplainSelection(text: string): Promise<void> {
+/**
+ * Handle "Explain This" action from context menu
+ * @internal Exported for testing
+ */
+export async function handleExplainSelection(text: string): Promise<void> {
   if (!text || state.isLoading) return
 
   // Open assistant panel if not already open
@@ -716,7 +752,11 @@ async function handleExplainSelection(text: string): Promise<void> {
   }
 }
 
-async function handleDraftReplyFromSelection(
+/**
+ * Handle "Draft Reply" action from context menu
+ * @internal Exported for testing
+ */
+export async function handleDraftReplyFromSelection(
   selectedText: string,
   commentAuthor: string,
   commentText: string,
