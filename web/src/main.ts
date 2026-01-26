@@ -34,10 +34,10 @@ import {
   showErrorToast,
 } from './errors'
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
+import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
 import { icons } from './icons'
 import {
   initKeyboard,
-  KEYBOARD_SHORTCUTS,
   resetSelection,
   setKeyboardCallbacks,
 } from './keyboard'
@@ -103,8 +103,6 @@ let isLoading = false
 let isLoadingMore = false
 let currentView: 'list' | 'detail' | 'user' = 'list'
 let currentStories: HNItem[] = []
-let helpModalOpen = false
-let helpModalFocusTrap: FocusTrapInstance | null = null
 let zenModeActive = false
 let zenModeTransitioning = false // Lock to prevent rapid toggling
 let currentOffset = 0
@@ -1368,63 +1366,6 @@ function setupCommentCollapse(): void {
   })
 }
 
-function showHelpModal(): void {
-  if (helpModalOpen) return
-  helpModalOpen = true
-
-  const modal = document.createElement('div')
-  modal.className = 'help-modal-overlay'
-  modal.innerHTML = `
-    <div class="help-modal cyber-frame">
-      <span class="corner-tr"></span>
-      <span class="corner-bl"></span>
-      <h2 class="help-modal-title">Keyboard Shortcuts</h2>
-      <div class="help-shortcuts">
-        ${KEYBOARD_SHORTCUTS.map(
-          (s) => `
-          <div class="help-shortcut">
-            <kbd>${s.key}</kbd>
-            <span>${s.description}</span>
-          </div>
-        `,
-        ).join('')}
-      </div>
-      <button class="help-close-btn" data-action="close-help">Close (Esc)</button>
-    </div>
-  `
-
-  document.body.appendChild(modal)
-
-  // Set up focus trap
-  const modalContent = modal.querySelector('.help-modal') as HTMLElement
-  if (modalContent) {
-    helpModalFocusTrap = createFocusTrap(modalContent)
-    helpModalFocusTrap.activate()
-  }
-
-  // Close on click outside or escape
-  modal.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement
-    if (target === modal || target.closest('[data-action="close-help"]')) {
-      closeHelpModal()
-    }
-  })
-}
-
-function closeHelpModal(): void {
-  // Deactivate focus trap first
-  if (helpModalFocusTrap) {
-    helpModalFocusTrap.deactivate()
-    helpModalFocusTrap = null
-  }
-
-  const modal = document.querySelector('.help-modal-overlay')
-  if (modal) {
-    modal.remove()
-    helpModalOpen = false
-  }
-}
-
 // ===== ZEN MODE =====
 
 /**
@@ -1605,7 +1546,7 @@ function setupKeyboardNavigation(): void {
         closeSettingsModal()
       } else if (isSearchModalOpen()) {
         closeSearchModal()
-      } else if (helpModalOpen) {
+      } else if (isHelpModalOpen()) {
         closeHelpModal()
       } else if (isAssistantOpen()) {
         closeAssistant()
@@ -1634,7 +1575,7 @@ function setupKeyboardNavigation(): void {
       }
     },
     onHelp: () => {
-      if (helpModalOpen) {
+      if (isHelpModalOpen()) {
         closeHelpModal()
       } else {
         showHelpModal()
