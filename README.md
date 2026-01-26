@@ -4,7 +4,7 @@
 
 Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
-![Version](https://img.shields.io/badge/version-0.11.1-cyan)
+![Version](https://img.shields.io/badge/version-0.13.0-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -35,6 +35,7 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 - **Customizable** - Font size (compact/normal/comfortable), density, and default feed settings
 - **Reading Progress** - Tracks read stories, new comments, and scroll positions
 - **Trending Indicators** - Shows rising/hot badges for rapidly trending stories
+- **Duplicate Detection** - Identifies stories linking to the same URL across feeds
 - **Reading Time** - Estimated read time displayed for articles
 - **Window State** - Remembers window position and size across sessions
 - **AI Assistant** - GitHub Copilot-powered reading assistant (optional, desktop only)
@@ -118,17 +119,21 @@ task check            # Type check
 pastel-hn/
 ├── web/                     # Frontend (TypeScript)
 │   ├── src/
-│   │   ├── main.ts          # App entry & UI rendering
+│   │   ├── main.ts          # App entry & orchestration
+│   │   ├── story-list.ts    # Feed rendering & pagination
+│   │   ├── story-detail.ts  # Story view & comments
+│   │   ├── user-profile.ts  # User profile view
+│   │   ├── navigation.ts    # Routing & action handlers
+│   │   ├── scroll-utils.ts  # Scroll position management
 │   │   ├── api.ts           # Tauri invoke wrappers
 │   │   ├── types.ts         # TypeScript types
 │   │   ├── keyboard.ts      # Keyboard navigation
 │   │   ├── theme.ts         # Theme management
 │   │   ├── settings.ts      # Settings panel
-│   │   ├── storage.ts       # Local storage (bookmarks, reading state)
+│   │   ├── storage.ts       # Local storage (bookmarks, state)
 │   │   ├── offline.ts       # Offline detection
 │   │   ├── toast.ts         # Toast notifications
 │   │   ├── prefetch.ts      # Intelligent prefetching
-│   │   ├── storage.ts       # Local storage utilities
 │   │   ├── virtual-scroll.ts# Virtual scrolling
 │   │   └── styles/main.css  # Cyberpunk styles
 │   └── index.html
