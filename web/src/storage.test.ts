@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  bookmarkStory,
   clearAllReadingData,
+  clearBookmarks,
   clearCommentCounts,
   clearFeedScrollPosition,
   clearStoryScrollPosition,
   clearStoryScores,
+  getBookmarkedStories,
+  getBookmarkedStoryIds,
+  getBookmarksCount,
+  getBookmarksWithTimestamps,
   getCommentCountsMap,
   getFeedScrollPosition,
   getNewCommentsCount,
@@ -15,13 +21,16 @@ import {
   getStoryScoresMap,
   getStoryScrollPosition,
   getStoryTrendingLevel,
+  isStoryBookmarked,
   isStoryRead,
   markStoryAsRead,
+  removeBookmark,
   saveFeedScrollPosition,
   saveStoryCommentCount,
   saveStoryScore,
   saveStoryScrollPosition,
 } from './storage'
+import type { HNItem } from './types'
 
 describe('storage', () => {
   beforeEach(() => {
@@ -494,6 +503,198 @@ describe('storage', () => {
 
       // Should not throw
       expect(() => saveStoryScore(12345, 100)).not.toThrow()
+    })
+  })
+
+  describe('bookmarks', () => {
+    const createTestStory = (id: number, overrides?: Partial<HNItem>): HNItem => ({
+      id,
+      type: 0, // ItemType.Story
+      by: 'testuser',
+      time: Math.floor(Date.now() / 1000),
+      title: `Test Story ${id}`,
+      url: `https://example.com/${id}`,
+      score: 100,
+      descendants: 50,
+      text: null,
+      kids: null,
+      parent: null,
+      dead: false,
+      deleted: false,
+      ...overrides,
+    })
+
+    it('bookmarks a story and retrieves it', () => {
+      const story = createTestStory(12345)
+
+      bookmarkStory(story)
+
+      expect(isStoryBookmarked(12345)).toBe(true)
+      const bookmarked = getBookmarkedStories()
+      expect(bookmarked).toHaveLength(1)
+      expect(bookmarked[0].id).toBe(12345)
+      expect(bookmarked[0].title).toBe('Test Story 12345')
+    })
+
+    it('returns false for non-bookmarked story', () => {
+      expect(isStoryBookmarked(99999)).toBe(false)
+    })
+
+    it('removes a bookmark', () => {
+      const story = createTestStory(12345)
+      bookmarkStory(story)
+      expect(isStoryBookmarked(12345)).toBe(true)
+
+      removeBookmark(12345)
+
+      expect(isStoryBookmarked(12345)).toBe(false)
+      expect(getBookmarkedStories()).toHaveLength(0)
+    })
+
+    it('removes only the specified bookmark', () => {
+      bookmarkStory(createTestStory(1))
+      bookmarkStory(createTestStory(2))
+      bookmarkStory(createTestStory(3))
+
+      removeBookmark(2)
+
+      expect(isStoryBookmarked(1)).toBe(true)
+      expect(isStoryBookmarked(2)).toBe(false)
+      expect(isStoryBookmarked(3)).toBe(true)
+      expect(getBookmarkedStories()).toHaveLength(2)
+    })
+
+    it('does not duplicate when bookmarking same story twice', () => {
+      const story = createTestStory(12345)
+
+      bookmarkStory(story)
+      bookmarkStory(story)
+
+      expect(getBookmarkedStories()).toHaveLength(1)
+    })
+
+    it('stores newest bookmarks first', () => {
+      bookmarkStory(createTestStory(1))
+      bookmarkStory(createTestStory(2))
+      bookmarkStory(createTestStory(3))
+
+      const bookmarks = getBookmarkedStories()
+
+      expect(bookmarks[0].id).toBe(3)
+      expect(bookmarks[1].id).toBe(2)
+      expect(bookmarks[2].id).toBe(1)
+    })
+
+    it('getBookmarksWithTimestamps returns stories with metadata', () => {
+      const story = createTestStory(12345)
+      bookmarkStory(story)
+
+      const bookmarksWithMeta = getBookmarksWithTimestamps()
+
+      expect(bookmarksWithMeta).toHaveLength(1)
+      expect(bookmarksWithMeta[0].story.id).toBe(12345)
+      expect(bookmarksWithMeta[0].bookmarkedAt).toBeCloseTo(Date.now(), -2)
+    })
+
+    it('getBookmarksCount returns correct count', () => {
+      expect(getBookmarksCount()).toBe(0)
+
+      bookmarkStory(createTestStory(1))
+      expect(getBookmarksCount()).toBe(1)
+
+      bookmarkStory(createTestStory(2))
+      expect(getBookmarksCount()).toBe(2)
+
+      removeBookmark(1)
+      expect(getBookmarksCount()).toBe(1)
+    })
+
+    it('getBookmarkedStoryIds returns Set of IDs', () => {
+      bookmarkStory(createTestStory(1))
+      bookmarkStory(createTestStory(2))
+      bookmarkStory(createTestStory(3))
+
+      const ids = getBookmarkedStoryIds()
+
+      expect(ids).toBeInstanceOf(Set)
+      expect(ids.has(1)).toBe(true)
+      expect(ids.has(2)).toBe(true)
+      expect(ids.has(3)).toBe(true)
+      expect(ids.has(4)).toBe(false)
+    })
+
+    it('clearBookmarks removes all bookmarks', () => {
+      bookmarkStory(createTestStory(1))
+      bookmarkStory(createTestStory(2))
+      bookmarkStory(createTestStory(3))
+
+      clearBookmarks()
+
+      expect(getBookmarksCount()).toBe(0)
+      expect(getBookmarkedStories()).toHaveLength(0)
+      expect(isStoryBookmarked(1)).toBe(false)
+    })
+
+    it('prunes oldest bookmarks when exceeding max capacity', () => {
+      // Add 201 bookmarks (max is 200)
+      for (let i = 0; i < 201; i++) {
+        bookmarkStory(createTestStory(i))
+      }
+
+      const bookmarks = getBookmarkedStories()
+
+      expect(bookmarks.length).toBeLessThanOrEqual(200)
+      // Oldest bookmark (id=0) should be removed, newest (id=200) should remain
+      expect(isStoryBookmarked(200)).toBe(true)
+      expect(isStoryBookmarked(0)).toBe(false)
+    })
+
+    it('handles corrupted localStorage data gracefully', () => {
+      localStorage.setItem('pastel-hn-bookmarks', 'not valid json {{{')
+
+      expect(isStoryBookmarked(123)).toBe(false)
+      expect(getBookmarkedStories()).toEqual([])
+      expect(getBookmarksCount()).toBe(0)
+      expect(getBookmarkedStoryIds()).toEqual(new Set())
+    })
+
+    it('handles localStorage errors gracefully on save', () => {
+      const mockSetItem = vi.spyOn(Storage.prototype, 'setItem')
+      mockSetItem.mockImplementation(() => {
+        throw new Error('QuotaExceededError')
+      })
+
+      // Should not throw
+      expect(() => bookmarkStory(createTestStory(12345))).not.toThrow()
+    })
+
+    it('handles localStorage errors gracefully on remove', () => {
+      // First, add a bookmark with working storage
+      bookmarkStory(createTestStory(12345))
+
+      const mockSetItem = vi.spyOn(Storage.prototype, 'setItem')
+      mockSetItem.mockImplementation(() => {
+        throw new Error('QuotaExceededError')
+      })
+
+      // Should not throw
+      expect(() => removeBookmark(12345)).not.toThrow()
+    })
+
+    it('preserves full story data for offline viewing', () => {
+      const story = createTestStory(12345, {
+        title: 'Important Story',
+        url: 'https://example.com/important',
+        by: 'specialuser',
+        score: 500,
+        descendants: 200,
+        text: 'Some text content',
+      })
+
+      bookmarkStory(story)
+
+      const bookmarks = getBookmarkedStories()
+      expect(bookmarks[0]).toEqual(story)
     })
   })
 })

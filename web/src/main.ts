@@ -65,14 +65,18 @@ import {
   renderUserProfileSkeleton,
 } from './skeletons'
 import {
+  bookmarkStory,
   clearFeedScrollPosition,
+  getBookmarkedStories,
   getCommentCountsMap,
   getFeedScrollPosition,
   getNewCommentsCount,
   getReadStoryIds,
   getStoryScrollPosition,
   getStoryTrendingLevel,
+  isStoryBookmarked,
   markStoryAsRead,
+  removeBookmark,
   saveFeedScrollPosition,
   saveStoryCommentCount,
   saveStoryScore,
@@ -113,6 +117,7 @@ let currentUserId: string | null = null // Track current user profile
 let readStoryIds: Set<number> = new Set() // Cache of read stories
 let commentCountsMap: Map<number, number> = new Map() // Cache of last seen comment counts
 let currentStoryCommentCount: number | null = null // Track comment count of current story
+let currentStoryData: HNItem | null = null // Track current story for bookmarking
 const STORIES_PER_PAGE = 30
 const SUBMISSIONS_PER_PAGE = 20
 
@@ -146,6 +151,7 @@ async function navigateBackToList(): Promise<void> {
 
   // Reset current story tracking
   currentStoryCommentCount = null
+  currentStoryData = null
 
   // Update state and render list with animation
   currentView = 'list'
@@ -268,11 +274,19 @@ async function renderStories(
   }
 
   try {
-    const { stories, hasMore } = await fetchStoriesPaginated(
-      feed,
-      0,
-      STORIES_PER_PAGE,
-    )
+    let stories: HNItem[]
+    let hasMore: boolean
+
+    // Handle 'saved' feed specially - load from local storage
+    if (feed === 'saved') {
+      stories = getBookmarkedStories()
+      hasMore = false // Bookmarks don't have pagination
+    } else {
+      const result = await fetchStoriesPaginated(feed, 0, STORIES_PER_PAGE)
+      stories = result.stories
+      hasMore = result.hasMore
+    }
+
     currentStories = stories
     currentOffset = stories.length
     hasMoreStories = hasMore
@@ -280,13 +294,21 @@ async function renderStories(
     // Decide whether to use virtual scroll based on expected list size
     // For now, always use standard rendering and let virtual scroll kick in
     // when we exceed the threshold
-    renderStoriesStandard(container, stories)
+    if (feed === 'saved') {
+      renderSavedStories(container, stories)
+    } else {
+      renderStoriesStandard(container, stories)
+    }
 
     // Update accessibility state
     container.setAttribute('aria-busy', 'false')
 
     // Announce to screen readers
-    announce(`${stories.length} stories loaded`)
+    if (feed === 'saved') {
+      announce(`${stories.length} bookmarked ${stories.length === 1 ? 'story' : 'stories'}`)
+    } else {
+      announce(`${stories.length} stories loaded`)
+    }
 
     // Restore scroll position (defer to allow DOM to render)
     requestAnimationFrame(() => {
@@ -348,6 +370,53 @@ function renderStoriesStandard(
 
   // Setup infinite scroll observer
   setupInfiniteScroll()
+
+  // Update assistant visibility (disabled in list view)
+  updateAssistantZenMode(isZenModeActive(), 'list')
+}
+
+/**
+ * Render saved/bookmarked stories with special empty state
+ */
+function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
+  if (stories.length === 0) {
+    // Show empty state
+    container.innerHTML = `
+      <div class="saved-empty-state">
+        <div class="saved-empty-icon">${icons.bookmark}</div>
+        <h2 class="saved-empty-title">No saved stories</h2>
+        <p class="saved-empty-text">
+          Stories you bookmark will appear here for easy access.
+          <br>
+          Bookmark stories from their detail view using the Bookmark button.
+        </p>
+      </div>
+    `
+    return
+  }
+
+  // Render bookmarked stories (no ranking numbers, no trending since data is cached)
+  container.innerHTML = stories
+    .map((story, idx) =>
+      renderStory(
+        story,
+        idx + 1,
+        readStoryIds.has(story.id),
+        0, // No new comments tracking for bookmarked stories (cached data)
+        'none', // No trending for bookmarked stories
+      ),
+    )
+    .join('')
+
+  // Apply stagger animation to stories
+  applyStaggerAnimation(container, '.story')
+
+  // Setup hover prefetch for story cards
+  setupStoryHoverPrefetch(container)
+
+  // Prefetch visible stories during idle time
+  const storyIds = stories.map((s) => s.id)
+  prefetchVisibleStories(storyIds)
 
   // Update assistant visibility (disabled in list view)
   updateAssistantZenMode(isZenModeActive(), 'list')
@@ -740,6 +809,7 @@ async function renderStoryDetail(
     const { story, comments } =
       cachedData || (await fetchStoryWithComments(storyId, 1))
     currentStoryAuthor = story.by // Store for "load more" functionality
+    currentStoryData = story // Store for bookmarking
     const domain = extractDomain(story.url)
     const timeAgo = formatTimeAgo(story.time)
     const storyType =
@@ -791,6 +861,10 @@ async function renderStoryDetail(
             ${textReadingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${textReadingTime}</span>` : ''}
           </div>
           <div class="story-actions">
+            <button class="story-action-btn${isStoryBookmarked(story.id) ? ' bookmarked' : ''}" data-action="toggle-bookmark" data-id="${story.id}" title="${isStoryBookmarked(story.id) ? 'Remove bookmark' : 'Bookmark story'}">
+              ${isStoryBookmarked(story.id) ? icons.bookmarkFilled : icons.bookmark}
+              <span>${isStoryBookmarked(story.id) ? 'Bookmarked' : 'Bookmark'}</span>
+            </button>
             <button class="story-action-btn" data-action="copy-hn-link" data-id="${story.id}" title="Copy HN link">
               ${icons.copy}
               <span>Copy HN Link</span>
@@ -1420,7 +1494,27 @@ function setupNavigation(): void {
 
     const action = actionBtn.dataset.action
 
-    if (action === 'copy-hn-link') {
+    if (action === 'toggle-bookmark') {
+      e.preventDefault()
+      const storyId = Number(actionBtn.dataset.id)
+      if (!storyId) return
+
+      if (isStoryBookmarked(storyId)) {
+        removeBookmark(storyId)
+        // Update button state
+        actionBtn.classList.remove('bookmarked')
+        actionBtn.title = 'Bookmark story'
+        actionBtn.innerHTML = `${icons.bookmark}<span>Bookmark</span>`
+        toastInfo('Bookmark removed')
+      } else if (currentStoryData) {
+        bookmarkStory(currentStoryData)
+        // Update button state
+        actionBtn.classList.add('bookmarked')
+        actionBtn.title = 'Remove bookmark'
+        actionBtn.innerHTML = `${icons.bookmarkFilled}<span>Bookmarked</span>`
+        toastSuccess('Story bookmarked')
+      }
+    } else if (action === 'copy-hn-link') {
       e.preventDefault()
       const id = actionBtn.dataset.id
       if (id) {

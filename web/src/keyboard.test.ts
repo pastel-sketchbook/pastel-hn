@@ -410,7 +410,7 @@ describe('keyboard', () => {
       expect(keys).toContain('r')
       expect(keys).toContain('t')
       expect(keys).toContain('/')
-      expect(keys).toContain('1-6')
+      expect(keys).toContain('1-7')
       expect(keys).toContain('?')
     })
   })

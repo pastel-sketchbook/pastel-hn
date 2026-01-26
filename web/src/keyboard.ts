@@ -30,6 +30,7 @@ const FEED_KEYS: Record<string, StoryFeed> = {
   '4': 'ask',
   '5': 'show',
   '6': 'jobs',
+  '7': 'saved',
 }
 
 export function setKeyboardCallbacks(cb: KeyboardCallback): void {
@@ -249,7 +250,7 @@ export const KEYBOARD_SHORTCUTS = [
   { key: 'r', description: 'Refresh feed' },
   { key: 't', description: 'Scroll to top' },
   { key: '/', description: 'Search' },
-  { key: '1-6', description: 'Switch feeds' },
+  { key: '1-7', description: 'Switch feeds (7=Saved)' },
   { key: '?', description: 'Show shortcuts' },
   { key: '⌘Q', description: 'Quit app' },
 ]

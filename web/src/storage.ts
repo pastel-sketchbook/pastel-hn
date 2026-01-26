@@ -3,9 +3,10 @@
  * - Feed scroll positions
  * - Story reading positions
  * - Read stories tracking
+ * - Bookmarked stories
  */
 
-import type { StoryFeed } from './types'
+import type { HNItem, StoryFeed } from './types'
 
 const STORAGE_PREFIX = 'pastel-hn'
 const FEED_SCROLL_KEY = `${STORAGE_PREFIX}-feed-scroll`
@@ -13,6 +14,7 @@ const STORY_SCROLL_KEY = `${STORAGE_PREFIX}-story-scroll`
 const READ_STORIES_KEY = `${STORAGE_PREFIX}-read-stories`
 const COMMENT_COUNTS_KEY = `${STORAGE_PREFIX}-comment-counts`
 const STORY_SCORES_KEY = `${STORAGE_PREFIX}-story-scores`
+const BOOKMARKS_KEY = `${STORAGE_PREFIX}-bookmarks`
 
 // Max number of read stories to track (prevents localStorage bloat)
 const MAX_READ_STORIES = 500
@@ -446,6 +448,121 @@ function getStoryScoresData(): Record<number, StoryScoreEntry> {
 export function clearStoryScores(): void {
   try {
     localStorage.removeItem(STORY_SCORES_KEY)
+  } catch {
+    // Ignore
+  }
+}
+
+// ============================================================================
+// Bookmarks (for saving favorite stories)
+// ============================================================================
+
+interface BookmarkEntry {
+  story: HNItem
+  bookmarkedAt: number
+}
+
+// Max bookmarks to store (prevent localStorage bloat)
+const MAX_BOOKMARKS = 200
+
+/**
+ * Bookmark a story (saves full story data for offline viewing)
+ */
+export function bookmarkStory(story: HNItem): void {
+  try {
+    const bookmarks = getBookmarksData()
+
+    // Check if already bookmarked
+    if (bookmarks.some((b) => b.story.id === story.id)) {
+      return
+    }
+
+    // Add new bookmark at the beginning
+    bookmarks.unshift({ story, bookmarkedAt: Date.now() })
+
+    // Prune if over limit (remove oldest)
+    if (bookmarks.length > MAX_BOOKMARKS) {
+      bookmarks.length = MAX_BOOKMARKS
+    }
+
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks))
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Remove a bookmark
+ */
+export function removeBookmark(storyId: number): void {
+  try {
+    const bookmarks = getBookmarksData()
+    const filtered = bookmarks.filter((b) => b.story.id !== storyId)
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(filtered))
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Check if a story is bookmarked
+ */
+export function isStoryBookmarked(storyId: number): boolean {
+  const bookmarks = getBookmarksData()
+  return bookmarks.some((b) => b.story.id === storyId)
+}
+
+/**
+ * Get all bookmarked stories (newest first)
+ */
+export function getBookmarkedStories(): HNItem[] {
+  const bookmarks = getBookmarksData()
+  return bookmarks.map((b) => b.story)
+}
+
+/**
+ * Get bookmarks with metadata (for displaying "bookmarked X ago")
+ */
+export function getBookmarksWithTimestamps(): Array<{
+  story: HNItem
+  bookmarkedAt: number
+}> {
+  return getBookmarksData()
+}
+
+/**
+ * Get count of bookmarked stories
+ */
+export function getBookmarksCount(): number {
+  return getBookmarksData().length
+}
+
+/**
+ * Get set of bookmarked story IDs for efficient lookup
+ */
+export function getBookmarkedStoryIds(): Set<number> {
+  const bookmarks = getBookmarksData()
+  return new Set(bookmarks.map((b) => b.story.id))
+}
+
+function getBookmarksData(): BookmarkEntry[] {
+  try {
+    const stored = localStorage.getItem(BOOKMARKS_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+/**
+ * Clear all bookmarks
+ */
+export function clearBookmarks(): void {
+  try {
+    localStorage.removeItem(BOOKMARKS_KEY)
   } catch {
     // Ignore
   }
