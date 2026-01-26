@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Item types from HN API
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(dead_code)]
 pub enum ItemType {
@@ -14,13 +14,8 @@ pub enum ItemType {
     Poll,
     Pollopt,
     #[serde(other)]
+    #[default]
     Unknown,
-}
-
-impl Default for ItemType {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 /// Story feed types

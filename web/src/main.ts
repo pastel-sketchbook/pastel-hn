@@ -14,6 +14,13 @@ import {
   type SearchSort,
   searchHN,
 } from './api'
+import {
+  clearStoryContext,
+  closeAssistant,
+  initAssistant,
+  isAssistantOpen,
+  setStoryContext,
+} from './assistant-ui'
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import {
   initKeyboard,
@@ -325,6 +332,9 @@ async function navigateBackToList(): Promise<void> {
 
   // Animate detail view exiting
   await animateDetailExit(container)
+
+  // Clear AI assistant context when leaving story
+  clearStoryContext()
 
   // Update state and render list with animation
   currentView = 'list'
@@ -1508,6 +1518,9 @@ async function renderStoryDetail(
       fetchAndDisplayArticle(story.url, container)
     }
 
+    // Set AI assistant context with current story and comments
+    setStoryContext(story, comments)
+
     // Restore scroll position for this story (defer to allow DOM to render)
     requestAnimationFrame(() => {
       const savedPosition = getStoryScrollPosition(storyId)
@@ -2465,7 +2478,7 @@ function setupKeyboardNavigation(): void {
       }
     },
     onBack: () => {
-      // Priority: Close modals first, then exit zen mode, then navigate back
+      // Priority: Close modals/panels first, then exit zen mode, then navigate back
       // This ensures modals can be closed while in zen mode without exiting zen
       if (isSettingsModalOpen()) {
         closeSettingsModal()
@@ -2473,6 +2486,8 @@ function setupKeyboardNavigation(): void {
         closeSearchModal()
       } else if (helpModalOpen) {
         closeHelpModal()
+      } else if (isAssistantOpen()) {
+        closeAssistant()
       } else if (zenModeActive) {
         exitZenMode()
       } else if (currentView === 'detail') {
@@ -2728,6 +2743,9 @@ async function main(): Promise<void> {
     setupSettingsToggle()
     setupKeyboardNavigation()
     setupPullToRefresh()
+
+    // Initialize AI assistant (conditionally enabled if Copilot available)
+    initAssistant()
 
     // Update nav to show correct default feed as active
     document.querySelectorAll('[data-feed]').forEach((btn) => {

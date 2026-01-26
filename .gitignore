@@ -40,3 +40,4 @@ Thumbs.db
 # Test artifacts
 test-results/
 playwright-report/
+hangul-typing-codebase.md

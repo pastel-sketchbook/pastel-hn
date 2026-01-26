@@ -6,6 +6,7 @@
 > - Phase 1 (Zig/WASM) was removed in v0.2.0. See [ADR-0001](docs/rationale/0001_removing_zig_wasm_layer.md)
 > - API layer moved to Rust in v0.4.0. See [ADR-0002](docs/rationale/0002_rust_api_layer.md)
 > - Error handling pattern documented in [ADR-0004](docs/rationale/0004_error_handling_pattern.md)
+> - AI assistant integration in [ADR-0006](docs/rationale/0006_copilot_ai_assistant.md)
 
 ---
 
@@ -261,9 +262,58 @@
 
 ---
 
-## Phase 6: Polish & Performance
+## Phase 6: AI Reading Assistant (Copilot)
 
-### 6.1 Performance Optimization
+> Desktop-only feature. See [ADR-0006](docs/rationale/0006_copilot_ai_assistant.md).
+
+### 6.1 Rust Backend (copilot.rs)
+- [x] CopilotService with session management
+- [x] CLI detection (`copilot`, `gh copilot`)
+- [x] Authentication verification
+- [x] HN reader system prompt
+
+### 6.2 Tauri Commands
+- [x] `copilot_check()` - Availability check
+- [x] `copilot_init()` - Initialize service
+- [x] `copilot_summarize(story_context)` - Summarize article
+- [x] `copilot_analyze_discussion(discussion_context)` - Thread insights
+- [x] `copilot_explain(text, context)` - Explain term/concept
+- [x] `copilot_draft_reply(reply_context)` - Reply assistance
+- [x] `copilot_ask(prompt)` - Free-form questions
+- [x] `copilot_shutdown()` - Cleanup
+
+### 6.3 TypeScript Client (copilot-client.ts)
+- [x] CopilotClient class wrapping Tauri invoke
+- [x] Graceful degradation for non-Tauri environments
+- [x] Status caching and lazy initialization
+
+### 6.4 Assistant UI (assistant-ui.ts)
+- [x] Collapsible panel in story detail view
+- [x] Toggle button (hidden if Copilot unavailable)
+- [x] Quick action buttons:
+  - [x] 📝 Summarize Article
+  - [x] 💬 Analyze Discussion
+  - [x] ❓ Ask a Question
+- [ ] Context menu actions:
+  - [ ] Explain This (on text selection)
+  - [ ] Draft Reply (on comments)
+- [x] Markdown rendering for responses
+- [x] Loading and error states
+- [x] Panel styling (Cyberpunk Pastel theme with frost blur)
+
+### 6.5 Integration
+- [x] Keyboard shortcut `a` to toggle assistant panel
+- [x] Pass story/comment context to assistant
+- [x] Initialize assistant on app start
+- [x] Clear context when navigating back to list
+- [x] Escape key closes assistant panel
+- [x] Respect dark/light theme
+
+---
+
+## Phase 7: Polish & Performance
+
+### 7.1 Performance Optimization
 - [x] Virtual scrolling for 500+ items (VirtualScroll class)
 - [x] Connection pooling in Rust HTTP client
 - [x] Concurrent request fetching with Tokio
@@ -273,7 +323,7 @@
 - [ ] **Image/favicon lazy loading for story domains**
 - [ ] **Request deduplication for concurrent fetches**
 
-### 6.2 Accessibility
+### 7.2 Accessibility
 - [x] Full keyboard navigation
 - [x] ARIA labels for all interactive elements
 - [ ] Screen reader announcements (live regions for loading/errors)
@@ -283,7 +333,7 @@
 - [ ] **Skip-to-content link**
 - [ ] **Proper heading hierarchy audit**
 
-### 6.3 Testing
+### 7.3 Testing
 - [x] Unit tests for API functions (api.test.ts - 18 tests)
 - [x] Unit tests for theme module (theme.test.ts - 11 tests)
 - [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 7 tests)
@@ -299,7 +349,7 @@
 - [ ] Performance benchmarks
 - [ ] Accessibility audit (axe-core)
 
-### 6.4 Documentation
+### 7.4 Documentation
 - [ ] README with screenshots
 - [ ] Keyboard shortcut reference
 - [ ] Contributing guide
@@ -324,6 +374,8 @@ pastel-hn/
 │   │   ├── toast.ts            # Toast notifications
 │   │   ├── virtual-scroll.ts   # Virtual scrolling
 │   │   ├── storage.ts          # LocalStorage helpers
+│   │   ├── copilot-client.ts   # Copilot SDK wrapper
+│   │   ├── assistant-ui.ts     # AI assistant panel UI
 │   │   ├── styles/
 │   │   │   └── main.css        # Cyberpunk styles
 │   │   └── main.ts             # Entry point & UI
@@ -334,6 +386,7 @@ pastel-hn/
 │   │   ├── main.rs             # Tauri app setup
 │   │   ├── client.rs           # HnClient with caching
 │   │   ├── commands.rs         # Tauri command handlers
+│   │   ├── copilot.rs          # CopilotService (AI assistant)
 │   │   └── types.rs            # Rust types with serde
 │   ├── icons/                  # App icons
 │   ├── Cargo.toml

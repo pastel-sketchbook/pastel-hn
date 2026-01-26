@@ -19,7 +19,7 @@ const USER_CACHE_TTL: Duration = Duration::from_secs(10 * 60); // 10 minutes
 /// Check response for rate limiting and other errors
 fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
     let status = response.status();
-    
+
     if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         // Try to get retry-after header, default to 60 seconds
         let retry_after = response
@@ -28,11 +28,11 @@ fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u32>().ok())
             .unwrap_or(60);
-        
+
         warn!(retry_after = retry_after, "Rate limited by API");
         return Err(ApiError::RateLimited(retry_after));
     }
-    
+
     Ok(())
 }
 
@@ -92,7 +92,7 @@ impl HnClient {
 
         let response = self.http.get(&url).send().await?;
         check_response_status(&response)?;
-        
+
         let ids: Vec<u32> = response.json().await?;
 
         debug!(feed = ?feed, count = ids.len(), "Fetched story IDs");
@@ -115,7 +115,7 @@ impl HnClient {
 
         let response = self.http.get(&url).send().await?;
         check_response_status(&response)?;
-        
+
         if !response.status().is_success() {
             return Err(ApiError::NotFound(id));
         }
@@ -133,9 +133,9 @@ impl HnClient {
     #[instrument(skip(self, ids))]
     pub async fn fetch_items(&self, ids: &[u32]) -> Result<Vec<HNItem>, ApiError> {
         let futures: Vec<_> = ids.iter().map(|&id| self.fetch_item(id)).collect();
-        
+
         let results = futures::future::join_all(futures).await;
-        
+
         let mut items = Vec::with_capacity(ids.len());
         for result in results {
             match result {
@@ -186,7 +186,7 @@ impl HnClient {
 
         let response = self.http.get(&url).send().await?;
         check_response_status(&response)?;
-        
+
         if !response.status().is_success() {
             return Err(ApiError::UserNotFound(id.to_string()));
         }
@@ -336,7 +336,7 @@ impl HnClient {
 
         let response = self.http.get(&url).send().await?;
         check_response_status(&response)?;
-        
+
         let response: AlgoliaResponse = response.json().await?;
 
         Ok(SearchResponse {
@@ -375,7 +375,7 @@ impl HnClient {
 
         let response = self.http.get(url).send().await?;
         check_response_status(&response)?;
-        
+
         if !response.status().is_success() {
             return Err(ApiError::ArticleExtraction(format!(
                 "HTTP {} fetching URL",
@@ -384,11 +384,11 @@ impl HnClient {
         }
 
         let html = response.text().await?;
-        
+
         // Parse the URL for readability
         let parsed_url = url::Url::parse(url)
             .map_err(|e| ApiError::ArticleExtraction(format!("Invalid URL: {}", e)))?;
-        
+
         // Use readability to extract the main content
         let mut cursor = std::io::Cursor::new(html.as_bytes());
         let extracted = readability::extractor::extract(&mut cursor, &parsed_url)
@@ -398,7 +398,11 @@ impl HnClient {
         let word_count = extracted.text.split_whitespace().count();
 
         Ok(ArticleContent {
-            title: if extracted.title.is_empty() { None } else { Some(extracted.title) },
+            title: if extracted.title.is_empty() {
+                None
+            } else {
+                Some(extracted.title)
+            },
             content: extracted.content,
             text_content: extracted.text,
             byline: None, // readability-rs doesn't expose byline directly

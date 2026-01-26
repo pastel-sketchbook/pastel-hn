@@ -1,8 +1,11 @@
-//! Tauri commands for HN API
+//! Tauri commands for HN API and Copilot assistant
 
 use tauri::State;
 
 use crate::client::SharedHnClient;
+use crate::copilot::{
+    self, AssistantResponse, CopilotStatus, DiscussionContext, ReplyContext, StoryContext,
+};
 use crate::types::*;
 
 /// Fetch paginated stories for a feed
@@ -18,10 +21,7 @@ pub async fn fetch_stories(
 
 /// Fetch a single item by ID
 #[tauri::command]
-pub async fn fetch_item(
-    client: State<'_, SharedHnClient>,
-    id: u32,
-) -> Result<HNItem, ApiError> {
+pub async fn fetch_item(client: State<'_, SharedHnClient>, id: u32) -> Result<HNItem, ApiError> {
     client.fetch_item(id).await
 }
 
@@ -56,10 +56,7 @@ pub async fn fetch_comment_children(
 
 /// Fetch a user by ID
 #[tauri::command]
-pub async fn fetch_user(
-    client: State<'_, SharedHnClient>,
-    id: String,
-) -> Result<HNUser, ApiError> {
+pub async fn fetch_user(client: State<'_, SharedHnClient>, id: String) -> Result<HNUser, ApiError> {
     client.fetch_user(&id).await
 }
 
@@ -127,4 +124,81 @@ pub fn open_external(url: &str) -> Result<(), String> {
 #[tauri::command]
 pub const fn get_app_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
+}
+
+// ============================================================================
+// Copilot AI Assistant Commands
+// ============================================================================
+
+/// Check if Copilot is available (CLI installed and authenticated)
+#[tauri::command]
+pub async fn copilot_check() -> CopilotStatus {
+    copilot::get_status().await
+}
+
+/// Initialize the Copilot service
+#[tauri::command]
+pub async fn copilot_init() -> Result<CopilotStatus, String> {
+    copilot::init().await.map_err(|e| e.to_string())
+}
+
+/// Summarize an article based on story context
+#[tauri::command]
+pub async fn copilot_summarize(context: StoryContext) -> Result<AssistantResponse, String> {
+    let service = copilot::get_service();
+    service
+        .summarize_article(context)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Analyze a discussion thread
+#[tauri::command]
+pub async fn copilot_analyze_discussion(
+    context: DiscussionContext,
+) -> Result<AssistantResponse, String> {
+    let service = copilot::get_service();
+    service
+        .analyze_discussion(context)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Explain a term or concept
+#[tauri::command]
+pub async fn copilot_explain(
+    text: String,
+    context: Option<String>,
+) -> Result<AssistantResponse, String> {
+    let service = copilot::get_service();
+    service
+        .explain(&text, context.as_deref())
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Help draft a reply to a comment
+#[tauri::command]
+pub async fn copilot_draft_reply(context: ReplyContext) -> Result<AssistantResponse, String> {
+    let service = copilot::get_service();
+    service
+        .draft_reply(context)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Ask a general question
+#[tauri::command]
+pub async fn copilot_ask(prompt: String) -> Result<AssistantResponse, String> {
+    let service = copilot::get_service();
+    service
+        .ask_question(&prompt)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Shutdown the Copilot service
+#[tauri::command]
+pub async fn copilot_shutdown() -> Result<(), String> {
+    copilot::shutdown().await.map_err(|e| e.to_string())
 }

@@ -31,6 +31,7 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 - **Customizable** - Font size (compact/normal/comfortable), density, and default feed settings
 - **Reading Time** - Estimated read time displayed for articles
 - **Window State** - Remembers window position and size across sessions
+- **AI Assistant** - GitHub Copilot-powered reading assistant (optional, desktop only)
 
 ## Tech Stack
 
@@ -69,6 +70,7 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 | `/` | Focus search |
 | `t` | Scroll to top |
 | `?` | Show keyboard shortcuts |
+| `a` | Toggle AI assistant panel |
 | `⌘Q` | Quit app (Ctrl+Q on Windows/Linux) |
 
 ## Development
@@ -127,6 +129,7 @@ pastel-hn/
 │   │   ├── main.rs          # Tauri app setup
 │   │   ├── client.rs        # HN API client + caching
 │   │   ├── commands.rs      # Tauri command handlers
+│   │   ├── copilot.rs       # AI assistant service
 │   │   └── types.rs         # Rust types with serde
 │   └── Cargo.toml
 ├── docs/rationale/          # Architecture Decision Records
@@ -141,6 +144,7 @@ pastel-hn/
 - [ADR-0003: Tabbed Story Detail with Reader Mode](docs/rationale/0003_tabbed_story_detail_with_reader_mode.md)
 - [ADR-0004: Error Handling Pattern](docs/rationale/0004_error_handling_pattern.md)
 - [ADR-0005: UI Design System](docs/rationale/0005_ui_design_system.md)
+- [ADR-0006: Copilot AI Assistant](docs/rationale/0006_copilot_ai_assistant.md)
 
 ## Design Philosophy
 
@@ -149,6 +153,22 @@ pastel-hn/
 - **Responsive Feedback** - Every interaction feels immediate (<100ms)
 - **Keyboard-Centric** - Power users can navigate entirely without a mouse
 - **Beautiful by Default** - Stunning visuals that don't sacrifice usability
+
+## AI Assistant (Optional)
+
+The desktop app includes an optional AI-powered reading assistant, powered by GitHub Copilot:
+
+- **Summarize Articles** - Get quick summaries of linked articles
+- **Analyze Discussions** - Understand key viewpoints in long comment threads
+- **Explain Terms** - Context menu to explain technical jargon
+- **Draft Replies** - Help compose thoughtful HN comments
+
+### Requirements
+
+- GitHub Copilot subscription
+- GitHub Copilot CLI installed (`gh copilot` or standalone `copilot`)
+
+The assistant is automatically enabled when Copilot is available. Without it, the app works normally—AI features are entirely optional.
 
 ## Caching Strategy
 

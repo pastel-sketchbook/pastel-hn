@@ -2,6 +2,7 @@
 
 mod client;
 mod commands;
+mod copilot;
 mod types;
 
 use tauri_plugin_window_state::StateFlags;
@@ -50,6 +51,15 @@ fn main() {
             // Utility commands
             commands::open_external,
             commands::get_app_version,
+            // Copilot AI assistant
+            commands::copilot_check,
+            commands::copilot_init,
+            commands::copilot_summarize,
+            commands::copilot_analyze_discussion,
+            commands::copilot_explain,
+            commands::copilot_draft_reply,
+            commands::copilot_ask,
+            commands::copilot_shutdown,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
