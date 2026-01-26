@@ -11,6 +11,8 @@ tauri-build = { version = "2.5.3", features = [] }
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-shell = "2.3.4"
 tauri-plugin-window-state = "2.4.1"
+tauri-plugin-dialog = "2.6.0"
+tauri-plugin-fs = "2.4.5"
 
 # Async runtime
 tokio = { version = "1.49.0", features = ["full"] }

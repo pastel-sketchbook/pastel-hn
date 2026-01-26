@@ -9,6 +9,8 @@
     "core:window:allow-set-fullscreen",
     "core:window:allow-set-decorations",
     "shell:allow-open",
-    "window-state:default"
+    "window-state:default",
+    "dialog:allow-save",
+    "fs:allow-write-text-file"
   ]
 }

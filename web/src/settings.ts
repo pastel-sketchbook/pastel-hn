@@ -473,7 +473,7 @@ function downloadBookmarksExport(): void {
   const json = exportBookmarksAsJson()
   const filename = `pastel-hn-bookmarks-${formatExportDate()}.json`
 
-  triggerDownloadWithFallback(json, filename, 'Bookmarks')
+  void triggerDownloadWithFallback(json, filename, 'Bookmarks')
 }
 
 /**
@@ -566,17 +566,73 @@ function downloadSettingsExport(): void {
   const json = JSON.stringify(exportData, null, 2)
   const filename = `pastel-hn-settings-${formatExportDate()}.json`
 
-  triggerDownloadWithFallback(json, filename, 'Settings')
+  void triggerDownloadWithFallback(json, filename, 'Settings')
 }
 
 /**
- * Attempt to download a file, showing a fallback dialog if it fails
+ * Attempt to save a file using Tauri's native dialog, with web fallback
  */
-function triggerDownloadWithFallback(
+async function triggerDownloadWithFallback(
   content: string,
   filename: string,
   title: string,
-): void {
+): Promise<void> {
+  // Try Tauri native save dialog first
+  if (await saveWithTauriDialog(content, filename)) {
+    return // Success, no need for fallback
+  }
+
+  // Fallback: try web download
+  triggerWebDownload(content, filename)
+
+  // Show fallback dialog after a short delay
+  // This gives users an option to copy if download failed
+  setTimeout(() => {
+    showExportDialog(content, filename, title)
+  }, 300)
+}
+
+/**
+ * Save file using Tauri's native file dialog and fs APIs
+ * Returns true if successful, false if cancelled or unavailable
+ */
+async function saveWithTauriDialog(
+  content: string,
+  filename: string,
+): Promise<boolean> {
+  try {
+    // Dynamically import Tauri plugins (only available in Tauri context)
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+
+    const filePath = await save({
+      title: 'Export File',
+      defaultPath: filename,
+      filters: [
+        {
+          name: 'JSON',
+          extensions: ['json'],
+        },
+      ],
+    })
+
+    if (filePath) {
+      await writeTextFile(filePath, content)
+      return true
+    }
+
+    // User cancelled the dialog
+    return false
+  } catch {
+    // Tauri not available (running in browser) or other error
+    return false
+  }
+}
+
+/**
+ * Trigger a web-based file download (fallback for non-Tauri environments)
+ */
+function triggerWebDownload(content: string, filename: string): void {
   const blob = new Blob([content], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
 
@@ -589,12 +645,6 @@ function triggerDownloadWithFallback(
 
   // Delay revoking URL to allow download to start
   setTimeout(() => URL.revokeObjectURL(url), 100)
-
-  // Show fallback dialog after a short delay
-  // This gives users an option to copy if download failed
-  setTimeout(() => {
-    showExportDialog(content, filename, title)
-  }, 300)
 }
 
 /**

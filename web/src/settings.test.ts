@@ -1,4 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Mock Tauri plugins to simulate non-Tauri environment
+// These mocks return functions that reject, simulating unavailable Tauri APIs
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  save: vi.fn().mockRejectedValue(new Error('Not in Tauri')),
+}))
+vi.mock('@tauri-apps/plugin-fs', () => ({
+  writeTextFile: vi.fn().mockRejectedValue(new Error('Not in Tauri')),
+}))
+
 import {
   closeSettingsModal,
   getSettings,
@@ -489,8 +499,6 @@ describe('settings', () => {
     })
 
     it('clicking export button triggers download', async () => {
-      vi.useFakeTimers()
-
       // Mock URL.createObjectURL and URL.revokeObjectURL
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
@@ -521,18 +529,21 @@ describe('settings', () => {
       ) as HTMLElement
       exportBtn.click()
 
-      expect(mockCreateObjectURL).toHaveBeenCalled()
+      // Wait for async operations to complete (Tauri fails, falls back to web)
+      await vi.waitFor(() => {
+        expect(mockCreateObjectURL).toHaveBeenCalled()
+      })
+
       expect(capturedLink).not.toBeNull()
       expect(capturedLink?.click).toHaveBeenCalled()
       expect(capturedLink?.download).toMatch(
         /^pastel-hn-bookmarks-\d{4}-\d{2}-\d{2}\.json$/,
       )
 
-      // URL.revokeObjectURL is now called after a delay
-      await vi.advanceTimersByTimeAsync(100)
-      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
-
-      vi.useRealTimers()
+      // URL.revokeObjectURL is called after a timeout - verify with waitFor
+      await vi.waitFor(() => {
+        expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+      })
     })
   })
 
@@ -880,8 +891,6 @@ describe('settings', () => {
     })
 
     it('clicking export settings button triggers download', async () => {
-      vi.useFakeTimers()
-
       // Mock URL.createObjectURL and URL.revokeObjectURL
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
@@ -911,18 +920,21 @@ describe('settings', () => {
       ) as HTMLElement
       exportBtn.click()
 
-      expect(mockCreateObjectURL).toHaveBeenCalled()
+      // Wait for async operations to complete (Tauri fails, falls back to web)
+      await vi.waitFor(() => {
+        expect(mockCreateObjectURL).toHaveBeenCalled()
+      })
+
       expect(capturedLink).not.toBeNull()
       expect(capturedLink?.click).toHaveBeenCalled()
       expect(capturedLink?.download).toMatch(
         /^pastel-hn-settings-\d{4}-\d{2}-\d{2}\.json$/,
       )
 
-      // URL.revokeObjectURL is now called after a delay
-      await vi.advanceTimersByTimeAsync(100)
-      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
-
-      vi.useRealTimers()
+      // URL.revokeObjectURL is called after a timeout - verify with waitFor
+      await vi.waitFor(() => {
+        expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+      })
     })
 
     it('clicking import settings button triggers file input click', async () => {
