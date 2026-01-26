@@ -37,6 +37,12 @@ import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
 import { icons } from './icons'
 import {
+  configureBackToTop,
+  scrollToTop,
+  setupBackToTop,
+  updateBackToTopVisibility,
+} from './back-to-top'
+import {
   initKeyboard,
   resetSelection,
   setKeyboardCallbacks,
@@ -201,41 +207,6 @@ function updateHeaderShadow(): void {
     header.classList.add('scrolled')
   } else {
     header.classList.remove('scrolled')
-  }
-}
-
-// Back to top button
-let backToTopBtn: HTMLButtonElement | null = null
-const BACK_TO_TOP_THRESHOLD = 400 // Show button after scrolling this much
-
-function setupBackToTop(): void {
-  // Create the button
-  backToTopBtn = document.createElement('button')
-  backToTopBtn.className = 'back-to-top'
-  backToTopBtn.title = 'Back to top (t)'
-  backToTopBtn.innerHTML = `
-    <svg viewBox="0 0 24 24">
-      <polyline points="18 15 12 9 6 15"/>
-    </svg>
-  `
-
-  document.body.appendChild(backToTopBtn)
-
-  // Click handler
-  backToTopBtn.addEventListener('click', scrollToTop)
-}
-
-function scrollToTop(): void {
-  setScrollTop(0, 'smooth')
-}
-
-function updateBackToTopVisibility(): void {
-  if (!backToTopBtn) return
-
-  if (getScrollTop() > BACK_TO_TOP_THRESHOLD) {
-    backToTopBtn.classList.add('visible')
-  } else {
-    backToTopBtn.classList.remove('visible')
   }
 }
 
@@ -1648,6 +1619,10 @@ async function main(): Promise<void> {
     }
 
     // Set up back to top button
+    configureBackToTop({
+      setScrollTop: setScrollTop,
+      getScrollTop: getScrollTop,
+    })
     setupBackToTop()
 
     // Check initial hash
