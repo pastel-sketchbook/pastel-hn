@@ -17,9 +17,9 @@ import {
   loadSettings,
   type Settings,
   saveSettings,
+  showExportDialog,
   showSettingsModal,
   validateSettings,
-  showExportDialog,
 } from './settings'
 import { bookmarkStory } from './storage'
 import type { CacheStats, HNItem } from './types'
@@ -35,8 +35,8 @@ vi.mock('./api', () => ({
   clearCache: vi.fn(),
 }))
 
-import { setTheme } from './theme'
 import { clearCache, getCacheStats } from './api'
+import { setTheme } from './theme'
 
 const mockSetTheme = vi.mocked(setTheme)
 const mockGetCacheStats = vi.mocked(getCacheStats)
