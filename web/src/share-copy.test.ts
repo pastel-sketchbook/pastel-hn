@@ -129,7 +129,10 @@ describe('share/copy handlers', () => {
       const button = document.createElement('button')
       button.dataset.url = specialUrl
 
-      await navigator.clipboard.writeText(button.dataset.url!)
+      const url = button.dataset.url
+      if (url) {
+        await navigator.clipboard.writeText(url)
+      }
 
       expect(mockClipboard.writeText).toHaveBeenCalledWith(specialUrl)
     })
