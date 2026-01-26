@@ -96,6 +96,13 @@ import {
   sanitizeHtml,
 } from './utils'
 import { VirtualScroll } from './virtual-scroll'
+import {
+  exitZenMode,
+  isZenModeActive,
+  isZenModeTransitioning,
+  setZenModeChangeCallback,
+  toggleZenMode,
+} from './zen-mode'
 import './styles/main.css'
 
 let currentFeed: StoryFeed = 'top'
@@ -103,8 +110,6 @@ let isLoading = false
 let isLoadingMore = false
 let currentView: 'list' | 'detail' | 'user' = 'list'
 let currentStories: HNItem[] = []
-let zenModeActive = false
-let zenModeTransitioning = false // Lock to prevent rapid toggling
 let currentOffset = 0
 let hasMoreStories = true
 let currentStoryAuthor: string | null = null // Track OP for comment highlighting
@@ -113,9 +118,6 @@ let currentUserId: string | null = null // Track current user profile
 let readStoryIds: Set<number> = new Set() // Cache of read stories
 const STORIES_PER_PAGE = 30
 const SUBMISSIONS_PER_PAGE = 20
-
-// Animation duration constants
-const FULLSCREEN_EXIT_DELAY_MS = 300 // ms - delay for macOS fullscreen exit reliability
 
 /**
  * Navigate back to list view with animation
@@ -126,7 +128,7 @@ async function navigateBackToList(): Promise<void> {
 
   // Exit zen mode when going back to list
   // This ensures window decorations and header are restored
-  if (zenModeActive) {
+if (isZenModeActive()) {
     await exitZenMode()
   }
 
@@ -371,7 +373,7 @@ function updatePullIndicator(distance: number): void {
 }
 
 async function triggerRefresh(): Promise<void> {
-  if (zenModeTransitioning) return // Guard against accidental refresh during layout shifts
+  if (isZenModeTransitioning()) return // Guard against accidental refresh during layout shifts
   updatePullIndicator(PULL_THRESHOLD) // Show loading state
 
   if (currentView === 'list') {
@@ -504,7 +506,7 @@ function renderStoriesStandard(
   setupInfiniteScroll()
 
   // Update assistant visibility (disabled in list view)
-  updateAssistantZenMode(zenModeActive, 'list')
+  updateAssistantZenMode(isZenModeActive(), 'list')
 }
 
 /**
@@ -833,7 +835,7 @@ async function renderStoryDetail(
 
   // Show skeleton loading state for story detail
   // Use appropriate width based on zen mode
-  const skeletonWidth = zenModeActive ? '95%' : '90%'
+  const skeletonWidth = isZenModeActive() ? '95%' : '90%'
   container.innerHTML = `
     <div class="story-detail" style="max-width: ${skeletonWidth};">
       <div class="story-detail-header">
@@ -1026,7 +1028,7 @@ async function renderStoryDetail(
     })
 
     // Update assistant visibility for detail view
-    updateAssistantZenMode(zenModeActive, 'detail')
+    updateAssistantZenMode(isZenModeActive(), 'detail')
 
     // Announce to screen readers
     announce(`Story loaded with ${commentCount} comments`)
@@ -1366,155 +1368,6 @@ function setupCommentCollapse(): void {
   })
 }
 
-// ===== ZEN MODE =====
-
-/**
- * Toggle zen mode - fullscreen, hides header, maximizes content area
- * Press 'z' to toggle, Escape also exits zen mode
- */
-async function toggleZenMode(): Promise<void> {
-  // Prevent rapid toggling while transition is in progress
-  if (zenModeTransitioning) return
-  zenModeTransitioning = true
-
-  const enteringZen = !zenModeActive
-
-  // Toggle fullscreen and decorations via Tauri API first (before CSS changes)
-  // This ensures window state is correct before visual updates
-  try {
-    const appWindow = getCurrentWindow()
-
-    if (enteringZen) {
-      // Hide window decorations (title bar) and go fullscreen
-      await appWindow.setDecorations(false)
-      await appWindow.setFullscreen(true)
-    } else {
-      // Restore window decorations and exit fullscreen
-      // Important: Exit fullscreen first, then restore decorations
-      await appWindow.setFullscreen(false)
-      // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) =>
-        setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS),
-      )
-      await appWindow.setDecorations(true)
-    }
-
-    // Only update state after Tauri API calls succeed
-    zenModeActive = enteringZen
-    document.documentElement.classList.toggle('zen-mode', zenModeActive)
-
-    // Update assistant visibility
-    updateAssistantZenMode(zenModeActive, currentView)
-
-    if (zenModeActive) {
-      showZenModeBadge()
-      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
-    } else {
-      hideZenModeBadge()
-    }
-  } catch (error) {
-    // Fallback for non-Tauri environment (browser dev)
-    console.warn('Tauri window API not available:', error)
-    zenModeActive = enteringZen
-    document.documentElement.classList.toggle('zen-mode', zenModeActive)
-
-    if (zenModeActive) {
-      showZenModeBadge()
-      toastInfo('Zen mode enabled. Press Z or Escape to exit.')
-    } else {
-      hideZenModeBadge()
-    }
-  } finally {
-    // Release lock after a short delay to ensure transitions complete
-    setTimeout(() => {
-      zenModeTransitioning = false
-    }, 200)
-  }
-
-  // Force virtual scroll to re-render with new styling
-  // Use requestAnimationFrame to ensure CSS classes have been applied
-  if (virtualScroll) {
-    requestAnimationFrame(() => {
-      virtualScroll?.forceRender()
-    })
-  }
-}
-
-/**
- * Exit zen mode if active
- */
-async function exitZenMode(): Promise<void> {
-  // Prevent rapid toggling while transition is in progress
-  if (zenModeTransitioning) return
-
-  if (zenModeActive) {
-    zenModeTransitioning = true
-
-    // Exit fullscreen and restore decorations via Tauri API first
-    try {
-      const appWindow = getCurrentWindow()
-      // Exit fullscreen first, then restore decorations
-      await appWindow.setFullscreen(false)
-      // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) =>
-        setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS),
-      )
-      await appWindow.setDecorations(true)
-    } catch (error) {
-      console.warn('Tauri window API not available:', error)
-    } finally {
-      // Release lock after a short delay to ensure transitions complete
-      setTimeout(() => {
-        zenModeTransitioning = false
-      }, 200)
-    }
-
-    // Update state after Tauri API calls
-    zenModeActive = false
-    document.documentElement.classList.remove('zen-mode')
-    hideZenModeBadge()
-
-    // Update assistant visibility
-    updateAssistantZenMode(false, currentView)
-
-    // Force virtual scroll to re-render with normal styling
-    // Use requestAnimationFrame to ensure CSS classes have been removed
-    if (virtualScroll) {
-      requestAnimationFrame(() => {
-        virtualScroll?.forceRender()
-      })
-    }
-  }
-}
-
-/**
- * Show zen mode badge indicator
- */
-function showZenModeBadge(): void {
-  // Remove existing badge if any
-  hideZenModeBadge()
-
-  const badge = document.createElement('div')
-  badge.className = 'zen-mode-badge'
-  badge.innerHTML = `
-    <span class="zen-badge-icon">Z</span>
-    <span class="zen-badge-text">Zen Mode</span>
-  `
-  badge.title = 'Press Z or Escape to exit Zen mode'
-  badge.addEventListener('click', () => toggleZenMode())
-  document.body.appendChild(badge)
-}
-
-/**
- * Hide zen mode badge
- */
-function hideZenModeBadge(): void {
-  const badge = document.querySelector('.zen-mode-badge')
-  if (badge) {
-    badge.remove()
-  }
-}
-
 function setupKeyboardNavigation(): void {
   setKeyboardCallbacks({
     onSelect: (index) => {
@@ -1550,7 +1403,7 @@ function setupKeyboardNavigation(): void {
         closeHelpModal()
       } else if (isAssistantOpen()) {
         closeAssistant()
-      } else if (zenModeActive) {
+      } else if (isZenModeActive()) {
         exitZenMode()
       } else if (currentView === 'detail') {
         navigateBackToList()
@@ -1872,6 +1725,18 @@ async function main(): Promise<void> {
 
     // Initialize AI assistant (conditionally enabled if Copilot available)
     initAssistant()
+
+    // Set up zen mode callback for virtual scroll re-render and assistant updates
+    setZenModeChangeCallback((isActive) => {
+      // Update assistant visibility
+      updateAssistantZenMode(isActive, currentView)
+      // Force virtual scroll to re-render with new styling
+      if (virtualScroll) {
+        requestAnimationFrame(() => {
+          virtualScroll?.forceRender()
+        })
+      }
+    })
 
     // Update nav to show correct default feed as active
     document.querySelectorAll('[data-feed]').forEach((btn) => {
