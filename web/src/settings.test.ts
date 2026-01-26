@@ -9,7 +9,7 @@ import {
   saveSettings,
   showSettingsModal,
 } from './settings'
-import { bookmarkStory, clearBookmarks } from './storage'
+import { bookmarkStory } from './storage'
 import type { HNItem } from './types'
 
 // Mock theme module
