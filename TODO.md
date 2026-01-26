@@ -148,7 +148,7 @@
 - [x] Collapsible comment branches
 - [x] Comment depth indicators
 - [x] "Load more" for deep threads
-- [ ] Share/copy link actions
+- [x] Share/copy link actions
 
 ### 3.4 Comment Component
 - [x] Author with karma indicator
@@ -292,12 +292,12 @@
 - [x] Collapsible panel in story detail view
 - [x] Toggle button (hidden if Copilot unavailable)
 - [x] Quick action buttons:
-  - [x] 📝 Summarize Article
-  - [x] 💬 Analyze Discussion
-  - [x] ❓ Ask a Question
-- [ ] Context menu actions:
-  - [ ] Explain This (on text selection)
-  - [ ] Draft Reply (on comments)
+  - [x] Summarize Article
+  - [x] Analyze Discussion
+  - [x] Ask a Question
+- [x] Context menu actions:
+  - [x] Explain This (on text selection)
+  - [x] Draft Reply (on comments)
 - [x] Markdown rendering for responses
 - [x] Loading and error states
 - [x] Panel styling (Cyberpunk Pastel theme with frost blur)
@@ -318,7 +318,7 @@
 - [x] Virtual scrolling for 500+ items (VirtualScroll class)
 - [x] Connection pooling in Rust HTTP client
 - [x] Concurrent request fetching with Tokio
-- [ ] Lazy comment loading (fetch on expand)
+- [x] Lazy comment loading (fetch on expand with depth=1)
 - [ ] Bundle size optimization (<100KB JS)
 - [ ] First contentful paint <500ms
 - [ ] **Image/favicon lazy loading for story domains**
@@ -328,11 +328,11 @@
 ### 7.2 Accessibility
 - [x] Full keyboard navigation
 - [x] ARIA labels for all interactive elements
-- [ ] Screen reader announcements (live regions for loading/errors)
+- [x] Screen reader announcements (live regions for loading/errors)
 - [x] Focus trap in modals (settings, search, help)
 - [ ] High contrast mode
 - [x] Reduced motion support
-- [ ] **Skip-to-content link**
+- [x] Skip-to-content link
 - [ ] **Proper heading hierarchy audit**
 
 ### 7.3 Testing
