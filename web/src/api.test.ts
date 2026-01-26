@@ -14,6 +14,7 @@ import {
   fetchStoryWithComments,
   fetchUser,
   formatTimeAgo,
+  getCacheStats,
   searchHN,
 } from './api'
 
@@ -276,6 +277,35 @@ describe('api', () => {
       await clearCache()
 
       expect(mockInvoke).toHaveBeenCalledWith('clear_cache')
+    })
+  })
+
+  describe('getCacheStats', () => {
+    it('invokes get_cache_stats command and returns stats', async () => {
+      const mockStats = {
+        itemCount: 100,
+        storyIdsCount: 5,
+        userCount: 10,
+        itemTtlSecs: 300,
+        storyIdsTtlSecs: 120,
+        userTtlSecs: 600,
+      }
+
+      mockInvoke.mockResolvedValueOnce(mockStats)
+
+      const stats = await getCacheStats()
+
+      expect(mockInvoke).toHaveBeenCalledWith('get_cache_stats')
+      expect(stats).toEqual(mockStats)
+      expect(stats.itemCount).toBe(100)
+      expect(stats.storyIdsCount).toBe(5)
+      expect(stats.userCount).toBe(10)
+    })
+
+    it('throws on invoke error', async () => {
+      mockInvoke.mockRejectedValueOnce(new Error('Cache stats failed'))
+
+      await expect(getCacheStats()).rejects.toThrow('Cache stats failed')
     })
   })
 

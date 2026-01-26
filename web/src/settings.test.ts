@@ -392,6 +392,51 @@ describe('settings', () => {
       expect(isSettingsModalOpen()).toBe(false)
     })
 
+    it('removes keydown listener when modal is closed via close button', async () => {
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+
+      await showSettingsModal()
+
+      const closeBtn = document.querySelector(
+        '[data-action="close-settings"]',
+      ) as HTMLElement
+      closeBtn.click()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function),
+      )
+    })
+
+    it('removes keydown listener when modal is closed via backdrop click', async () => {
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+
+      await showSettingsModal()
+
+      const overlay = document.querySelector(
+        '.settings-modal-overlay',
+      ) as HTMLElement
+      overlay.click()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function),
+      )
+    })
+
+    it('resets settingsModalOpen even if modal element is missing', async () => {
+      await showSettingsModal()
+      expect(isSettingsModalOpen()).toBe(true)
+
+      // Manually remove the modal element (simulating edge case)
+      const modal = document.querySelector('.settings-modal-overlay')
+      modal?.remove()
+
+      // closeSettingsModal should still reset the state
+      closeSettingsModal()
+      expect(isSettingsModalOpen()).toBe(false)
+    })
+
     it('marks current setting as active', async () => {
       saveSettings({ theme: 'dark' })
       await showSettingsModal()
@@ -503,6 +548,23 @@ describe('settings', () => {
 
       const statsEl = document.querySelector('.cache-stats')
       expect(statsEl?.textContent).toBe('Unable to load cache stats')
+    })
+
+    it('guards against NaN values in cache stats', async () => {
+      mockGetCacheStats.mockResolvedValue({
+        itemCount: Number.NaN,
+        storyIdsCount: 5,
+        userCount: Number.POSITIVE_INFINITY,
+        itemTtlSecs: 300,
+        storyIdsTtlSecs: 60,
+        userTtlSecs: 600,
+      })
+
+      await showSettingsModal()
+
+      const statsEl = document.querySelector('.cache-stats')
+      // NaN and Infinity should be treated as 0, so only storyIdsCount (5) is counted
+      expect(statsEl?.textContent).toBe('5 items cached')
     })
 
     it('modal contains clear cache button', async () => {

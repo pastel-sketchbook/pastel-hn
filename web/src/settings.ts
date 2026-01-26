@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS: Settings = {
 let currentSettings: Settings = { ...DEFAULT_SETTINGS }
 let settingsModalOpen = false
 let focusTrap: FocusTrapInstance | null = null
+let escapeHandler: ((e: KeyboardEvent) => void) | null = null
 
 // SVG icons for settings
 const settingsIcons = {
@@ -79,6 +80,23 @@ export function saveSettings(settings: Partial<Settings>): void {
   currentSettings = { ...currentSettings, ...settings }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSettings))
   applySettings()
+}
+
+/**
+ * Update a single setting with type safety
+ */
+function updateSetting<K extends keyof Settings>(
+  key: K,
+  value: Settings[K],
+): void {
+  saveSettings({ [key]: value } as Pick<Settings, K>)
+}
+
+/**
+ * Type guard to check if a string is a valid Settings key
+ */
+function isValidSettingKey(key: string): key is keyof Settings {
+  return ['theme', 'fontSize', 'density', 'defaultFeed'].includes(key)
 }
 
 /**
@@ -135,7 +153,7 @@ export async function showSettingsModal(): Promise<void> {
   if (settingsModalOpen) return
   settingsModalOpen = true
 
-  // Fetch cache stats in parallel while building the modal
+  // Fetch cache stats before rendering the modal
   let cacheStats: CacheStats | null = null
   try {
     cacheStats = await getCacheStats()
@@ -316,10 +334,10 @@ export async function showSettingsModal(): Promise<void> {
     // Setting option click
     const optionBtn = target.closest('[data-setting]') as HTMLElement
     if (optionBtn) {
-      const setting = optionBtn.dataset.setting as keyof Settings
+      const setting = optionBtn.dataset.setting
       const value = optionBtn.dataset.value
 
-      if (setting && value) {
+      if (setting && value && isValidSettingKey(setting)) {
         // Update active state
         const section = optionBtn.closest('.settings-options')
         if (section) {
@@ -329,8 +347,8 @@ export async function showSettingsModal(): Promise<void> {
           optionBtn.classList.add('active')
         }
 
-        // Save setting
-        saveSettings({ [setting]: value })
+        // Save setting with type-safe helper
+        updateSetting(setting, value as Settings[typeof setting])
       }
     }
 
@@ -358,30 +376,38 @@ export async function showSettingsModal(): Promise<void> {
   })
 
   // Handle escape key
-  const handleEscape = (e: KeyboardEvent) => {
+  escapeHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       closeSettingsModal()
-      document.removeEventListener('keydown', handleEscape)
     }
   }
-  document.addEventListener('keydown', handleEscape)
+  document.addEventListener('keydown', escapeHandler)
 }
 
 /**
  * Close the settings modal
  */
 export function closeSettingsModal(): void {
-  // Deactivate focus trap first
+  // Remove escape key listener
+  if (escapeHandler) {
+    document.removeEventListener('keydown', escapeHandler)
+    escapeHandler = null
+  }
+
+  // Deactivate focus trap
   if (focusTrap) {
     focusTrap.deactivate()
     focusTrap = null
   }
 
+  // Remove modal from DOM
   const modal = document.querySelector('.settings-modal-overlay')
   if (modal) {
     modal.remove()
-    settingsModalOpen = false
   }
+
+  // Always reset state
+  settingsModalOpen = false
 }
 
 /**
@@ -428,7 +454,14 @@ function renderCacheStats(stats: CacheStats | null): string {
     return `<span class="cache-stats">Unable to load cache stats</span>`
   }
 
-  const totalItems = stats.itemCount + stats.storyIdsCount + stats.userCount
+  // Guard against invalid values (NaN, negative, non-finite)
+  const itemCount = Number.isFinite(stats.itemCount) ? stats.itemCount : 0
+  const storyIdsCount = Number.isFinite(stats.storyIdsCount)
+    ? stats.storyIdsCount
+    : 0
+  const userCount = Number.isFinite(stats.userCount) ? stats.userCount : 0
+
+  const totalItems = itemCount + storyIdsCount + userCount
   return `<span class="cache-stats">${totalItems} items cached</span>`
 }
 
