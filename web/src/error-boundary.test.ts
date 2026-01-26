@@ -322,13 +322,7 @@ describe('error-boundary', () => {
     it('has accessible attributes', () => {
       initErrorBoundary()
 
-      window.onerror?.(
-        'SyntaxError: test',
-        'main.js',
-        1,
-        1,
-        new Error('test'),
-      )
+      window.onerror?.('SyntaxError: test', 'main.js', 1, 1, new Error('test'))
 
       const overlay = document.getElementById('error-boundary-overlay')
       expect(overlay?.getAttribute('role')).toBe('alertdialog')
