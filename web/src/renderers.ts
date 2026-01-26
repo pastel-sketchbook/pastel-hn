@@ -5,6 +5,7 @@
 
 import { extractDomain, formatTimeAgo } from './api'
 import { icons } from './icons'
+import type { TrendingLevel } from './storage'
 import type { CommentWithChildren, HNItem } from './types'
 import {
   calculateReadingTime,
@@ -21,12 +22,14 @@ import {
  * @param rank - Display rank number
  * @param isRead - Whether the story has been read
  * @param newComments - Number of new comments since last visit (0 = none or never visited)
+ * @param trendingLevel - Trending indicator level ('none', 'rising', or 'hot')
  */
 export function renderStory(
   story: HNItem,
   rank: number,
   isRead: boolean,
   newComments = 0,
+  trendingLevel: TrendingLevel = 'none',
 ): string {
   const domain = extractDomain(story.url)
   const timeAgo = formatTimeAgo(story.time)
@@ -49,6 +52,12 @@ export function renderStory(
       ? `<span class="new-comments-badge">+${newComments} new</span>`
       : ''
 
+  // Trending indicator HTML
+  const trendingIndicator =
+    trendingLevel !== 'none'
+      ? `<span class="story-trending" data-level="${trendingLevel}" title="${trendingLevel === 'hot' ? 'Hot - rapidly gaining points' : 'Rising - gaining points'}">${trendingLevel === 'hot' ? icons.flame : icons.trendingUp}</span>`
+      : ''
+
   return `
     <article class="story${readClass}" data-id="${story.id}"${typeAttr} aria-label="${readStatus}${escapeHtml(story.title || 'Untitled')} - ${story.score} points, ${story.descendants || 0} comments">
       <div class="story-rank" aria-hidden="true">${rank}</div>
@@ -63,7 +72,7 @@ export function renderStory(
           ${domain ? `<span class="story-domain" aria-label="from ${domain}">(${domain})</span>` : ''}
         </h2>
         <div class="story-meta" aria-hidden="true">
-          <span class="story-score"${heatAttr}>${icons.points}${story.score} points</span>
+          <span class="story-score"${heatAttr}>${icons.points}${story.score} points${trendingIndicator}</span>
           <span class="meta-sep"></span>
           <span class="story-by">${icons.user}<a href="#user/${encodeURIComponent(story.by || 'unknown')}" class="user-link">${escapeHtml(story.by || 'unknown')}</a></span>
           <span class="meta-sep"></span>

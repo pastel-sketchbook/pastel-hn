@@ -1015,6 +1015,88 @@ main {
   }
 }
 
+/* ===== TRENDING INDICATORS ===== */
+/* Line-only icons with glow effect for trending stories */
+.story-trending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.story-trending svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Rising indicator - orange glow */
+.story-trending[data-level="rising"] svg {
+  stroke: var(--orange);
+  filter: drop-shadow(0 0 4px var(--orange-glow));
+  animation: trending-pulse 2s ease-in-out infinite;
+}
+
+/* Hot indicator - intense orange/red glow with stronger animation */
+.story-trending[data-level="hot"] svg {
+  stroke: var(--orange);
+  filter: drop-shadow(0 0 6px var(--orange-glow))
+    drop-shadow(0 0 12px rgba(255, 100, 50, 0.4));
+  animation: trending-flame 1.5s ease-in-out infinite;
+}
+
+@keyframes trending-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px var(--orange-glow));
+    transform: translateY(0);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px var(--orange-glow));
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes trending-flame {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px var(--orange-glow))
+      drop-shadow(0 0 12px rgba(255, 100, 50, 0.4));
+    transform: scale(1);
+  }
+
+  25% {
+    filter: drop-shadow(0 0 10px var(--orange-glow))
+      drop-shadow(0 0 18px rgba(255, 100, 50, 0.5));
+    transform: scale(1.1);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px var(--orange-glow))
+      drop-shadow(0 0 14px rgba(255, 100, 50, 0.45));
+    transform: scale(1.05);
+  }
+
+  75% {
+    filter: drop-shadow(0 0 12px var(--orange-glow))
+      drop-shadow(0 0 20px rgba(255, 100, 50, 0.55));
+    transform: scale(1.12);
+  }
+}
+
+/* Disable trending animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .story-trending[data-level="rising"] svg,
+  .story-trending[data-level="hot"] svg {
+    animation: none;
+  }
+}
+
 /* ===== LOADING STATE ===== */
 .loading {
   display: flex;

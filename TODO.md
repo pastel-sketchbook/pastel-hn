@@ -198,7 +198,7 @@
 ### 4.2 Reading Experience
 - [x] Reading position memory (per story)
 - [x] Scroll position preservation on back
-- [ ] "New comments" indicator on revisit
+- [x] "New comments" indicator on revisit
 - [x] Mark stories as read (visual indicator)
 - [x] Reading time estimates (displayed for text posts and articles)
 - [x] Distraction-free reading mode (Zen mode with 'z' key)
@@ -206,9 +206,8 @@
 
 ### 4.3 Smart Features
 - [x] Intelligent prefetching (next page, hovered stories)
-- [ ] Comment count change detection
-- [ ] Story score trending indicator
-- [ ] "Hot" story detection algorithm
+- [x] Comment count change detection
+- [x] Story score trending indicator (rising/hot based on points/hour)
 - [ ] Duplicate story detection
 - [x] Rate limit detection and retry UI
 

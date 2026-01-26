@@ -4,16 +4,22 @@ import {
   clearCommentCounts,
   clearFeedScrollPosition,
   clearStoryScrollPosition,
+  clearStoryScores,
   getCommentCountsMap,
   getFeedScrollPosition,
   getNewCommentsCount,
   getReadStoryIds,
+  getScoreGain,
   getStoryCommentCount,
+  getStoryScore,
+  getStoryScoresMap,
   getStoryScrollPosition,
+  getStoryTrendingLevel,
   isStoryRead,
   markStoryAsRead,
   saveFeedScrollPosition,
   saveStoryCommentCount,
+  saveStoryScore,
   saveStoryScrollPosition,
 } from './storage'
 
@@ -322,6 +328,172 @@ describe('storage', () => {
 
       // Should not throw
       expect(() => saveStoryCommentCount(12345, 50)).not.toThrow()
+    })
+  })
+
+  describe('story score tracking', () => {
+    it('saves and retrieves story score', () => {
+      saveStoryScore(12345, 100)
+      const entry = getStoryScore(12345)
+
+      expect(entry).not.toBeNull()
+      expect(entry?.score).toBe(100)
+      expect(entry?.timestamp).toBeCloseTo(Date.now(), -2)
+    })
+
+    it('returns null for story never tracked', () => {
+      expect(getStoryScore(99999)).toBeNull()
+    })
+
+    it('saves scores for multiple stories independently', () => {
+      saveStoryScore(1, 10)
+      saveStoryScore(2, 20)
+      saveStoryScore(3, 30)
+
+      expect(getStoryScore(1)?.score).toBe(10)
+      expect(getStoryScore(2)?.score).toBe(20)
+      expect(getStoryScore(3)?.score).toBe(30)
+    })
+
+    it('does not overwrite recent entry (within 1 hour)', () => {
+      saveStoryScore(12345, 100)
+      saveStoryScore(12345, 200) // Should be ignored
+
+      expect(getStoryScore(12345)?.score).toBe(100)
+    })
+
+    it('overwrites old entry (older than 1 hour)', () => {
+      // Manually set an old entry
+      const oldTimestamp = Date.now() - 2 * 60 * 60 * 1000 // 2 hours ago
+      localStorage.setItem(
+        'pastel-hn-story-scores',
+        JSON.stringify({ 12345: { score: 100, timestamp: oldTimestamp } }),
+      )
+
+      saveStoryScore(12345, 200)
+
+      expect(getStoryScore(12345)?.score).toBe(200)
+    })
+
+    it('getScoreGain returns 0 for untracked story', () => {
+      expect(getScoreGain(99999, 100)).toBe(0)
+    })
+
+    it('getScoreGain returns difference for tracked story', () => {
+      saveStoryScore(12345, 50)
+
+      expect(getScoreGain(12345, 150)).toBe(100)
+    })
+
+    it('getScoreGain returns 0 when current score is lower', () => {
+      saveStoryScore(12345, 100)
+
+      expect(getScoreGain(12345, 50)).toBe(0)
+    })
+
+    it('getStoryTrendingLevel returns none for untracked story', () => {
+      expect(getStoryTrendingLevel(99999, 100)).toBe('none')
+    })
+
+    it('getStoryTrendingLevel returns none for insufficient points gain', () => {
+      saveStoryScore(12345, 100)
+
+      // Only 5 points gained, below MIN_TRENDING_POINTS (10)
+      expect(getStoryTrendingLevel(12345, 105)).toBe('none')
+    })
+
+    it('getStoryTrendingLevel returns rising for moderate growth', () => {
+      // Set score from 1 hour ago
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      localStorage.setItem(
+        'pastel-hn-story-scores',
+        JSON.stringify({ 12345: { score: 100, timestamp: oneHourAgo } }),
+      )
+
+      // 40 points in 1 hour = 40 points/hour (rising threshold is 30)
+      expect(getStoryTrendingLevel(12345, 140)).toBe('rising')
+    })
+
+    it('getStoryTrendingLevel returns hot for rapid growth', () => {
+      // Set score from 1 hour ago
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      localStorage.setItem(
+        'pastel-hn-story-scores',
+        JSON.stringify({ 12345: { score: 100, timestamp: oneHourAgo } }),
+      )
+
+      // 80 points in 1 hour = 80 points/hour (hot threshold is 60)
+      expect(getStoryTrendingLevel(12345, 180)).toBe('hot')
+    })
+
+    it('getStoryTrendingLevel handles very recent entries correctly', () => {
+      // Just saved, time is effectively 0
+      saveStoryScore(12345, 100)
+
+      // Even with big gain, uses minimum time of 0.1 hours
+      // 50 points / 0.1 hours = 500 points/hour (hot)
+      expect(getStoryTrendingLevel(12345, 150)).toBe('hot')
+    })
+
+    it('getStoryScoresMap returns all tracked scores as Map', () => {
+      saveStoryScore(1, 10)
+      saveStoryScore(2, 20)
+      saveStoryScore(3, 30)
+
+      const map = getStoryScoresMap()
+
+      expect(map).toBeInstanceOf(Map)
+      expect(map.get(1)?.score).toBe(10)
+      expect(map.get(2)?.score).toBe(20)
+      expect(map.get(3)?.score).toBe(30)
+      expect(map.get(4)).toBeUndefined()
+    })
+
+    it('clearStoryScores removes all score data', () => {
+      saveStoryScore(1, 10)
+      saveStoryScore(2, 20)
+
+      clearStoryScores()
+
+      expect(getStoryScore(1)).toBeNull()
+      expect(getStoryScore(2)).toBeNull()
+      expect(getStoryScoresMap().size).toBe(0)
+    })
+
+    it('prunes old entries when exceeding max capacity', () => {
+      // Need to set old timestamps so new entries can overwrite
+      const oldTimestamp = Date.now() - 2 * 60 * 60 * 1000
+      const oldData: Record<number, { score: number; timestamp: number }> = {}
+      for (let i = 0; i < 501; i++) {
+        oldData[i] = { score: i * 10, timestamp: oldTimestamp + i }
+      }
+      localStorage.setItem('pastel-hn-story-scores', JSON.stringify(oldData))
+
+      // Save a new one to trigger pruning
+      saveStoryScore(9999, 100)
+
+      const data = JSON.parse(
+        localStorage.getItem('pastel-hn-story-scores') || '{}',
+      )
+      expect(Object.keys(data).length).toBeLessThanOrEqual(500)
+    })
+
+    it('handles corrupted localStorage data gracefully', () => {
+      localStorage.setItem('pastel-hn-story-scores', 'not valid json')
+
+      expect(getStoryScore(123)).toBeNull()
+      expect(getStoryScoresMap()).toEqual(new Map())
+      expect(getStoryTrendingLevel(123, 100)).toBe('none')
+    })
+
+    it('handles localStorage errors gracefully on save', () => {
+      const mockSetItem = vi.spyOn(Storage.prototype, 'setItem')
+      mockSetItem.mockImplementation(() => {
+        throw new Error('QuotaExceededError')
+      })
+
+      // Should not throw
+      expect(() => saveStoryScore(12345, 100)).not.toThrow()
     })
   })
 })

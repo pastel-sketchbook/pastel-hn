@@ -12,6 +12,7 @@ const FEED_SCROLL_KEY = `${STORAGE_PREFIX}-feed-scroll`
 const STORY_SCROLL_KEY = `${STORAGE_PREFIX}-story-scroll`
 const READ_STORIES_KEY = `${STORAGE_PREFIX}-read-stories`
 const COMMENT_COUNTS_KEY = `${STORAGE_PREFIX}-comment-counts`
+const STORY_SCORES_KEY = `${STORAGE_PREFIX}-story-scores`
 
 // Max number of read stories to track (prevents localStorage bloat)
 const MAX_READ_STORIES = 500
@@ -19,6 +20,12 @@ const MAX_READ_STORIES = 500
 const MAX_STORY_POSITIONS = 100
 // Max number of comment counts to track
 const MAX_COMMENT_COUNTS = 500
+// Max number of story scores to track
+const MAX_STORY_SCORES = 500
+// Threshold for "trending" - points gained per hour
+const TRENDING_POINTS_PER_HOUR = 30
+// Minimum points gained to show any trending indicator
+const MIN_TRENDING_POINTS = 10
 
 /**
  * Save scroll position for a feed
@@ -309,6 +316,136 @@ function getCommentCountsData(): Record<number, CommentCountEntry> {
 export function clearCommentCounts(): void {
   try {
     localStorage.removeItem(COMMENT_COUNTS_KEY)
+  } catch {
+    // Ignore
+  }
+}
+
+// ============================================================================
+// Story Score Tracking (for "trending" indicator)
+// ============================================================================
+
+interface StoryScoreEntry {
+  score: number
+  timestamp: number
+}
+
+export type TrendingLevel = 'none' | 'rising' | 'hot'
+
+/**
+ * Save the score for a story when first seen in the feed
+ * Only saves if we don't already have a recent entry for this story
+ */
+export function saveStoryScore(storyId: number, score: number): void {
+  try {
+    const data = getStoryScoresData()
+
+    // Only save if we don't have an entry or entry is old (>1 hour)
+    const existing = data[storyId]
+    const oneHourAgo = Date.now() - 60 * 60 * 1000
+    if (!existing || existing.timestamp < oneHourAgo) {
+      data[storyId] = { score, timestamp: Date.now() }
+
+      // Prune old entries if we have too many
+      const entries = Object.entries(data)
+      if (entries.length > MAX_STORY_SCORES) {
+        entries.sort((a, b) => b[1].timestamp - a[1].timestamp)
+        const pruned = Object.fromEntries(entries.slice(0, MAX_STORY_SCORES))
+        localStorage.setItem(STORY_SCORES_KEY, JSON.stringify(pruned))
+      } else {
+        localStorage.setItem(STORY_SCORES_KEY, JSON.stringify(data))
+      }
+    }
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Get the last recorded score for a story
+ * Returns null if the story has never been tracked
+ */
+export function getStoryScore(storyId: number): StoryScoreEntry | null {
+  const data = getStoryScoresData()
+  return data[storyId] ?? null
+}
+
+/**
+ * Determine if a story is trending based on score change over time
+ * Returns 'hot' for rapidly rising stories, 'rising' for moderately trending
+ */
+export function getStoryTrendingLevel(
+  storyId: number,
+  currentScore: number,
+): TrendingLevel {
+  const entry = getStoryScore(storyId)
+  if (!entry) {
+    return 'none'
+  }
+
+  const pointsGained = currentScore - entry.score
+  if (pointsGained < MIN_TRENDING_POINTS) {
+    return 'none'
+  }
+
+  // Calculate hours elapsed (minimum 0.1 to avoid division issues)
+  const hoursElapsed = Math.max(
+    0.1,
+    (Date.now() - entry.timestamp) / (60 * 60 * 1000),
+  )
+  const pointsPerHour = pointsGained / hoursElapsed
+
+  if (pointsPerHour >= TRENDING_POINTS_PER_HOUR * 2) {
+    return 'hot' // Very rapid growth (60+ points/hour)
+  } else if (pointsPerHour >= TRENDING_POINTS_PER_HOUR) {
+    return 'rising' // Moderate growth (30+ points/hour)
+  }
+
+  return 'none'
+}
+
+/**
+ * Get points gained since last seen for a story
+ * Returns 0 if story hasn't been tracked or no gain
+ */
+export function getScoreGain(storyId: number, currentScore: number): number {
+  const entry = getStoryScore(storyId)
+  if (!entry) {
+    return 0
+  }
+  return Math.max(0, currentScore - entry.score)
+}
+
+/**
+ * Get all tracked story scores as a map for efficient lookup
+ */
+export function getStoryScoresMap(): Map<number, StoryScoreEntry> {
+  const data = getStoryScoresData()
+  const map = new Map<number, StoryScoreEntry>()
+  for (const [id, entry] of Object.entries(data)) {
+    map.set(Number(id), entry)
+  }
+  return map
+}
+
+function getStoryScoresData(): Record<number, StoryScoreEntry> {
+  try {
+    const stored = localStorage.getItem(STORY_SCORES_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return {}
+}
+
+/**
+ * Clear all story score data
+ */
+export function clearStoryScores(): void {
+  try {
+    localStorage.removeItem(STORY_SCORES_KEY)
   } catch {
     // Ignore
   }

@@ -122,6 +122,44 @@ describe('renderStory', () => {
 
     expect(result).toContain('+999 new')
   })
+
+  it('renders rising trending indicator', () => {
+    const result = renderStory(baseStory, 1, false, 0, 'rising')
+
+    expect(result).toContain('story-trending')
+    expect(result).toContain('data-level="rising"')
+    expect(result).toContain('Rising - gaining points')
+  })
+
+  it('renders hot trending indicator', () => {
+    const result = renderStory(baseStory, 1, false, 0, 'hot')
+
+    expect(result).toContain('story-trending')
+    expect(result).toContain('data-level="hot"')
+    expect(result).toContain('Hot - rapidly gaining points')
+  })
+
+  it('does not render trending indicator when level is none', () => {
+    const result = renderStory(baseStory, 1, false, 0, 'none')
+
+    expect(result).not.toContain('story-trending')
+    expect(result).not.toContain('data-level=')
+  })
+
+  it('does not render trending indicator when not provided', () => {
+    const result = renderStory(baseStory, 1, false, 0)
+
+    expect(result).not.toContain('story-trending')
+  })
+
+  it('renders both trending indicator and new comments badge', () => {
+    const result = renderStory(baseStory, 1, false, 25, 'hot')
+
+    expect(result).toContain('story-trending')
+    expect(result).toContain('data-level="hot"')
+    expect(result).toContain('new-comments-badge')
+    expect(result).toContain('+25 new')
+  })
 })
 
 describe('renderComment', () => {

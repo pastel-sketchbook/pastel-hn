@@ -71,9 +71,11 @@ import {
   getNewCommentsCount,
   getReadStoryIds,
   getStoryScrollPosition,
+  getStoryTrendingLevel,
   markStoryAsRead,
   saveFeedScrollPosition,
   saveStoryCommentCount,
+  saveStoryScore,
   saveStoryScrollPosition,
 } from './storage'
 import { toggleTheme } from './theme'
@@ -316,6 +318,11 @@ function renderStoriesStandard(
   container: HTMLElement,
   stories: HNItem[],
 ): void {
+  // Save story scores for trending detection (only saves if not recently seen)
+  for (const story of stories) {
+    saveStoryScore(story.id, story.score || 0)
+  }
+
   container.innerHTML =
     stories
       .map((story, idx) =>
@@ -324,6 +331,7 @@ function renderStoriesStandard(
           idx + 1,
           readStoryIds.has(story.id),
           getNewCommentsCount(story.id, story.descendants || 0),
+          getStoryTrendingLevel(story.id, story.score || 0),
         ),
       )
       .join('') + renderLoadMoreIndicator(hasMoreStories)
@@ -384,6 +392,7 @@ function initVirtualScroll(container: HTMLElement): void {
         index + 1,
         readStoryIds.has(story.id),
         getNewCommentsCount(story.id, story.descendants || 0),
+        getStoryTrendingLevel(story.id, story.score || 0),
       ),
     onNearEnd: () => {
       if (hasMoreStories && !isLoadingMore) {
@@ -476,6 +485,11 @@ async function loadMoreStories(): Promise<void> {
       const loadMoreEl = container.querySelector('.load-more-indicator')
       if (loadMoreEl) loadMoreEl.remove()
 
+      // Save story scores for trending detection
+      for (const story of stories) {
+        saveStoryScore(story.id, story.score || 0)
+      }
+
       // Append new stories
       const startRank = currentStories.length + 1
       const newStoriesHtml = stories
@@ -485,6 +499,7 @@ async function loadMoreStories(): Promise<void> {
             startRank + idx,
             readStoryIds.has(story.id),
             getNewCommentsCount(story.id, story.descendants || 0),
+            getStoryTrendingLevel(story.id, story.score || 0),
           ),
         )
         .join('')
