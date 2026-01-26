@@ -1216,6 +1216,41 @@ main {
   }
 }
 
+/* ===== DUPLICATE STORY INDICATOR ===== */
+/* Shows when a URL has been submitted multiple times */
+.story-duplicate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.story-duplicate:hover {
+  opacity: 1;
+}
+
+.story-duplicate svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .story-duplicate {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .story-duplicate svg {
+  stroke: var(--text-secondary);
+}
+
 /* ===== LOADING STATE ===== */
 .loading {
   display: flex;

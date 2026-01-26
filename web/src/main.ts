@@ -32,6 +32,7 @@ import {
   setupBackToTop,
   updateBackToTopVisibility,
 } from './back-to-top'
+import { type DuplicateInfo, findDuplicates } from './duplicates'
 import { initErrorBoundary } from './error-boundary'
 import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
 import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
@@ -118,6 +119,7 @@ let currentStoryAuthor: string | null = null // Track OP for comment highlightin
 let currentStoryId: number | null = null // Track current story for scroll position
 let currentUserId: string | null = null // Track current user profile
 let readStoryIds: Set<number> = new Set() // Cache of read stories
+let currentDuplicates: Map<number, DuplicateInfo> = new Map() // Track duplicate stories in current feed
 let commentCountsMap: Map<number, number> = new Map() // Cache of last seen comment counts
 let currentStoryCommentCount: number | null = null // Track comment count of current story
 let currentStoryData: HNItem | null = null // Track current story for bookmarking
@@ -294,6 +296,9 @@ async function renderStories(
     currentOffset = stories.length
     hasMoreStories = hasMore
 
+    // Compute duplicate stories for the current feed
+    currentDuplicates = findDuplicates(stories)
+
     // Decide whether to use virtual scroll based on expected list size
     // For now, always use standard rendering and let virtual scroll kick in
     // when we exceed the threshold
@@ -352,15 +357,17 @@ function renderStoriesStandard(
 
   container.innerHTML =
     stories
-      .map((story, idx) =>
-        renderStory(
+      .map((story, idx) => {
+        const duplicateInfo = currentDuplicates.get(story.id)
+        return renderStory(
           story,
           idx + 1,
           readStoryIds.has(story.id),
           getNewCommentsCount(story.id, story.descendants || 0),
           getStoryTrendingLevel(story.id, story.score || 0),
-        ),
-      )
+          duplicateInfo?.totalSubmissions ?? 0,
+        )
+      })
       .join('') + renderLoadMoreIndicator(hasMoreStories)
 
   // Apply stagger animation to stories
@@ -401,6 +408,7 @@ function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
   }
 
   // Render bookmarked stories (no ranking numbers, no trending since data is cached)
+  // Note: No duplicate detection for bookmarks (different context/purpose)
   container.innerHTML = stories
     .map((story, idx) =>
       renderStory(
@@ -409,6 +417,7 @@ function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
         readStoryIds.has(story.id),
         0, // No new comments tracking for bookmarked stories (cached data)
         'none', // No trending for bookmarked stories
+        0, // No duplicate tracking for bookmarked stories
       ),
     )
     .join('')
@@ -460,14 +469,17 @@ function initVirtualScroll(container: HTMLElement): void {
     container,
     itemHeight: STORY_ITEM_HEIGHT,
     bufferSize: 10,
-    renderItem: (story, index) =>
-      renderStory(
+    renderItem: (story, index) => {
+      const duplicateInfo = currentDuplicates.get(story.id)
+      return renderStory(
         story,
         index + 1,
         readStoryIds.has(story.id),
         getNewCommentsCount(story.id, story.descendants || 0),
         getStoryTrendingLevel(story.id, story.score || 0),
-      ),
+        duplicateInfo?.totalSubmissions ?? 0,
+      )
+    },
     onNearEnd: () => {
       if (hasMoreStories && !isLoadingMore) {
         loadMoreStoriesVirtual()
@@ -497,6 +509,9 @@ async function loadMoreStoriesVirtual(): Promise<void> {
       currentStories = [...currentStories, ...stories]
       currentOffset += stories.length
       hasMoreStories = hasMore
+
+      // Recompute duplicates with new stories
+      currentDuplicates = findDuplicates(currentStories)
 
       virtualScroll.appendItems(stories)
       virtualScroll.resetNearEndTrigger()
@@ -564,18 +579,24 @@ async function loadMoreStories(): Promise<void> {
         saveStoryScore(story.id, story.score || 0)
       }
 
+      // Update stories and recompute duplicates
+      const allStories = [...currentStories, ...stories]
+      currentDuplicates = findDuplicates(allStories)
+
       // Append new stories
       const startRank = currentStories.length + 1
       const newStoriesHtml = stories
-        .map((story, idx) =>
-          renderStory(
+        .map((story, idx) => {
+          const duplicateInfo = currentDuplicates.get(story.id)
+          return renderStory(
             story,
             startRank + idx,
             readStoryIds.has(story.id),
             getNewCommentsCount(story.id, story.descendants || 0),
             getStoryTrendingLevel(story.id, story.score || 0),
-          ),
-        )
+            duplicateInfo?.totalSubmissions ?? 0,
+          )
+        })
         .join('')
 
       container.insertAdjacentHTML('beforeend', newStoriesHtml)

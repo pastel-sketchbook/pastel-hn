@@ -160,6 +160,33 @@ describe('renderStory', () => {
     expect(result).toContain('new-comments-badge')
     expect(result).toContain('+25 new')
   })
+
+  it('renders duplicate indicator when duplicateCount > 1', () => {
+    const result = renderStory(baseStory, 1, false, 0, 'none', 3)
+
+    expect(result).toContain('story-duplicate')
+    expect(result).toContain('3 submissions')
+  })
+
+  it('does not render duplicate indicator when duplicateCount is 0', () => {
+    const result = renderStory(baseStory, 1, false, 0, 'none', 0)
+
+    expect(result).not.toContain('story-duplicate')
+  })
+
+  it('does not render duplicate indicator when not provided', () => {
+    const result = renderStory(baseStory, 1, false, 0, 'none')
+
+    expect(result).not.toContain('story-duplicate')
+  })
+
+  it('renders duplicate indicator with singular "submission" for 2', () => {
+    // 2 means this story + 1 other = "2 submissions" (plural)
+    const result = renderStory(baseStory, 1, false, 0, 'none', 2)
+
+    expect(result).toContain('story-duplicate')
+    expect(result).toContain('2 submissions')
+  })
 })
 
 describe('renderComment', () => {

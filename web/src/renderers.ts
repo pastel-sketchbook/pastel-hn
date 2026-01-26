@@ -23,6 +23,7 @@ import {
  * @param isRead - Whether the story has been read
  * @param newComments - Number of new comments since last visit (0 = none or never visited)
  * @param trendingLevel - Trending indicator level ('none', 'rising', or 'hot')
+ * @param duplicateCount - Total number of submissions of this URL (0 = not a duplicate, >1 = duplicate)
  */
 export function renderStory(
   story: HNItem,
@@ -30,6 +31,7 @@ export function renderStory(
   isRead: boolean,
   newComments = 0,
   trendingLevel: TrendingLevel = 'none',
+  duplicateCount = 0,
 ): string {
   const domain = extractDomain(story.url)
   const timeAgo = formatTimeAgo(story.time)
@@ -58,6 +60,12 @@ export function renderStory(
       ? `<span class="story-trending" data-level="${trendingLevel}" title="${trendingLevel === 'hot' ? 'Hot - rapidly gaining points' : 'Rising - gaining points'}">${trendingLevel === 'hot' ? icons.flame : icons.trendingUp}</span>`
       : ''
 
+  // Duplicate indicator HTML
+  const duplicateIndicator =
+    duplicateCount > 1
+      ? `<span class="meta-sep"></span><span class="story-duplicate" title="This URL has been submitted ${duplicateCount} times">${icons.duplicate}${duplicateCount} submissions</span>`
+      : ''
+
   return `
     <article class="story${readClass}" data-id="${story.id}"${typeAttr} aria-label="${readStatus}${escapeHtml(story.title || 'Untitled')} - ${story.score} points, ${story.descendants || 0} comments">
       <div class="story-rank" aria-hidden="true">${rank}</div>
@@ -81,7 +89,7 @@ export function renderStory(
           <span class="story-comments">
             <a href="#item/${story.id}" aria-label="${story.descendants || 0} comments">${icons.comment}${story.descendants || 0} comments</a>${newCommentsBadge}
           </span>
-          ${readingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${readingTime}</span>` : ''}
+          ${readingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${readingTime}</span>` : ''}${duplicateIndicator}
         </div>
       </div>
     </article>
