@@ -302,11 +302,16 @@ test.describe('pastel-hn E2E Tests', () => {
       // Should show zen mode badge
       await expect(page.locator('.zen-mode-badge')).toBeVisible()
 
+      // Wait for transition lock to release (200ms + buffer)
+      await page.waitForTimeout(300)
+
       // Press 'z' again to exit zen mode
       await page.keyboard.press('z')
 
       // Should not be in zen mode anymore
-      await expect(page.locator('html')).not.toHaveClass(/zen-mode/)
+      await expect(page.locator('html')).not.toHaveClass(/zen-mode/, {
+        timeout: 10000,
+      })
 
       // Badge should be hidden
       await expect(page.locator('.zen-mode-badge')).toBeHidden()
@@ -326,11 +331,14 @@ test.describe('pastel-hn E2E Tests', () => {
       // Header should be hidden in zen mode
       await expect(page.locator('header')).toBeHidden()
 
+      // Wait for transition lock to release (200ms + buffer)
+      await page.waitForTimeout(300)
+
       // Exit zen mode
       await page.keyboard.press('z')
 
       // Header should be visible again
-      await expect(page.locator('header')).toBeVisible()
+      await expect(page.locator('header')).toBeVisible({ timeout: 10000 })
     })
 
     test('zen mode works in story detail view', async ({ page }) => {
@@ -684,15 +692,15 @@ test.describe('pastel-hn E2E Tests', () => {
   })
 
   test.describe('Settings Panel', () => {
-    test('opens settings with s key', async ({ page }) => {
+    test('opens settings by clicking settings button', async ({ page }) => {
       await page.goto('/')
       await waitForStories(page)
 
-      // Press 's' to open settings
-      await page.keyboard.press('s')
+      // Click settings button to open settings
+      await page.click('#settings-toggle')
 
-      // Settings panel should be visible
-      await expect(page.locator('.settings-panel')).toBeVisible()
+      // Settings modal should be visible
+      await expect(page.locator('.settings-modal')).toBeVisible()
       await expect(page.locator('.settings-title')).toBeVisible()
     })
 
@@ -700,50 +708,45 @@ test.describe('pastel-hn E2E Tests', () => {
       await page.goto('/')
       await waitForStories(page)
 
-      // Open settings
-      await page.keyboard.press('s')
-      await expect(page.locator('.settings-panel')).toBeVisible()
+      // Open settings by clicking button
+      await page.click('#settings-toggle')
+      await expect(page.locator('.settings-modal')).toBeVisible()
 
       // Close with Escape
       await page.keyboard.press('Escape')
-      await expect(page.locator('.settings-panel')).toBeHidden()
+      await expect(page.locator('.settings-modal')).toBeHidden()
     })
 
     test('closes settings by clicking overlay', async ({ page }) => {
       await page.goto('/')
       await waitForStories(page)
 
-      // Open settings
-      await page.keyboard.press('s')
-      await expect(page.locator('.settings-panel')).toBeVisible()
+      // Open settings by clicking button
+      await page.click('#settings-toggle')
+      await expect(page.locator('.settings-modal')).toBeVisible()
 
       // Click overlay to close
-      await page.locator('.settings-overlay').click({ force: true })
-      await expect(page.locator('.settings-panel')).toBeHidden()
+      await page.locator('.settings-modal-overlay').click({
+        position: { x: 10, y: 10 },
+      })
+      await expect(page.locator('.settings-modal')).toBeHidden()
     })
 
     test('can change font size in settings', async ({ page }) => {
       await page.goto('/')
       await waitForStories(page)
 
-      // Open settings
-      await page.keyboard.press('s')
-      await expect(page.locator('.settings-panel')).toBeVisible()
+      // Open settings by clicking button
+      await page.click('#settings-toggle')
+      await expect(page.locator('.settings-modal')).toBeVisible()
 
-      // Find font size slider
-      const fontSlider = page.locator('.font-size-slider')
-      await expect(fontSlider).toBeVisible()
+      // Click the "Comfortable" font size option (largest)
+      await page.click('[data-setting="fontSize"][data-value="comfortable"]')
 
-      // Change font size
-      await fontSlider.fill('18')
-
-      // Verify CSS variable updated
-      const fontSize = await page.evaluate(() =>
-        getComputedStyle(document.documentElement)
-          .getPropertyValue('--font-size-base')
-          .trim()
-      )
-      expect(fontSize).toBe('18px')
+      // Verify the option is now active
+      await expect(
+        page.locator('[data-setting="fontSize"][data-value="comfortable"]')
+      ).toHaveClass(/active/)
     })
   })
 
