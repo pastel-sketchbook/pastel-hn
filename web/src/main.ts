@@ -1,6 +1,14 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { announce, escapeAttr } from './accessibility'
 import {
+  animateDetailEnter,
+  animateDetailExit,
+  animateListEnter,
+  animateStoriesAway,
+  applyStaggerAnimation,
+  TRANSITION_DURATION,
+} from './animations'
+import {
   clearStoryIdsCache,
   extractDomain,
   fetchArticleContent,
@@ -101,7 +109,6 @@ const STORIES_PER_PAGE = 30
 const SUBMISSIONS_PER_PAGE = 20
 
 // Animation duration constants
-const TRANSITION_DURATION = 350 // ms - matches CSS animation duration
 const FULLSCREEN_EXIT_DELAY_MS = 300 // ms - delay for macOS fullscreen exit reliability
 
 /**
@@ -241,77 +248,6 @@ function renderErrorWithRetry(
 }
 
 /**
- * Animate stories away from clicked story (contextual open animation)
- * - Stories above the clicked one slide up
- * - Stories below the clicked one slide down
- * - Clicked story fades out
- */
-async function animateStoriesAway(clickedStoryEl: HTMLElement): Promise<void> {
-  if (prefersReducedMotion()) return
-
-  const container = document.getElementById('stories')
-  if (!container) return
-
-  const allStories = Array.from(container.querySelectorAll('.story'))
-  const clickedIndex = allStories.indexOf(clickedStoryEl)
-
-  if (clickedIndex === -1) return
-
-  // Apply animations to each story based on position relative to clicked
-  allStories.forEach((story, index) => {
-    const el = story as HTMLElement
-    el.classList.add('view-transition')
-
-    if (index < clickedIndex) {
-      // Stories above: slide up
-      el.classList.add('view-exit-up')
-    } else if (index > clickedIndex) {
-      // Stories below: slide down
-      el.classList.add('view-exit-down')
-    } else {
-      // Clicked story: fade out in place
-      el.classList.add('view-anchor-fade')
-    }
-  })
-
-  // Wait for animation to complete
-  await new Promise((resolve) => setTimeout(resolve, TRANSITION_DURATION))
-}
-
-/**
- * Animate detail view entering
- */
-async function animateDetailEnter(container: HTMLElement): Promise<void> {
-  if (prefersReducedMotion()) return
-
-  container.classList.add('view-transition', 'view-enter-from-bottom')
-  await new Promise((resolve) => setTimeout(resolve, TRANSITION_DURATION))
-  container.classList.remove('view-transition', 'view-enter-from-bottom')
-}
-
-/**
- * Animate detail view exiting (going back to list)
- */
-async function animateDetailExit(container: HTMLElement): Promise<void> {
-  if (prefersReducedMotion()) return
-
-  container.classList.add('view-transition', 'view-fade-out')
-  await new Promise((resolve) => setTimeout(resolve, 200))
-  container.classList.remove('view-transition', 'view-fade-out')
-}
-
-/**
- * Animate list view entering (coming back from detail)
- */
-async function animateListEnter(container: HTMLElement): Promise<void> {
-  if (prefersReducedMotion()) return
-
-  container.classList.add('view-transition', 'view-enter-from-top')
-  await new Promise((resolve) => setTimeout(resolve, TRANSITION_DURATION))
-  container.classList.remove('view-transition', 'view-enter-from-top')
-}
-
-/**
  * Navigate back to list view with animation
  */
 async function navigateBackToList(): Promise<void> {
@@ -335,21 +271,6 @@ async function navigateBackToList(): Promise<void> {
   currentView = 'list'
   window.location.hash = ''
   await renderStories(currentFeed, false, true)
-}
-
-function applyStaggerAnimation(container: HTMLElement, selector: string): void {
-  const prefersReducedMotion = window.matchMedia(
-    '(prefers-reduced-motion: reduce)',
-  ).matches
-  if (prefersReducedMotion) return
-
-  const items = container.querySelectorAll(selector)
-  items.forEach((item, index) => {
-    if (index < 10) {
-      // Only stagger first 10
-      item.classList.add('stagger-in')
-    }
-  })
 }
 
 // Virtual scroll configuration
