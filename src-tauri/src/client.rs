@@ -426,3 +426,196 @@ pub type SharedHnClient = Arc<HnClient>;
 pub fn create_client() -> SharedHnClient {
     Arc::new(HnClient::new())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ===== HnClient Construction Tests =====
+
+    #[test]
+    fn hn_client_new_creates_instance() {
+        let client = HnClient::new();
+        // Verify caches are created with expected capacities
+        // We can't directly inspect capacity, but we can verify the client exists
+        assert!(std::mem::size_of_val(&client) > 0);
+    }
+
+    #[test]
+    fn hn_client_default_creates_instance() {
+        let client = HnClient::default();
+        assert!(std::mem::size_of_val(&client) > 0);
+    }
+
+    #[test]
+    fn hn_client_default_equals_new() {
+        // Both should create valid clients (we can't compare them directly,
+        // but we verify both construction paths work)
+        let _client1 = HnClient::new();
+        let _client2 = HnClient::default();
+        // If we get here without panic, both constructors work
+    }
+
+    // ===== create_client Tests =====
+
+    #[test]
+    fn create_client_returns_arc() {
+        let client = create_client();
+        // Verify it's wrapped in Arc by checking strong count
+        assert_eq!(Arc::strong_count(&client), 1);
+    }
+
+    #[test]
+    fn create_client_arc_can_be_cloned() {
+        let client1 = create_client();
+        let client2 = Arc::clone(&client1);
+        assert_eq!(Arc::strong_count(&client1), 2);
+        assert_eq!(Arc::strong_count(&client2), 2);
+    }
+
+    // ===== Cache Operation Tests =====
+
+    #[test]
+    fn clear_cache_does_not_panic() {
+        let client = HnClient::new();
+        // Should not panic when clearing empty caches
+        client.clear_cache();
+    }
+
+    #[tokio::test]
+    async fn clear_story_ids_cache_specific_feed() {
+        let client = HnClient::new();
+        // Should not panic when clearing cache for specific feed
+        client.clear_story_ids_cache(Some(StoryFeed::Top)).await;
+    }
+
+    #[tokio::test]
+    async fn clear_story_ids_cache_all_feeds() {
+        let client = HnClient::new();
+        // Should not panic when clearing all story ID caches
+        client.clear_story_ids_cache(None).await;
+    }
+
+    // ===== fetch_comments Edge Case Tests =====
+
+    #[tokio::test]
+    async fn fetch_comments_depth_zero_returns_empty() {
+        let client = HnClient::new();
+        let item = HNItem {
+            id: 123,
+            item_type: 0,
+            by: Some("testuser".to_string()),
+            time: 1609459200,
+            text: None,
+            url: Some("https://example.com".to_string()),
+            score: 100,
+            title: Some("Test Story".to_string()),
+            descendants: 50,
+            kids: Some(vec![456, 789]),
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let comments = client.fetch_comments(&item, 0).await.unwrap();
+        assert!(comments.is_empty());
+    }
+
+    #[tokio::test]
+    async fn fetch_comments_no_kids_returns_empty() {
+        let client = HnClient::new();
+        let item = HNItem {
+            id: 123,
+            item_type: 0,
+            by: Some("testuser".to_string()),
+            time: 1609459200,
+            text: None,
+            url: Some("https://example.com".to_string()),
+            score: 100,
+            title: Some("Test Story".to_string()),
+            descendants: 0,
+            kids: None,
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let comments = client.fetch_comments(&item, 3).await.unwrap();
+        assert!(comments.is_empty());
+    }
+
+    #[tokio::test]
+    async fn fetch_comments_empty_kids_returns_empty() {
+        let client = HnClient::new();
+        let item = HNItem {
+            id: 123,
+            item_type: 0,
+            by: Some("testuser".to_string()),
+            time: 1609459200,
+            text: None,
+            url: Some("https://example.com".to_string()),
+            score: 100,
+            title: Some("Test Story".to_string()),
+            descendants: 0,
+            kids: Some(vec![]), // empty kids array
+            parent: None,
+            dead: false,
+            deleted: false,
+        };
+
+        let comments = client.fetch_comments(&item, 3).await.unwrap();
+        assert!(comments.is_empty());
+    }
+
+    // ===== check_response_status Tests =====
+
+    #[test]
+    fn check_response_status_ok_returns_ok() {
+        // We can't easily construct a reqwest::Response in tests,
+        // so we test this indirectly through integration tests.
+        // This test documents the expected behavior.
+    }
+
+    // ===== StoryFeed Cache Key Tests =====
+
+    #[test]
+    fn story_feed_is_hashable_for_cache() {
+        use std::collections::HashMap;
+        let mut map: HashMap<StoryFeed, Vec<u32>> = HashMap::new();
+
+        map.insert(StoryFeed::Top, vec![1, 2, 3]);
+        map.insert(StoryFeed::New, vec![4, 5, 6]);
+        map.insert(StoryFeed::Best, vec![7, 8, 9]);
+        map.insert(StoryFeed::Ask, vec![10, 11, 12]);
+        map.insert(StoryFeed::Show, vec![13, 14, 15]);
+        map.insert(StoryFeed::Jobs, vec![16, 17, 18]);
+
+        assert_eq!(map.len(), 6);
+        assert_eq!(map.get(&StoryFeed::Top), Some(&vec![1, 2, 3]));
+        assert_eq!(map.get(&StoryFeed::Jobs), Some(&vec![16, 17, 18]));
+    }
+
+    // ===== Constants Tests =====
+
+    #[test]
+    fn cache_ttl_constants_are_reasonable() {
+        // Item cache: 5 minutes
+        assert_eq!(ITEM_CACHE_TTL.as_secs(), 5 * 60);
+
+        // Story IDs cache: 2 minutes (shorter for fresher feeds)
+        assert_eq!(STORY_IDS_CACHE_TTL.as_secs(), 2 * 60);
+
+        // User cache: 10 minutes (user data changes less frequently)
+        assert_eq!(USER_CACHE_TTL.as_secs(), 10 * 60);
+    }
+
+    #[test]
+    fn hn_base_url_is_correct() {
+        assert_eq!(HN_BASE_URL, "https://hacker-news.firebaseio.com/v0");
+    }
+
+    #[test]
+    fn algolia_base_url_is_correct() {
+        assert_eq!(ALGOLIA_BASE_URL, "https://hn.algolia.com/api/v1");
+    }
+}

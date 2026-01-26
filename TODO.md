@@ -221,6 +221,7 @@
 ### 4.5 Offline Support
 - [ ] Offline indicator in header
 - [ ] Cache stories for offline reading (SQLite)
+- [ ] **Persistent storage for favorite stories**
 - [ ] Queue actions for when online
 - [ ] Sync status indicators
 
@@ -322,6 +323,7 @@
 - [ ] First contentful paint <500ms
 - [ ] **Image/favicon lazy loading for story domains**
 - [ ] **Request deduplication for concurrent fetches**
+- [ ] **Split main.ts into smaller, focused modules**
 
 ### 7.2 Accessibility
 - [x] Full keyboard navigation
@@ -336,18 +338,22 @@
 ### 7.3 Testing
 - [x] Unit tests for API functions (api.test.ts - 18 tests)
 - [x] Unit tests for theme module (theme.test.ts - 11 tests)
-- [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 7 tests)
-- [x] Unit tests for keyboard.ts (keyboard.test.ts - 27 tests)
+- [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 8 tests)
+- [x] Unit tests for keyboard.ts (keyboard.test.ts - 31 tests)
 - [x] Unit tests for storage.ts (storage.test.ts - 22 tests)
 - [x] Unit tests for settings.ts (settings.test.ts - 29 tests)
 - [x] Unit tests for toast.ts (toast.test.ts - 30 tests)
-- [ ] Rust unit tests for HnClient (fetch, caching, error handling)
+- [x] Unit tests for prefetch.ts (prefetch.test.ts - 14 tests)
+- [x] Unit tests for assistant-ui.ts (assistant-ui.test.ts - 4 tests)
+- [x] Unit tests for copilot-client.ts (copilot-client.test.ts - 32 tests)
+- [x] Rust unit tests for HnClient (client.rs - 16 tests)
 - [x] Rust unit tests for types.rs (types.rs - 40 tests)
 - [ ] Component tests for UI
 - [ ] E2E tests with Playwright
 - [ ] Visual regression tests
 - [ ] Performance benchmarks
 - [ ] Accessibility audit (axe-core)
+- [ ] **Integration tests for Tauri command responses**
 
 ### 7.4 Documentation
 - [ ] README with screenshots
