@@ -68,6 +68,7 @@ import {
   clearFeedScrollPosition,
   getCommentCountsMap,
   getFeedScrollPosition,
+  getNewCommentsCount,
   getReadStoryIds,
   getStoryScrollPosition,
   markStoryAsRead,
@@ -317,20 +318,14 @@ function renderStoriesStandard(
 ): void {
   container.innerHTML =
     stories
-      .map((story, idx) => {
-        const lastSeenCount = commentCountsMap.get(story.id)
-        const currentCount = story.descendants || 0
-        const newComments =
-          lastSeenCount !== undefined
-            ? Math.max(0, currentCount - lastSeenCount)
-            : 0
-        return renderStory(
+      .map((story, idx) =>
+        renderStory(
           story,
           idx + 1,
           readStoryIds.has(story.id),
-          newComments,
-        )
-      })
+          getNewCommentsCount(story.id, story.descendants || 0),
+        ),
+      )
       .join('') + renderLoadMoreIndicator(hasMoreStories)
 
   // Apply stagger animation to stories
@@ -383,20 +378,13 @@ function initVirtualScroll(container: HTMLElement): void {
     container,
     itemHeight: STORY_ITEM_HEIGHT,
     bufferSize: 10,
-    renderItem: (story, index) => {
-      const lastSeenCount = commentCountsMap.get(story.id)
-      const currentCount = story.descendants || 0
-      const newComments =
-        lastSeenCount !== undefined
-          ? Math.max(0, currentCount - lastSeenCount)
-          : 0
-      return renderStory(
+    renderItem: (story, index) =>
+      renderStory(
         story,
         index + 1,
         readStoryIds.has(story.id),
-        newComments,
-      )
-    },
+        getNewCommentsCount(story.id, story.descendants || 0),
+      ),
     onNearEnd: () => {
       if (hasMoreStories && !isLoadingMore) {
         loadMoreStoriesVirtual()
@@ -491,20 +479,14 @@ async function loadMoreStories(): Promise<void> {
       // Append new stories
       const startRank = currentStories.length + 1
       const newStoriesHtml = stories
-        .map((story, idx) => {
-          const lastSeenCount = commentCountsMap.get(story.id)
-          const currentCount = story.descendants || 0
-          const newComments =
-            lastSeenCount !== undefined
-              ? Math.max(0, currentCount - lastSeenCount)
-              : 0
-          return renderStory(
+        .map((story, idx) =>
+          renderStory(
             story,
             startRank + idx,
             readStoryIds.has(story.id),
-            newComments,
-          )
-        })
+            getNewCommentsCount(story.id, story.descendants || 0),
+          ),
+        )
         .join('')
 
       container.insertAdjacentHTML('beforeend', newStoriesHtml)
