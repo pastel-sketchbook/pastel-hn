@@ -16,6 +16,7 @@ describe('TRANSITION_DURATION', () => {
 
 describe('animateStoriesAway', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     document.body.innerHTML = `
       <div id="stories">
         <div class="story" data-id="1">Story 1</div>
@@ -35,6 +36,7 @@ describe('animateStoriesAway', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
@@ -42,7 +44,7 @@ describe('animateStoriesAway', () => {
     const stories = document.querySelectorAll('.story')
     const clickedStory = stories[1] as HTMLElement
 
-    // Don't await - just start the animation
+    // Start the animation
     const promise = animateStoriesAway(clickedStory)
 
     // Check classes were added immediately
@@ -51,6 +53,7 @@ describe('animateStoriesAway', () => {
     expect(stories[1].classList.contains('view-anchor-fade')).toBe(true)
     expect(stories[2].classList.contains('view-exit-down')).toBe(true)
 
+    await vi.runAllTimersAsync()
     await promise
   })
 
@@ -94,6 +97,7 @@ describe('animateStoriesAway', () => {
 
 describe('animateDetailEnter', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     vi.stubGlobal(
       'matchMedia',
       vi.fn().mockReturnValue({
@@ -105,6 +109,7 @@ describe('animateDetailEnter', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
@@ -117,6 +122,7 @@ describe('animateDetailEnter', () => {
     expect(container.classList.contains('view-transition')).toBe(true)
     expect(container.classList.contains('view-enter-from-bottom')).toBe(true)
 
+    await vi.runAllTimersAsync()
     await promise
 
     // Classes should be removed after animation
@@ -143,6 +149,7 @@ describe('animateDetailEnter', () => {
 
 describe('animateDetailExit', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     vi.stubGlobal(
       'matchMedia',
       vi.fn().mockReturnValue({
@@ -154,6 +161,7 @@ describe('animateDetailExit', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
@@ -166,6 +174,7 @@ describe('animateDetailExit', () => {
     expect(container.classList.contains('view-transition')).toBe(true)
     expect(container.classList.contains('view-fade-out')).toBe(true)
 
+    await vi.runAllTimersAsync()
     await promise
 
     // Classes should be removed after animation
@@ -192,6 +201,7 @@ describe('animateDetailExit', () => {
 
 describe('animateListEnter', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     vi.stubGlobal(
       'matchMedia',
       vi.fn().mockReturnValue({
@@ -203,6 +213,7 @@ describe('animateListEnter', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
@@ -215,6 +226,7 @@ describe('animateListEnter', () => {
     expect(container.classList.contains('view-transition')).toBe(true)
     expect(container.classList.contains('view-enter-from-top')).toBe(true)
 
+    await vi.runAllTimersAsync()
     await promise
 
     // Classes should be removed after animation

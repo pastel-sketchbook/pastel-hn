@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// We need to reset the module state between tests
-// Use dynamic import to get fresh state
-
 describe('zen-mode', () => {
   // Store reference to the imported module functions
   let isZenModeActive: () => boolean
@@ -12,6 +9,9 @@ describe('zen-mode', () => {
   let exitZenMode: () => Promise<void>
 
   beforeEach(async () => {
+    // Use fake timers
+    vi.useFakeTimers()
+
     // Reset DOM
     document.body.innerHTML = ''
     document.documentElement.classList.remove('zen-mode')
@@ -40,6 +40,7 @@ describe('zen-mode', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.clearAllMocks()
     vi.resetModules()
   })
@@ -58,31 +59,34 @@ describe('zen-mode', () => {
 
   describe('toggleZenMode', () => {
     it('activates zen mode when currently inactive', async () => {
-      await toggleZenMode()
-      // Wait for the transition delay
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(isZenModeActive()).toBe(true)
     })
 
     it('adds zen-mode class to document element', async () => {
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(document.documentElement.classList.contains('zen-mode')).toBe(true)
     })
 
     it('shows zen mode badge when activated', async () => {
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       const badge = document.querySelector('.zen-mode-badge')
       expect(badge).not.toBeNull()
     })
 
     it('badge has correct content', async () => {
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       const icon = document.querySelector('.zen-badge-icon')
       const text = document.querySelector('.zen-badge-text')
@@ -91,8 +95,9 @@ describe('zen-mode', () => {
     })
 
     it('badge has correct title', async () => {
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       const badge = document.querySelector('.zen-mode-badge') as HTMLElement
       expect(badge).not.toBeNull()
@@ -101,38 +106,44 @@ describe('zen-mode', () => {
 
     it('deactivates zen mode when currently active', async () => {
       // First activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
       expect(isZenModeActive()).toBe(true)
 
       // Then deactivate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(isZenModeActive()).toBe(false)
     })
 
     it('removes zen-mode class when deactivated', async () => {
       // Activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       // Deactivate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(document.documentElement.classList.contains('zen-mode')).toBe(false)
     })
 
     it('removes badge when deactivated', async () => {
       // Activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
       expect(document.querySelector('.zen-mode-badge')).not.toBeNull()
 
       // Deactivate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(document.querySelector('.zen-mode-badge')).toBeNull()
     })
@@ -141,8 +152,9 @@ describe('zen-mode', () => {
       const callback = vi.fn()
       setZenModeChangeCallback(callback)
 
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(callback).toHaveBeenCalledWith(true)
     })
@@ -151,15 +163,17 @@ describe('zen-mode', () => {
       const callback = vi.fn()
 
       // Activate first
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       setZenModeChangeCallback(callback)
       callback.mockClear()
 
       // Deactivate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(callback).toHaveBeenCalledWith(false)
     })
@@ -170,8 +184,9 @@ describe('zen-mode', () => {
       const callback = vi.fn()
       setZenModeChangeCallback(callback)
 
-      await exitZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = exitZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(callback).not.toHaveBeenCalled()
       expect(isZenModeActive()).toBe(false)
@@ -179,37 +194,43 @@ describe('zen-mode', () => {
 
     it('exits zen mode when active', async () => {
       // First activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
       expect(isZenModeActive()).toBe(true)
 
       // Then exit
-      await exitZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = exitZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(isZenModeActive()).toBe(false)
     })
 
     it('removes zen-mode class', async () => {
       // Activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       // Exit
-      await exitZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = exitZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(document.documentElement.classList.contains('zen-mode')).toBe(false)
     })
 
     it('removes badge', async () => {
       // Activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       // Exit
-      await exitZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = exitZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(document.querySelector('.zen-mode-badge')).toBeNull()
     })
@@ -218,14 +239,16 @@ describe('zen-mode', () => {
       const callback = vi.fn()
 
       // Activate
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      let promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       setZenModeChangeCallback(callback)
 
       // Exit
-      await exitZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      promise = exitZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(callback).toHaveBeenCalledWith(false)
     })
@@ -236,7 +259,9 @@ describe('zen-mode', () => {
       setZenModeChangeCallback(vi.fn())
       setZenModeChangeCallback(null)
       // Should not throw when toggling
-      await expect(toggleZenMode()).resolves.not.toThrow()
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await expect(promise).resolves.not.toThrow()
     })
 
     it('replaces previous callback', async () => {
@@ -246,8 +271,9 @@ describe('zen-mode', () => {
       setZenModeChangeCallback(firstCallback)
       setZenModeChangeCallback(secondCallback)
 
-      await toggleZenMode()
-      await new Promise((resolve) => setTimeout(resolve, 250))
+      const promise = toggleZenMode()
+      await vi.runAllTimersAsync()
+      await promise
 
       expect(firstCallback).not.toHaveBeenCalled()
       expect(secondCallback).toHaveBeenCalled()

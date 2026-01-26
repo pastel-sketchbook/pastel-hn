@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('pull-refresh', () => {
   beforeEach(async () => {
@@ -7,6 +7,10 @@ describe('pull-refresh', () => {
 
     // Setup DOM
     document.body.innerHTML = ''
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('configurePullRefresh', () => {
@@ -360,6 +364,7 @@ describe('pull-refresh', () => {
     })
 
     it('triggers refresh on touchend when threshold met', async () => {
+      vi.useFakeTimers()
       const mockOnRefresh = vi.fn().mockResolvedValue(undefined)
       const { configurePullRefresh, setupPullToRefresh } = await import(
         './pull-refresh'
@@ -391,8 +396,8 @@ describe('pull-refresh', () => {
       // End touch
       document.dispatchEvent(new TouchEvent('touchend'))
 
-      // Wait for async refresh
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Run timers and microtasks
+      await vi.runAllTimersAsync()
 
       expect(mockOnRefresh).toHaveBeenCalled()
     })
@@ -517,6 +522,7 @@ describe('pull-refresh', () => {
     })
 
     it('triggers refresh after accumulated wheel events exceed threshold', async () => {
+      vi.useFakeTimers()
       const mockOnRefresh = vi.fn().mockResolvedValue(undefined)
       const { configurePullRefresh, setupPullToRefresh } = await import(
         './pull-refresh'
@@ -540,13 +546,14 @@ describe('pull-refresh', () => {
         )
       }
 
-      // Wait for async
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Run timers and microtasks
+      await vi.runAllTimersAsync()
 
       expect(mockOnRefresh).toHaveBeenCalled()
     })
 
     it('disables temporarily after refresh to prevent rapid refreshes', async () => {
+      vi.useFakeTimers()
       const mockOnRefresh = vi.fn().mockResolvedValue(undefined)
       const { configurePullRefresh, setupPullToRefresh, isPullRefreshEnabled } =
         await import('./pull-refresh')
@@ -569,13 +576,14 @@ describe('pull-refresh', () => {
         )
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Let the refresh trigger
+      await vi.advanceTimersByTimeAsync(50)
 
       // Should be disabled
       expect(isPullRefreshEnabled()).toBe(false)
 
-      // Should re-enable after delay
-      await new Promise((resolve) => setTimeout(resolve, 1100))
+      // Should re-enable after delay (1000ms)
+      await vi.advanceTimersByTimeAsync(1000)
       expect(isPullRefreshEnabled()).toBe(true)
     })
   })
