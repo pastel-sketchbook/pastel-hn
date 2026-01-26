@@ -9,6 +9,8 @@ import {
   saveSettings,
   showSettingsModal,
 } from './settings'
+import { bookmarkStory, clearBookmarks } from './storage'
+import type { HNItem } from './types'
 
 // Mock theme module
 vi.mock('./theme', () => ({
@@ -382,6 +384,80 @@ describe('settings', () => {
         '[data-setting="theme"][data-value="light"]',
       )
       expect(lightBtn?.classList.contains('active')).toBe(false)
+    })
+
+    it('modal contains bookmarks export section', () => {
+      showSettingsModal()
+
+      const exportBtn = document.querySelector(
+        '[data-action="export-bookmarks"]',
+      )
+      expect(exportBtn).not.toBeNull()
+    })
+
+    it('displays correct bookmarks count', () => {
+      // Add some bookmarks
+      const story: HNItem = {
+        id: 12345,
+        type: 0,
+        by: 'testuser',
+        time: Math.floor(Date.now() / 1000),
+        title: 'Test Story',
+        url: 'https://example.com',
+        score: 100,
+        descendants: 50,
+        text: null,
+        kids: null,
+        parent: null,
+        dead: false,
+        deleted: false,
+      }
+      bookmarkStory(story)
+
+      showSettingsModal()
+
+      const countEl = document.querySelector('.bookmarks-count')
+      expect(countEl?.textContent).toBe('1 stories saved')
+    })
+
+    it('clicking export button triggers download', () => {
+      // Mock URL.createObjectURL and URL.revokeObjectURL
+      const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+      const mockRevokeObjectURL = vi.fn()
+      vi.stubGlobal('URL', {
+        createObjectURL: mockCreateObjectURL,
+        revokeObjectURL: mockRevokeObjectURL,
+      })
+
+      // Track created anchor elements
+      let capturedLink: HTMLAnchorElement | null = null
+      const originalCreateElement = document.createElement.bind(document)
+      vi.spyOn(document, 'createElement').mockImplementation(
+        (tagName: string) => {
+          const element = originalCreateElement(tagName)
+          if (tagName === 'a') {
+            capturedLink = element as HTMLAnchorElement
+            // Mock click to prevent actual navigation
+            vi.spyOn(capturedLink, 'click').mockImplementation(() => {})
+          }
+          return element
+        },
+      )
+
+      showSettingsModal()
+
+      const exportBtn = document.querySelector(
+        '[data-action="export-bookmarks"]',
+      ) as HTMLElement
+      exportBtn.click()
+
+      expect(mockCreateObjectURL).toHaveBeenCalled()
+      expect(capturedLink).not.toBeNull()
+      expect(capturedLink?.click).toHaveBeenCalled()
+      expect(capturedLink?.download).toMatch(
+        /^pastel-hn-bookmarks-\d{4}-\d{2}-\d{2}\.json$/,
+      )
+      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
     })
   })
 })

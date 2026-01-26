@@ -4,7 +4,12 @@
 
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import { KEYBOARD_SHORTCUTS } from './keyboard'
-import { clearReadingHistory, getReadStoriesCount } from './storage'
+import {
+  clearReadingHistory,
+  exportBookmarksAsJson,
+  getBookmarksCount,
+  getReadStoriesCount,
+} from './storage'
 import { setTheme, type Theme } from './theme'
 
 export type FontSize = 'compact' | 'normal' | 'comfortable'
@@ -44,6 +49,8 @@ const settingsIcons = {
   keyboard: `<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/></svg>`,
   history: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   trash: `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  bookmark: `<svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
+  download: `<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
 }
 
 /**
@@ -228,6 +235,18 @@ export function showSettingsModal(): void {
           </div>
         </div>
         
+        <!-- Bookmarks Export -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">${settingsIcons.bookmark}Bookmarks</h3>
+          <div class="settings-bookmarks">
+            <span class="bookmarks-count">${getBookmarksCount()} stories saved</span>
+            <button class="settings-export-btn" data-action="export-bookmarks">
+              ${settingsIcons.download}
+              <span>Export JSON</span>
+            </button>
+          </div>
+        </div>
+        
         <!-- Keyboard Shortcuts -->
         <div class="settings-section">
           <h3 class="settings-section-title">${settingsIcons.keyboard}Keyboard Shortcuts</h3>
@@ -303,6 +322,11 @@ export function showSettingsModal(): void {
       // Dispatch event so main.ts can update its readStoryIds cache
       window.dispatchEvent(new CustomEvent('reading-history-cleared'))
     }
+
+    // Export bookmarks button click
+    if (target.closest('[data-action="export-bookmarks"]')) {
+      downloadBookmarksExport()
+    }
   })
 
   // Handle escape key
@@ -337,4 +361,33 @@ export function closeSettingsModal(): void {
  */
 export function isSettingsModalOpen(): boolean {
   return settingsModalOpen
+}
+
+/**
+ * Trigger a file download with the given content
+ */
+function downloadBookmarksExport(): void {
+  const json = exportBookmarksAsJson()
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `pastel-hn-bookmarks-${formatExportDate()}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Format current date for export filename (YYYY-MM-DD)
+ */
+function formatExportDate(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }

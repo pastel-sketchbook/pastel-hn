@@ -7,6 +7,7 @@ import {
   clearFeedScrollPosition,
   clearStoryScores,
   clearStoryScrollPosition,
+  exportBookmarksAsJson,
   getBookmarkedStories,
   getBookmarkedStoryById,
   getBookmarkedStoryIds,
@@ -764,6 +765,83 @@ describe('storage', () => {
         const result = getBookmarkedStoryById(12345)
 
         expect(result).toBeNull()
+      })
+    })
+
+    describe('exportBookmarksAsJson', () => {
+      it('returns valid JSON with export metadata', () => {
+        const story = createTestStory(12345)
+        bookmarkStory(story)
+
+        const json = exportBookmarksAsJson()
+        const parsed = JSON.parse(json)
+
+        expect(parsed.version).toBe(1)
+        expect(parsed.exportedAt).toBeCloseTo(Date.now(), -2)
+        expect(parsed.bookmarks).toHaveLength(1)
+      })
+
+      it('exports empty bookmarks array when no bookmarks exist', () => {
+        clearBookmarks()
+
+        const json = exportBookmarksAsJson()
+        const parsed = JSON.parse(json)
+
+        expect(parsed.version).toBe(1)
+        expect(parsed.bookmarks).toEqual([])
+      })
+
+      it('includes full bookmark data with timestamps', () => {
+        const story = createTestStory(12345, {
+          title: 'Test Export Story',
+          url: 'https://example.com/export',
+          score: 250,
+          descendants: 100,
+        })
+        bookmarkStory(story)
+
+        const json = exportBookmarksAsJson()
+        const parsed = JSON.parse(json)
+
+        expect(parsed.bookmarks[0].story.id).toBe(12345)
+        expect(parsed.bookmarks[0].story.title).toBe('Test Export Story')
+        expect(parsed.bookmarks[0].story.url).toBe('https://example.com/export')
+        expect(parsed.bookmarks[0].story.score).toBe(250)
+        expect(parsed.bookmarks[0].bookmarkedAt).toBeDefined()
+      })
+
+      it('exports multiple bookmarks in correct order (newest first)', () => {
+        bookmarkStory(createTestStory(1, { title: 'First Story' }))
+        bookmarkStory(createTestStory(2, { title: 'Second Story' }))
+        bookmarkStory(createTestStory(3, { title: 'Third Story' }))
+
+        const json = exportBookmarksAsJson()
+        const parsed = JSON.parse(json)
+
+        expect(parsed.bookmarks).toHaveLength(3)
+        expect(parsed.bookmarks[0].story.id).toBe(3)
+        expect(parsed.bookmarks[1].story.id).toBe(2)
+        expect(parsed.bookmarks[2].story.id).toBe(1)
+      })
+
+      it('returns pretty-printed JSON with 2-space indentation', () => {
+        bookmarkStory(createTestStory(12345))
+
+        const json = exportBookmarksAsJson()
+
+        // Pretty-printed JSON should have newlines and indentation
+        expect(json).toContain('\n')
+        expect(json).toContain('  ')
+      })
+
+      it('handles corrupted localStorage gracefully', () => {
+        localStorage.setItem('pastel-hn-bookmarks', 'invalid json {{{')
+
+        const json = exportBookmarksAsJson()
+        const parsed = JSON.parse(json)
+
+        expect(parsed.version).toBe(1)
+        expect(parsed.bookmarks).toEqual([])
       })
     })
   })

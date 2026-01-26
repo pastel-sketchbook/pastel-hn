@@ -577,3 +577,26 @@ export function clearBookmarks(): void {
     // Ignore
   }
 }
+
+/**
+ * Export format for bookmarks
+ */
+export interface BookmarkExport {
+  version: number
+  exportedAt: number
+  bookmarks: Array<{ story: HNItem; bookmarkedAt: number }>
+}
+
+/**
+ * Export all bookmarks as a JSON string
+ * Returns a pretty-printed JSON with export metadata
+ */
+export function exportBookmarksAsJson(): string {
+  const bookmarks = getBookmarksWithTimestamps()
+  const exportData: BookmarkExport = {
+    version: 1,
+    exportedAt: Date.now(),
+    bookmarks,
+  }
+  return JSON.stringify(exportData, null, 2)
+}
