@@ -175,7 +175,7 @@
 - [x] Keyboard shortcut reference
 - [x] **Clear reading history option**
 - [x] **Cache management (view size, clear)**
-- [ ] **Export/import settings**
+- [x] **Export/import settings**
 
 ---
 

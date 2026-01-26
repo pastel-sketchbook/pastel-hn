@@ -5011,6 +5011,78 @@ main {
   fill: none;
 }
 
+/* Settings backup (export/import) */
+.settings-backup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.settings-backup-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--cyan);
+  border-radius: 4px;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-backup-btn:hover {
+  background: var(--cyan);
+  color: var(--bg-primary);
+}
+
+.settings-backup-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.import-feedback {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 4px;
+  animation: fadeIn 0.2s ease;
+}
+
+.import-feedback.success {
+  background: rgba(0, 200, 83, 0.15);
+  border: 1px solid rgba(0, 200, 83, 0.4);
+  color: #00c853;
+}
+
+.import-feedback.error {
+  background: rgba(255, 82, 82, 0.15);
+  border: 1px solid rgba(255, 82, 82, 0.4);
+  color: #ff5252;
+}
+
+[data-theme="light"] .import-feedback.success {
+  background: rgba(0, 150, 62, 0.1);
+  border-color: rgba(0, 150, 62, 0.3);
+  color: #00963e;
+}
+
+[data-theme="light"] .import-feedback.error {
+  background: rgba(200, 50, 50, 0.1);
+  border-color: rgba(200, 50, 50, 0.3);
+  color: #c83232;
+}
+
 /* Keyboard shortcuts in settings */
 .settings-shortcuts {
   display: grid;

@@ -8,6 +8,7 @@ import {
   type Settings,
   saveSettings,
   showSettingsModal,
+  validateSettings,
 } from './settings'
 import { bookmarkStory } from './storage'
 import type { CacheStats, HNItem } from './types'
@@ -696,6 +697,479 @@ describe('settings', () => {
       expect(clearBtn.disabled).toBe(false)
 
       vi.useRealTimers()
+    })
+  })
+
+  describe('validateSettings', () => {
+    it('returns null for non-object input', () => {
+      expect(validateSettings(null)).toBeNull()
+      expect(validateSettings(undefined)).toBeNull()
+      expect(validateSettings('string')).toBeNull()
+      expect(validateSettings(123)).toBeNull()
+    })
+
+    it('validates complete settings object', () => {
+      const validSettings: Settings = {
+        theme: 'dark',
+        fontSize: 'compact',
+        density: 'comfortable',
+        defaultFeed: 'new',
+      }
+
+      const result = validateSettings(validSettings)
+
+      expect(result).toEqual(validSettings)
+    })
+
+    it('validates wrapped export format (with version/exportedAt)', () => {
+      const exportFormat = {
+        version: 1,
+        exportedAt: '2025-01-26T12:00:00.000Z',
+        settings: {
+          theme: 'light',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        },
+      }
+
+      const result = validateSettings(exportFormat)
+
+      expect(result).toEqual(exportFormat.settings)
+    })
+
+    it('returns null for invalid theme value', () => {
+      const invalidSettings = {
+        theme: 'invalid',
+        fontSize: 'normal',
+        density: 'normal',
+        defaultFeed: 'top',
+      }
+
+      expect(validateSettings(invalidSettings)).toBeNull()
+    })
+
+    it('returns null for invalid fontSize value', () => {
+      const invalidSettings = {
+        theme: 'dark',
+        fontSize: 'huge',
+        density: 'normal',
+        defaultFeed: 'top',
+      }
+
+      expect(validateSettings(invalidSettings)).toBeNull()
+    })
+
+    it('returns null for invalid density value', () => {
+      const invalidSettings = {
+        theme: 'dark',
+        fontSize: 'normal',
+        density: 'sparse',
+        defaultFeed: 'top',
+      }
+
+      expect(validateSettings(invalidSettings)).toBeNull()
+    })
+
+    it('returns null for invalid defaultFeed value', () => {
+      const invalidSettings = {
+        theme: 'dark',
+        fontSize: 'normal',
+        density: 'normal',
+        defaultFeed: 'random',
+      }
+
+      expect(validateSettings(invalidSettings)).toBeNull()
+    })
+
+    it('returns null for missing required fields', () => {
+      expect(validateSettings({ theme: 'dark' })).toBeNull()
+      expect(validateSettings({ theme: 'dark', fontSize: 'normal' })).toBeNull()
+    })
+
+    it('accepts all valid theme values', () => {
+      for (const theme of ['light', 'dark', 'system']) {
+        const result = validateSettings({
+          theme,
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        })
+        expect(result?.theme).toBe(theme)
+      }
+    })
+
+    it('accepts all valid fontSize values', () => {
+      for (const fontSize of ['compact', 'normal', 'comfortable']) {
+        const result = validateSettings({
+          theme: 'dark',
+          fontSize,
+          density: 'normal',
+          defaultFeed: 'top',
+        })
+        expect(result?.fontSize).toBe(fontSize)
+      }
+    })
+
+    it('accepts all valid density values', () => {
+      for (const density of ['compact', 'normal', 'comfortable']) {
+        const result = validateSettings({
+          theme: 'dark',
+          fontSize: 'normal',
+          density,
+          defaultFeed: 'top',
+        })
+        expect(result?.density).toBe(density)
+      }
+    })
+
+    it('accepts all valid defaultFeed values', () => {
+      for (const defaultFeed of ['top', 'new', 'best', 'ask', 'show', 'jobs']) {
+        const result = validateSettings({
+          theme: 'dark',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed,
+        })
+        expect(result?.defaultFeed).toBe(defaultFeed)
+      }
+    })
+  })
+
+  describe('settings export/import', () => {
+    beforeEach(() => {
+      loadSettings()
+    })
+
+    it('modal contains export settings button', async () => {
+      await showSettingsModal()
+
+      const exportBtn = document.querySelector(
+        '[data-action="export-settings"]',
+      )
+      expect(exportBtn).not.toBeNull()
+    })
+
+    it('modal contains import settings button', async () => {
+      await showSettingsModal()
+
+      const importBtn = document.querySelector(
+        '[data-action="import-settings"]',
+      )
+      expect(importBtn).not.toBeNull()
+    })
+
+    it('modal contains hidden file input for import', async () => {
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+      expect(fileInput).not.toBeNull()
+      expect(fileInput.type).toBe('file')
+      expect(fileInput.accept).toBe('.json')
+      expect(fileInput.style.display).toBe('none')
+    })
+
+    it('clicking export settings button triggers download', async () => {
+      // Mock URL.createObjectURL and URL.revokeObjectURL
+      const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
+      const mockRevokeObjectURL = vi.fn()
+      vi.stubGlobal('URL', {
+        createObjectURL: mockCreateObjectURL,
+        revokeObjectURL: mockRevokeObjectURL,
+      })
+
+      // Track created anchor elements
+      let capturedLink: HTMLAnchorElement | null = null
+      const originalCreateElement = document.createElement.bind(document)
+      vi.spyOn(document, 'createElement').mockImplementation(
+        (tagName: string) => {
+          const element = originalCreateElement(tagName)
+          if (tagName === 'a') {
+            capturedLink = element as HTMLAnchorElement
+            vi.spyOn(capturedLink, 'click').mockImplementation(() => {})
+          }
+          return element
+        },
+      )
+
+      await showSettingsModal()
+
+      const exportBtn = document.querySelector(
+        '[data-action="export-settings"]',
+      ) as HTMLElement
+      exportBtn.click()
+
+      expect(mockCreateObjectURL).toHaveBeenCalled()
+      expect(capturedLink).not.toBeNull()
+      expect(capturedLink?.click).toHaveBeenCalled()
+      expect(capturedLink?.download).toMatch(
+        /^pastel-hn-settings-\d{4}-\d{2}-\d{2}\.json$/,
+      )
+      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+    })
+
+    it('clicking import settings button triggers file input click', async () => {
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+      const clickSpy = vi.spyOn(fileInput, 'click')
+
+      const importBtn = document.querySelector(
+        '[data-action="import-settings"]',
+      ) as HTMLElement
+      importBtn.click()
+
+      expect(clickSpy).toHaveBeenCalled()
+    })
+
+    it('importing valid settings file updates settings', async () => {
+      saveSettings({ theme: 'dark', fontSize: 'compact' })
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      // Create a mock file with valid settings
+      const newSettings = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        settings: {
+          theme: 'light',
+          fontSize: 'comfortable',
+          density: 'compact',
+          defaultFeed: 'best',
+        },
+      }
+      const file = new File([JSON.stringify(newSettings)], 'settings.json', {
+        type: 'application/json',
+      })
+
+      // Simulate file selection
+      Object.defineProperty(fileInput, 'files', { value: [file] })
+      fileInput.dispatchEvent(new Event('change'))
+
+      // Wait for async file reading
+      await vi.waitFor(() => {
+        const settings = getSettings()
+        expect(settings.theme).toBe('light')
+        expect(settings.fontSize).toBe('comfortable')
+        expect(settings.density).toBe('compact')
+        expect(settings.defaultFeed).toBe('best')
+      })
+    })
+
+    it('importing valid settings updates modal active states', async () => {
+      saveSettings({ theme: 'dark' })
+      await showSettingsModal()
+
+      // Verify dark is initially active
+      const darkBtn = document.querySelector(
+        '[data-setting="theme"][data-value="dark"]',
+      )
+      expect(darkBtn?.classList.contains('active')).toBe(true)
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      const newSettings = {
+        settings: {
+          theme: 'light',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        },
+      }
+      const file = new File([JSON.stringify(newSettings)], 'settings.json', {
+        type: 'application/json',
+      })
+
+      Object.defineProperty(fileInput, 'files', { value: [file] })
+      fileInput.dispatchEvent(new Event('change'))
+
+      await vi.waitFor(() => {
+        const lightBtn = document.querySelector(
+          '[data-setting="theme"][data-value="light"]',
+        )
+        expect(lightBtn?.classList.contains('active')).toBe(true)
+        expect(darkBtn?.classList.contains('active')).toBe(false)
+      })
+    })
+
+    it('shows success feedback after successful import', async () => {
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      const validSettings = {
+        settings: {
+          theme: 'dark',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        },
+      }
+      const file = new File([JSON.stringify(validSettings)], 'settings.json', {
+        type: 'application/json',
+      })
+
+      Object.defineProperty(fileInput, 'files', { value: [file] })
+      fileInput.dispatchEvent(new Event('change'))
+
+      await vi.waitFor(() => {
+        const feedback = document.querySelector('.import-feedback')
+        expect(feedback).not.toBeNull()
+        expect(feedback?.classList.contains('success')).toBe(true)
+        expect(feedback?.textContent).toBe('Settings imported successfully')
+      })
+    })
+
+    it('shows error feedback for invalid settings file', async () => {
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      const invalidSettings = {
+        settings: {
+          theme: 'invalid-theme',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        },
+      }
+      const file = new File(
+        [JSON.stringify(invalidSettings)],
+        'settings.json',
+        {
+          type: 'application/json',
+        },
+      )
+
+      Object.defineProperty(fileInput, 'files', { value: [file] })
+      fileInput.dispatchEvent(new Event('change'))
+
+      await vi.waitFor(() => {
+        const feedback = document.querySelector('.import-feedback')
+        expect(feedback).not.toBeNull()
+        expect(feedback?.classList.contains('error')).toBe(true)
+        expect(feedback?.textContent).toBe('Invalid settings file format')
+      })
+    })
+
+    it('shows error feedback for malformed JSON', async () => {
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      const file = new File(['not valid json {{{'], 'settings.json', {
+        type: 'application/json',
+      })
+
+      Object.defineProperty(fileInput, 'files', { value: [file] })
+      fileInput.dispatchEvent(new Event('change'))
+
+      await vi.waitFor(() => {
+        const feedback = document.querySelector('.import-feedback')
+        expect(feedback).not.toBeNull()
+        expect(feedback?.classList.contains('error')).toBe(true)
+        expect(feedback?.textContent).toBe('Failed to parse settings file')
+      })
+    })
+
+    it('removes feedback after timeout', async () => {
+      vi.useFakeTimers()
+
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      const validSettings = {
+        settings: {
+          theme: 'dark',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        },
+      }
+      const file = new File([JSON.stringify(validSettings)], 'settings.json', {
+        type: 'application/json',
+      })
+
+      Object.defineProperty(fileInput, 'files', { value: [file] })
+      fileInput.dispatchEvent(new Event('change'))
+
+      // Wait for feedback to appear
+      await vi.advanceTimersByTimeAsync(0)
+
+      const feedback = document.querySelector('.import-feedback')
+      expect(feedback).not.toBeNull()
+
+      // Advance timer past the 3000ms timeout
+      await vi.advanceTimersByTimeAsync(3000)
+
+      const feedbackAfter = document.querySelector('.import-feedback')
+      expect(feedbackAfter).toBeNull()
+
+      vi.useRealTimers()
+    })
+
+    it('resets file input after import to allow re-selecting same file', async () => {
+      await showSettingsModal()
+
+      const fileInput = document.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+
+      const validSettings = {
+        settings: {
+          theme: 'dark',
+          fontSize: 'normal',
+          density: 'normal',
+          defaultFeed: 'top',
+        },
+      }
+      const file = new File([JSON.stringify(validSettings)], 'settings.json', {
+        type: 'application/json',
+      })
+
+      // Simulate file selection
+      Object.defineProperty(fileInput, 'files', {
+        value: [file],
+        writable: true,
+      })
+
+      // Spy on the value setter to verify it gets reset
+      let valueWasReset = false
+      Object.defineProperty(fileInput, 'value', {
+        get() {
+          return ''
+        },
+        set(val: string) {
+          if (val === '') {
+            valueWasReset = true
+          }
+        },
+        configurable: true,
+      })
+
+      fileInput.dispatchEvent(new Event('change'))
+
+      await vi.waitFor(() => {
+        expect(valueWasReset).toBe(true)
+      })
     })
   })
 })

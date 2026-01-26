@@ -54,7 +54,9 @@ const settingsIcons = {
   trash: `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
   bookmark: `<svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
   download: `<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  upload: `<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
   database: `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
+  sliders: `<svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
 }
 
 /**
@@ -288,6 +290,22 @@ export async function showSettingsModal(): Promise<void> {
           </div>
         </div>
         
+        <!-- Settings Backup -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">${settingsIcons.sliders}Settings Backup</h3>
+          <div class="settings-backup">
+            <button class="settings-backup-btn" data-action="export-settings">
+              ${settingsIcons.download}
+              <span>Export</span>
+            </button>
+            <button class="settings-backup-btn" data-action="import-settings">
+              ${settingsIcons.upload}
+              <span>Import</span>
+            </button>
+            <input type="file" id="settings-import-input" accept=".json" style="display: none" />
+          </div>
+        </div>
+        
         <!-- Keyboard Shortcuts -->
         <div class="settings-section">
           <h3 class="settings-section-title">${settingsIcons.keyboard}Keyboard Shortcuts</h3>
@@ -373,7 +391,36 @@ export async function showSettingsModal(): Promise<void> {
     if (target.closest('[data-action="clear-cache"]')) {
       handleClearCache(modal)
     }
+
+    // Export settings button click
+    if (target.closest('[data-action="export-settings"]')) {
+      downloadSettingsExport()
+    }
+
+    // Import settings button click
+    if (target.closest('[data-action="import-settings"]')) {
+      const fileInput = modal.querySelector(
+        '#settings-import-input',
+      ) as HTMLInputElement
+      fileInput?.click()
+    }
   })
+
+  // Handle file input change for import
+  const fileInput = modal.querySelector(
+    '#settings-import-input',
+  ) as HTMLInputElement
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const input = e.target as HTMLInputElement
+      const file = input.files?.[0]
+      if (file) {
+        handleSettingsImport(file, modal)
+        // Reset the input so the same file can be selected again
+        input.value = ''
+      }
+    })
+  }
 
   // Handle escape key
   escapeHandler = (e: KeyboardEvent) => {
@@ -510,4 +557,157 @@ async function handleClearCache(modal: HTMLElement): Promise<void> {
       }, 1500)
     }
   }
+}
+
+/**
+ * Export settings as JSON file download
+ */
+function downloadSettingsExport(): void {
+  const settings = getSettings()
+  const exportData = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    settings,
+  }
+  const json = JSON.stringify(exportData, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `pastel-hn-settings-${formatExportDate()}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Validate imported settings object
+ */
+export function validateSettings(data: unknown): Settings | null {
+  if (!data || typeof data !== 'object') {
+    return null
+  }
+
+  const obj = data as Record<string, unknown>
+
+  // Check if it's a wrapped export format
+  const settingsObj =
+    'settings' in obj && typeof obj.settings === 'object'
+      ? (obj.settings as Record<string, unknown>)
+      : obj
+
+  // Validate theme
+  const validThemes = ['light', 'dark', 'system']
+  const theme = settingsObj.theme
+  if (typeof theme !== 'string' || !validThemes.includes(theme)) {
+    return null
+  }
+
+  // Validate fontSize
+  const validFontSizes = ['compact', 'normal', 'comfortable']
+  const fontSize = settingsObj.fontSize
+  if (typeof fontSize !== 'string' || !validFontSizes.includes(fontSize)) {
+    return null
+  }
+
+  // Validate density
+  const validDensities = ['compact', 'normal', 'comfortable']
+  const density = settingsObj.density
+  if (typeof density !== 'string' || !validDensities.includes(density)) {
+    return null
+  }
+
+  // Validate defaultFeed
+  const validFeeds = ['top', 'new', 'best', 'ask', 'show', 'jobs']
+  const defaultFeed = settingsObj.defaultFeed
+  if (typeof defaultFeed !== 'string' || !validFeeds.includes(defaultFeed)) {
+    return null
+  }
+
+  return {
+    theme: theme as Settings['theme'],
+    fontSize: fontSize as Settings['fontSize'],
+    density: density as Settings['density'],
+    defaultFeed: defaultFeed as Settings['defaultFeed'],
+  }
+}
+
+/**
+ * Handle settings file import
+ */
+async function handleSettingsImport(
+  file: File,
+  modal: HTMLElement,
+): Promise<void> {
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    const validatedSettings = validateSettings(data)
+
+    if (!validatedSettings) {
+      showImportResult(modal, false, 'Invalid settings file format')
+      return
+    }
+
+    // Apply all settings
+    saveSettings(validatedSettings)
+
+    // Update the active states in the modal
+    updateModalActiveStates(modal, validatedSettings)
+
+    showImportResult(modal, true, 'Settings imported successfully')
+  } catch {
+    showImportResult(modal, false, 'Failed to parse settings file')
+  }
+}
+
+/**
+ * Update active states in modal after import
+ */
+function updateModalActiveStates(modal: HTMLElement, settings: Settings): void {
+  // Update each setting group
+  for (const [key, value] of Object.entries(settings)) {
+    const buttons = modal.querySelectorAll(`[data-setting="${key}"]`)
+    for (const btn of buttons) {
+      if (btn instanceof HTMLElement) {
+        if (btn.dataset.value === value) {
+          btn.classList.add('active')
+        } else {
+          btn.classList.remove('active')
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Show import result feedback
+ */
+function showImportResult(
+  modal: HTMLElement,
+  success: boolean,
+  message: string,
+): void {
+  const backupSection = modal.querySelector(
+    '.settings-backup',
+  ) as HTMLElement | null
+  if (!backupSection) return
+
+  // Remove any existing feedback
+  const existingFeedback = backupSection.querySelector('.import-feedback')
+  existingFeedback?.remove()
+
+  // Create feedback element
+  const feedback = document.createElement('span')
+  feedback.className = `import-feedback ${success ? 'success' : 'error'}`
+  feedback.textContent = message
+  backupSection.appendChild(feedback)
+
+  // Remove feedback after delay
+  setTimeout(() => {
+    feedback.remove()
+  }, 3000)
 }
