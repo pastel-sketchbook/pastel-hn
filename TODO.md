@@ -229,7 +229,7 @@
 ### 4.6 Bookmarks & History
 - [x] Bookmark stories locally
 - [x] Reading history with timestamps
-- [ ] Export bookmarks
+- [x] Export bookmarks
 - [ ] Sync across devices (future)
 
 ---
