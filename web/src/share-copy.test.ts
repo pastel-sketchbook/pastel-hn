@@ -23,8 +23,6 @@ vi.mock('./toast', () => ({
   toastError: vi.fn(),
 }))
 
-import { toastError, toastSuccess } from './toast'
-
 describe('share/copy handlers', () => {
   let mockClipboard: { writeText: ReturnType<typeof vi.fn> }
   let mockShare: ReturnType<typeof vi.fn> | undefined

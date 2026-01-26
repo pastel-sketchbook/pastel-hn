@@ -7,13 +7,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core'
 import {
+  type AssistantResponse,
   CopilotClient,
   type CopilotStatus,
-  type StoryContext,
   type DiscussionContext,
-  type ReplyContext,
-  type AssistantResponse,
   getCopilotClient,
+  type ReplyContext,
+  type StoryContext,
 } from './copilot-client'
 
 const mockInvoke = vi.mocked(invoke)

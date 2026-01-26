@@ -553,7 +553,7 @@ let contextMenu: HTMLElement | null = null
  * @internal Exported for testing
  */
 export function resetContextMenu(): void {
-  if (contextMenu && contextMenu.parentNode) {
+  if (contextMenu?.parentNode) {
     contextMenu.parentNode.removeChild(contextMenu)
   }
   contextMenu = null
@@ -612,7 +612,7 @@ export function getContextMenu(): HTMLElement | null {
  * Handle text selection to show context menu
  * @internal Exported for testing
  */
-export function handleTextSelection(e: MouseEvent): void {
+export function handleTextSelection(_e: MouseEvent): void {
   // Only in Zen mode + Detail view
   if (!document.documentElement.classList.contains('zen-mode')) return
 

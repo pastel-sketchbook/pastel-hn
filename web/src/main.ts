@@ -1463,10 +1463,14 @@ async function renderStoryDetail(
               ${icons.copy}
               <span>Copy HN Link</span>
             </button>
-            ${story.url ? `<button class="story-action-btn" data-action="copy-article-link" data-url="${escapeAttr(story.url)}" title="Copy article link">
+            ${
+              story.url
+                ? `<button class="story-action-btn" data-action="copy-article-link" data-url="${escapeAttr(story.url)}" title="Copy article link">
               ${icons.link}
               <span>Copy Article Link</span>
-            </button>` : ''}
+            </button>`
+                : ''
+            }
             <button class="story-action-btn" data-action="share" data-id="${story.id}" data-title="${escapeAttr(story.title || 'Untitled')}" ${story.url ? `data-url="${escapeAttr(story.url)}"` : ''} title="Share story">
               ${icons.share}
               <span>Share</span>
