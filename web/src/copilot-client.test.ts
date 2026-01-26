@@ -21,24 +21,34 @@ const mockInvoke = vi.mocked(invoke)
 // Helper to set up Tauri environment
 function setupTauriEnvironment(enabled: boolean) {
   if (enabled) {
-    ;(window as unknown as { __TAURI_INTERNALS__: object }).__TAURI_INTERNALS__ = {}
+    ;(
+      window as unknown as { __TAURI_INTERNALS__: object }
+    ).__TAURI_INTERNALS__ = {}
   } else {
-    delete (window as unknown as { __TAURI_INTERNALS__?: object }).__TAURI_INTERNALS__
+    delete (window as unknown as { __TAURI_INTERNALS__?: object })
+      .__TAURI_INTERNALS__
   }
 }
 
 describe('CopilotClient', () => {
   let client: CopilotClient
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.clearAllMocks()
     client = new CopilotClient()
     setupTauriEnvironment(true)
+    // Suppress console noise from error-handling tests
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
     setupTauriEnvironment(false)
+    consoleErrorSpy.mockRestore()
+    consoleWarnSpy.mockRestore()
   })
 
   describe('initial state', () => {
