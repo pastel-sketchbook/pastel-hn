@@ -2054,7 +2054,9 @@ async function toggleZenMode(): Promise<void> {
       // Important: Exit fullscreen first, then restore decorations
       await appWindow.setFullscreen(false)
       // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) => setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS))
+      await new Promise((resolve) =>
+        setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS),
+      )
       await appWindow.setDecorations(true)
     }
 
@@ -2115,7 +2117,9 @@ async function exitZenMode(): Promise<void> {
       // Exit fullscreen first, then restore decorations
       await appWindow.setFullscreen(false)
       // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) => setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS))
+      await new Promise((resolve) =>
+        setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS),
+      )
       await appWindow.setDecorations(true)
     } catch (error) {
       console.warn('Tauri window API not available:', error)
