@@ -210,7 +210,7 @@
 - [x] Intelligent prefetching (next page, hovered stories)
 - [x] Comment count change detection
 - [x] Story score trending indicator (rising/hot based on points/hour)
-- [ ] Duplicate story detection
+- [x] Duplicate story detection
 - [x] Rate limit detection and retry UI
 
 ### 4.4 Error Handling UX
