@@ -161,7 +161,8 @@ function renderPanel(): void {
   panel.setAttribute('role', 'complementary')
   panel.setAttribute('aria-label', 'AI Assistant')
 
-  const initialReadability = localStorage.getItem('assistant-readability') === 'true'
+  const initialReadability =
+    localStorage.getItem('assistant-readability') === 'true'
   if (initialReadability) {
     panel.classList.add('light-reading-mode')
   }

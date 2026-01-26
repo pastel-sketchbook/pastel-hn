@@ -4,7 +4,7 @@
 
 Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
-![Version](https://img.shields.io/badge/version-0.8.5-cyan)
+![Version](https://img.shields.io/badge/version-0.9.0-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -15,6 +15,8 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 | ![Dark Theme](screenshots/dark.png) | ![Light Theme](screenshots/light.png) |
 | **Article View** | **Comments View** |
 | ![Article View](screenshots/story.png) | ![Comments View](screenshots/comments.png) |
+| **AI Assistant (Dark)** | **AI Assistant (Light)** |
+| ![AI Assistant Dark](screenshots/ai-assistant-dark-zen.png) | ![AI Assistant Light](screenshots/ai-assistant-light-zen.png) |
 
 ## Features
 
