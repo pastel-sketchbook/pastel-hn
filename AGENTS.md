@@ -131,12 +131,22 @@ When directed by human feedback to perform a release, the implementor executes t
    - Bumps version in VERSION file
    - Creates a commit with message `chore: bump version to X.Y.Z`
    - Creates an annotated git tag `vX.Y.Z`
-3. After completion, push the tag: `git push --tags`
+3. **DO NOT push automatically** - wait for human approval before pushing
 
 **When to Release:**
 - **Patch**: Bug fixes, correctness improvements, documentation updates.
 - **Minor**: New functions, new features, backward-compatible enhancements.
 - **Major**: Breaking API changes, removal of features, significant architectural changes.
+
+# GIT PUSH POLICY
+
+**NEVER push to remote without explicit human approval.** This includes:
+- `git push`
+- `git push --tags`
+- `git push origin <branch>`
+- Any variation of push commands
+
+After committing or releasing, inform the human that changes are ready and provide the command they can use to push when ready.
 
 # TIDY FIRST (STRUCTURAL) CHANGES
 
