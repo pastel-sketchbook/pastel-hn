@@ -125,10 +125,11 @@
 
 ### 3.1 Navigation
 - [x] Header with logo and nav tabs
-- [x] Feed switching (top/new/best/ask/show/jobs)
+- [x] Feed switching (top/new/best/ask/show/jobs/saved)
 - [x] Active state indicators
 - [x] Theme toggle button
 - [x] Search button/modal (Algolia HN Search integrated)
+- [x] Offline indicator badge
 - [ ] User menu (future: auth)
 
 ### 3.2 Story List View
@@ -188,6 +189,7 @@
 - [x] `Escape` - Go back/close modal
 - [x] `r` - Refresh current feed
 - [x] `1-6` - Switch feeds (top/new/best/ask/show/jobs)
+- [x] `7` - Switch to Saved (bookmarks) feed
 - [x] `/` - Focus search
 - [x] `?` - Show keyboard shortcuts
 - [x] `t` - Scroll to top
@@ -213,20 +215,20 @@
 
 ### 4.4 Error Handling UX
 - [x] Connection error recovery with retry button
-- [ ] Graceful degradation when offline
+- [x] Graceful degradation when offline (shows cached bookmarks)
 - [ ] Error boundaries to prevent full app crashes
 - [x] User-friendly error messages (not raw API errors)
 
 ### 4.5 Offline Support
-- [ ] Offline indicator in header
+- [x] Offline indicator in header
 - [ ] Cache stories for offline reading (SQLite)
-- [ ] **Persistent storage for favorite stories**
+- [x] **Persistent storage for favorite stories (bookmarks)**
 - [ ] Queue actions for when online
 - [ ] Sync status indicators
 
 ### 4.6 Bookmarks & History
-- [ ] Bookmark stories locally
-- [ ] Reading history with timestamps
+- [x] Bookmark stories locally
+- [x] Reading history with timestamps
 - [ ] Export bookmarks
 - [ ] Sync across devices (future)
 
@@ -339,11 +341,12 @@
 - [x] Unit tests for theme module (theme.test.ts - 11 tests)
 - [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 8 tests)
 - [x] Unit tests for keyboard.ts (keyboard.test.ts - 31 tests)
-- [x] Unit tests for storage.ts (storage.test.ts - 22 tests)
+- [x] Unit tests for storage.ts (storage.test.ts - 74 tests)
 - [x] Unit tests for settings.ts (settings.test.ts - 29 tests)
 - [x] Unit tests for toast.ts (toast.test.ts - 30 tests)
 - [x] Unit tests for prefetch.ts (prefetch.test.ts - 14 tests)
-- [x] Unit tests for assistant-ui.ts (assistant-ui.test.ts - 4 tests)
+- [x] Unit tests for offline.ts (offline.test.ts - 16 tests)
+- [x] Unit tests for assistant-ui.ts (assistant-ui.test.ts - 23 tests)
 - [x] Unit tests for copilot-client.ts (copilot-client.test.ts - 32 tests)
 - [x] Rust unit tests for HnClient (client.rs - 16 tests)
 - [x] Rust unit tests for types.rs (types.rs - 40 tests)

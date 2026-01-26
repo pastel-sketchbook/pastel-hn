@@ -307,7 +307,9 @@ async function renderStories(
 
     // Announce to screen readers
     if (feed === 'saved') {
-      announce(`${stories.length} bookmarked ${stories.length === 1 ? 'story' : 'stories'}`)
+      announce(
+        `${stories.length} bookmarked ${stories.length === 1 ? 'story' : 'stories'}`,
+      )
     } else {
       announce(`${stories.length} stories loaded`)
     }
@@ -746,10 +748,7 @@ async function fetchAndDisplayArticle(
  * Render a cached/bookmarked story in offline mode
  * Shows limited functionality with clear offline indicators
  */
-function renderOfflineStoryDetail(
-  container: HTMLElement,
-  story: HNItem,
-): void {
+function renderOfflineStoryDetail(container: HTMLElement, story: HNItem): void {
   const domain = extractDomain(story.url)
   const timeAgo = formatTimeAgo(story.time)
   const storyType =

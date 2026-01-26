@@ -40,7 +40,14 @@ export interface HNUser {
   submitted: number[] | null
 }
 
-export type StoryFeed = 'top' | 'new' | 'best' | 'ask' | 'show' | 'jobs' | 'saved'
+export type StoryFeed =
+  | 'top'
+  | 'new'
+  | 'best'
+  | 'ask'
+  | 'show'
+  | 'jobs'
+  | 'saved'
 
 export interface ArticleContent {
   title: string | null

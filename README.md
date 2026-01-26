@@ -4,7 +4,7 @@
 
 Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
-![Version](https://img.shields.io/badge/version-0.9.0-cyan)
+![Version](https://img.shields.io/badge/version-0.11.1-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -20,7 +20,9 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 
 ## Features
 
-- **All HN Feeds** - Top, New, Best, Ask, Show, Jobs with instant switching
+- **All HN Feeds** - Top, New, Best, Ask, Show, Jobs, plus Saved (bookmarks) with instant switching
+- **Bookmarks** - Save stories locally for offline reading with dedicated Saved feed
+- **Offline Support** - Offline indicator in header; view cached bookmarks when disconnected
 - **Article Reader** - Read articles inline without leaving the app (Mozilla Readability extraction)
 - **Threaded Comments** - Collapsible comment trees with smooth animations and depth indicators
 - **Lazy Comment Loading** - Initial shallow fetch with on-demand deep loading for fast performance
@@ -31,6 +33,8 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 - **Keyboard Navigation** - Full keyboard support for power users
 - **Dark/Light Themes** - Cyberpunk Pastel aesthetic with system preference support
 - **Customizable** - Font size (compact/normal/comfortable), density, and default feed settings
+- **Reading Progress** - Tracks read stories, new comments, and scroll positions
+- **Trending Indicators** - Shows rising/hot badges for rapidly trending stories
 - **Reading Time** - Estimated read time displayed for articles
 - **Window State** - Remembers window position and size across sessions
 - **AI Assistant** - GitHub Copilot-powered reading assistant (optional, desktop only)
@@ -68,7 +72,7 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 | `d` | Toggle dark/light theme |
 | `Escape` | Go back / exit Zen mode |
 | `r` | Refresh current feed |
-| `1-6` | Switch feeds (top/new/best/ask/show/jobs) |
+| `1-7` | Switch feeds (top/new/best/ask/show/jobs/saved) |
 | `/` | Focus search |
 | `t` | Scroll to top |
 | `?` | Show keyboard shortcuts |
@@ -120,6 +124,8 @@ pastel-hn/
 │   │   ├── keyboard.ts      # Keyboard navigation
 │   │   ├── theme.ts         # Theme management
 │   │   ├── settings.ts      # Settings panel
+│   │   ├── storage.ts       # Local storage (bookmarks, reading state)
+│   │   ├── offline.ts       # Offline detection
 │   │   ├── toast.ts         # Toast notifications
 │   │   ├── prefetch.ts      # Intelligent prefetching
 │   │   ├── storage.ts       # Local storage utilities

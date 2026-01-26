@@ -5,8 +5,8 @@ import {
   clearBookmarks,
   clearCommentCounts,
   clearFeedScrollPosition,
-  clearStoryScrollPosition,
   clearStoryScores,
+  clearStoryScrollPosition,
   getBookmarkedStories,
   getBookmarkedStoryById,
   getBookmarkedStoryIds,
@@ -508,7 +508,10 @@ describe('storage', () => {
   })
 
   describe('bookmarks', () => {
-    const createTestStory = (id: number, overrides?: Partial<HNItem>): HNItem => ({
+    const createTestStory = (
+      id: number,
+      overrides?: Partial<HNItem>,
+    ): HNItem => ({
       id,
       type: 0, // ItemType.Story
       by: 'testuser',
@@ -750,7 +753,9 @@ describe('storage', () => {
         const result = getBookmarkedStoryById(12345)
 
         expect(result).not.toBeNull()
-        expect(result?.text).toBe('<p>I am curious about error handling strategies...</p>')
+        expect(result?.text).toBe(
+          '<p>I am curious about error handling strategies...</p>',
+        )
       })
 
       it('handles corrupted localStorage gracefully', () => {
