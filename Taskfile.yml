@@ -294,17 +294,15 @@ tasks:
         echo "Stack: TypeScript + Bun + Tauri"
         echo "Version: $(cat VERSION)"
 
-  loc:count:
-    desc: Count lines of code
+  loc:
+    desc: Count lines of code using tokei
     cmds:
-      - |
-        echo "=== pastel-hn LoC ==="
-        echo ""
-        echo "TypeScript:"
-        find web/src -name "*.ts" 2>/dev/null | xargs wc -l 2>/dev/null || echo "  No TS files yet"
-        echo ""
-        echo "CSS:"
-        find web/src -name "*.css" 2>/dev/null | xargs wc -l 2>/dev/null || echo "  No CSS files yet"
+      - tokei web/src src-tauri/src --sort code
+
+  loc:files:
+    desc: Count lines of code per file (sorted by size)
+    cmds:
+      - tokei web/src src-tauri/src --files --sort code
 
   icon:gen:
     desc: Generate app icons from SVG source
