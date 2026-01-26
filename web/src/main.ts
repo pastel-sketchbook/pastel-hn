@@ -1,4 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
+import { announce } from './accessibility'
 import {
   clearStoryIdsCache,
   extractDomain,
@@ -684,6 +685,9 @@ async function renderStories(
     // Update accessibility state
     container.setAttribute('aria-busy', 'false')
 
+    // Announce to screen readers
+    announce(`${stories.length} stories loaded`)
+
     // Restore scroll position (defer to allow DOM to render)
     requestAnimationFrame(() => {
       const savedPosition = getFeedScrollPosition(feed)
@@ -700,6 +704,7 @@ async function renderStories(
       'retry-stories',
     )
     showErrorToast(error, 'Load stories')
+    announce('Error loading stories')
     console.error('Failed to load stories:', error)
   } finally {
     isLoading = false
@@ -1542,6 +1547,9 @@ async function renderStoryDetail(
 
     // Update assistant visibility for detail view
     updateAssistantZenMode(zenModeActive, 'detail')
+
+    // Announce to screen readers
+    announce(`Story loaded with ${commentCount} comments`)
   } catch (error) {
     const parsed = parseApiError(error)
     container.innerHTML = renderErrorWithRetry(
@@ -1551,6 +1559,7 @@ async function renderStoryDetail(
       true,
     )
     showErrorToast(error, 'Load story')
+    announce('Error loading story')
     console.error('Failed to load story:', error)
   } finally {
     isLoading = false
@@ -1724,6 +1733,9 @@ async function renderUserProfile(userId: string): Promise<void> {
 
     // Scroll to top
     setScrollTop(0)
+
+    // Announce to screen readers
+    announce(`User profile loaded for ${user.id}`)
   } catch (error) {
     const parsed = parseApiError(error)
     container.innerHTML = renderErrorWithRetry(
@@ -1733,6 +1745,7 @@ async function renderUserProfile(userId: string): Promise<void> {
       true,
     )
     showErrorToast(error, 'Load user')
+    announce('Error loading user profile')
     console.error('Failed to load user:', error)
   } finally {
     isLoading = false
