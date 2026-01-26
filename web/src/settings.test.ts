@@ -1383,9 +1383,7 @@ describe('settings', () => {
       expect(textarea.value).toBe(content)
     })
 
-    it('export triggers dialog after delay', async () => {
-      vi.useFakeTimers()
-
+    it('export shows dialog immediately when Tauri unavailable', async () => {
       // Mock URL API
       vi.stubGlobal('URL', {
         createObjectURL: vi.fn().mockReturnValue('blob:mock-url'),
@@ -1413,18 +1411,80 @@ describe('settings', () => {
       ) as HTMLElement
       exportBtn.click()
 
-      // Dialog should not exist immediately
-      let dialog = document.querySelector('.export-dialog-overlay')
-      expect(dialog).toBeNull()
+      // Wait for async Tauri check to complete and fall back to web
+      await vi.waitFor(() => {
+        const dialog = document.querySelector('.export-dialog-overlay')
+        expect(dialog).not.toBeNull()
+      })
+    })
 
-      // Advance past the 300ms delay
-      await vi.advanceTimersByTimeAsync(300)
+    it('removes keydown listener when closed via close button', () => {
+      showExportDialog('{}', 'test.json', 'Test')
 
-      // Dialog should now exist
-      dialog = document.querySelector('.export-dialog-overlay')
-      expect(dialog).not.toBeNull()
+      // Add a spy to track removeEventListener calls
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
 
-      vi.useRealTimers()
+      const closeBtn = document.querySelector(
+        '[data-action="close-export-dialog"]',
+      ) as HTMLElement
+      closeBtn.click()
+
+      // Verify listener was removed
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function),
+      )
+
+      removeEventListenerSpy.mockRestore()
+    })
+
+    it('removes keydown listener when closed via backdrop click', () => {
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+
+      const overlay = document.querySelector(
+        '.export-dialog-overlay',
+      ) as HTMLElement
+      overlay.click()
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function),
+      )
+
+      removeEventListenerSpy.mockRestore()
+    })
+
+    it('removes keydown listener when closed via Escape key', () => {
+      showExportDialog('{}', 'test.json', 'Test')
+
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+
+      const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' })
+      document.dispatchEvent(escapeEvent)
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function),
+      )
+
+      removeEventListenerSpy.mockRestore()
+    })
+
+    it('cleans up previous dialog keydown listener when opening new dialog', () => {
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
+
+      showExportDialog('first', 'first.json', 'First')
+      showExportDialog('second', 'second.json', 'Second')
+
+      // First dialog's listener should have been removed
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function),
+      )
+
+      removeEventListenerSpy.mockRestore()
     })
   })
 })

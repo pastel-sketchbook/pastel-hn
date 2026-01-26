@@ -51,7 +51,9 @@ We implemented a two-tier solution:
 Use Tauri's native file system APIs for a proper desktop experience:
 
 ```typescript
-async function saveWithTauriDialog(content: string, filename: string): Promise<boolean> {
+type SaveResult = 'success' | 'cancelled' | 'unavailable'
+
+async function saveWithTauriDialog(content: string, filename: string): Promise<SaveResult> {
   try {
     const { save } = await import('@tauri-apps/plugin-dialog')
     const { writeTextFile } = await import('@tauri-apps/plugin-fs')
@@ -64,14 +66,21 @@ async function saveWithTauriDialog(content: string, filename: string): Promise<b
 
     if (filePath) {
       await writeTextFile(filePath, content)
-      return true
+      return 'success'
     }
-    return false  // User cancelled
+    return 'cancelled'  // User dismissed dialog
   } catch {
-    return false  // Tauri not available
+    return 'unavailable'  // Tauri not available
   }
 }
 ```
+
+**Key Design Decision:** The function returns a discriminated `SaveResult` type rather than a boolean. This distinguishes between:
+- `'success'`: File was saved successfully
+- `'cancelled'`: User dismissed the dialog (not an error)
+- `'unavailable'`: Tauri APIs not available (should fallback to web download)
+
+This distinction is important because user cancellation should not trigger fallback dialogs, while Tauri unavailability should.
 
 This approach:
 - Opens the native OS save dialog
@@ -96,22 +105,43 @@ function triggerWebDownload(content: string, filename: string): void {
   document.body.removeChild(link)
 
   // Delay revoking URL to allow download to start
-  setTimeout(() => URL.revokeObjectURL(url), 100)
+  // 1000ms provides safety margin for slower systems
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 ```
 
 ### Tier 3: Copy Dialog (Last Resort)
 
-If all else fails, show a dialog with the JSON content that users can copy:
+If Tauri is unavailable (web environment), show a dialog with the JSON content that users can copy:
 
 ```typescript
+// Module-level handler for proper cleanup
+let exportDialogKeydownHandler: ((e: KeyboardEvent) => void) | null = null
+
 function showExportDialog(content: string, filename: string, title: string): void {
   // Creates a modal with:
   // - Textarea containing the JSON
   // - "Copy to Clipboard" button
   // - Instructions to save as filename.json
+  
+  // Store handler for cleanup
+  exportDialogKeydownHandler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') closeExportDialog()
+  }
+  document.addEventListener('keydown', exportDialogKeydownHandler)
+}
+
+function closeExportDialog(): void {
+  // Remove keyboard listener to prevent memory leaks
+  if (exportDialogKeydownHandler) {
+    document.removeEventListener('keydown', exportDialogKeydownHandler)
+    exportDialogKeydownHandler = null
+  }
+  // Remove dialog from DOM...
 }
 ```
+
+**Note:** The copy dialog is only shown when Tauri is unavailable (web fallback). It is NOT shown when the user cancels the native save dialog.
 
 ## Implementation Details
 
@@ -182,6 +212,7 @@ Create a Tauri command that handles the entire export flow in Rust.
 - Users can choose save location (better than forced Downloads folder)
 - Multiple fallback layers ensure graceful degradation
 - Copy dialog provides last-resort option
+- Clear distinction between cancellation and failure prevents confusing UX
 
 ### Negative
 
@@ -193,6 +224,18 @@ Create a Tauri command that handles the entire export flow in Rust.
 
 - Tests mock Tauri plugins to simulate non-Tauri environment
 - Web fallback still available for browser-based development
+
+## Code Review Refinements
+
+After initial implementation, code review identified several improvements:
+
+1. **SaveResult Type**: Changed from `boolean` to discriminated union type (`'success' | 'cancelled' | 'unavailable'`) to distinguish user cancellation from Tauri unavailability.
+
+2. **Listener Cleanup**: Added module-level `exportDialogKeydownHandler` variable to track and properly remove the Escape key listener on all close paths, preventing memory leaks.
+
+3. **Copy Dialog Logic**: Refined to only show the copy fallback dialog when Tauri is unavailable, not when the user cancels the native save dialog.
+
+4. **Revocation Delay**: Increased from 100ms to 1000ms to provide safety margin on slower systems.
 
 ## References
 

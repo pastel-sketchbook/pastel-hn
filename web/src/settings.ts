@@ -570,6 +570,11 @@ function downloadSettingsExport(): void {
 }
 
 /**
+ * Result of attempting to save via Tauri dialog
+ */
+type SaveResult = 'success' | 'cancelled' | 'unavailable'
+
+/**
  * Attempt to save a file using Tauri's native dialog, with web fallback
  */
 async function triggerDownloadWithFallback(
@@ -578,28 +583,27 @@ async function triggerDownloadWithFallback(
   title: string,
 ): Promise<void> {
   // Try Tauri native save dialog first
-  if (await saveWithTauriDialog(content, filename)) {
-    return // Success, no need for fallback
+  const result = await saveWithTauriDialog(content, filename)
+
+  if (result === 'success') {
+    return // Native save worked
   }
 
-  // Fallback: try web download
-  triggerWebDownload(content, filename)
+  if (result === 'cancelled') {
+    return // User cancelled - do nothing, don't fallback
+  }
 
-  // Show fallback dialog after a short delay
-  // This gives users an option to copy if download failed
-  setTimeout(() => {
-    showExportDialog(content, filename, title)
-  }, 300)
+  // Tauri unavailable - use web download with fallback dialog
+  triggerWebDownload(content, filename, title)
 }
 
 /**
  * Save file using Tauri's native file dialog and fs APIs
- * Returns true if successful, false if cancelled or unavailable
  */
 async function saveWithTauriDialog(
   content: string,
   filename: string,
-): Promise<boolean> {
+): Promise<SaveResult> {
   try {
     // Dynamically import Tauri plugins (only available in Tauri context)
     const { save } = await import('@tauri-apps/plugin-dialog')
@@ -618,21 +622,26 @@ async function saveWithTauriDialog(
 
     if (filePath) {
       await writeTextFile(filePath, content)
-      return true
+      return 'success'
     }
 
     // User cancelled the dialog
-    return false
+    return 'cancelled'
   } catch {
     // Tauri not available (running in browser) or other error
-    return false
+    return 'unavailable'
   }
 }
 
 /**
- * Trigger a web-based file download (fallback for non-Tauri environments)
+ * Trigger a web-based file download with fallback dialog
+ * Shows the copy dialog as a fallback since we can't detect download failures
  */
-function triggerWebDownload(content: string, filename: string): void {
+function triggerWebDownload(
+  content: string,
+  filename: string,
+  title: string,
+): void {
   const blob = new Blob([content], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
 
@@ -643,9 +652,17 @@ function triggerWebDownload(content: string, filename: string): void {
   link.click()
   document.body.removeChild(link)
 
-  // Delay revoking URL to allow download to start
-  setTimeout(() => URL.revokeObjectURL(url), 100)
+  // Delay revoking URL to allow download to start (1s for slower systems)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+
+  // In non-Tauri environments (web), we intentionally always show the copy dialog
+  // because web downloads can silently fail and there's no way to detect failure.
+  // This only runs when Tauri native dialog is unavailable (see triggerDownloadWithFallback).
+  showExportDialog(content, filename, title)
 }
+
+// Track the current export dialog's keydown handler for cleanup
+let exportDialogKeydownHandler: ((e: KeyboardEvent) => void) | null = null
 
 /**
  * Show export dialog with JSON content for manual copy
@@ -655,9 +672,8 @@ export function showExportDialog(
   filename: string,
   title: string,
 ): void {
-  // Remove any existing export dialog
-  const existingDialog = document.querySelector('.export-dialog-overlay')
-  existingDialog?.remove()
+  // Clean up any existing dialog first
+  closeExportDialog()
 
   const dialog = document.createElement('div')
   dialog.className = 'export-dialog-overlay'
@@ -735,20 +751,26 @@ export function showExportDialog(
     }
   })
 
-  // Handle Escape key
-  const handleKeydown = (e: KeyboardEvent) => {
+  // Handle Escape key - store handler for cleanup
+  exportDialogKeydownHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       closeExportDialog()
-      document.removeEventListener('keydown', handleKeydown)
     }
   }
-  document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('keydown', exportDialogKeydownHandler)
 }
 
 /**
- * Close the export dialog
+ * Close the export dialog and clean up event listeners
  */
 function closeExportDialog(): void {
+  // Remove keydown listener if it exists
+  if (exportDialogKeydownHandler) {
+    document.removeEventListener('keydown', exportDialogKeydownHandler)
+    exportDialogKeydownHandler = null
+  }
+
+  // Remove dialog from DOM
   const dialog = document.querySelector('.export-dialog-overlay')
   dialog?.remove()
 }
