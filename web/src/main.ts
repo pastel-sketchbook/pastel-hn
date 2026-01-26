@@ -334,13 +334,18 @@ async function navigateBackToList(): Promise<void> {
   const container = document.getElementById('stories')
   if (!container) return
 
+  // Exit zen mode when going back to list
+  // This ensures window decorations and header are restored
+  if (zenModeActive) {
+    await exitZenMode()
+  }
+
   // Animate detail view exiting
   await animateDetailExit(container)
 
   // Clear AI assistant context and close panel when leaving story
   clearStoryContext()
   closeAssistant()
-  updateAssistantZenMode(zenModeActive, 'list')
 
   // Update state and render list with animation
   currentView = 'list'
