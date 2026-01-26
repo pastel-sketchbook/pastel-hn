@@ -36,6 +36,7 @@ import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
 import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
 import { icons } from './icons'
 import { initKeyboard, resetSelection, setKeyboardCallbacks } from './keyboard'
+import { initOfflineDetection, isCurrentlyOffline } from './offline'
 import {
   clearPrefetchCache,
   getCachedStoryDetail,
@@ -68,6 +69,7 @@ import {
   bookmarkStory,
   clearFeedScrollPosition,
   getBookmarkedStories,
+  getBookmarkedStoryById,
   getCommentCountsMap,
   getFeedScrollPosition,
   getNewCommentsCount,
@@ -740,6 +742,102 @@ async function fetchAndDisplayArticle(
   }
 }
 
+/**
+ * Render a cached/bookmarked story in offline mode
+ * Shows limited functionality with clear offline indicators
+ */
+function renderOfflineStoryDetail(
+  container: HTMLElement,
+  story: HNItem,
+): void {
+  const domain = extractDomain(story.url)
+  const timeAgo = formatTimeAgo(story.time)
+  const storyType =
+    story.type === ItemType.Job ? 'job' : getStoryType(story.title)
+  const scoreHeat = getScoreHeat(story.score)
+  const typeAttr = storyType ? ` data-type="${storyType}"` : ''
+  const heatAttr = scoreHeat ? ` data-heat="${scoreHeat}"` : ''
+
+  // Store for bookmarking operations
+  currentStoryData = story
+  currentStoryAuthor = story.by
+
+  // Calculate reading time for text posts
+  const textWordCount = story.text ? countWords(story.text) : 0
+  const textReadingTime =
+    textWordCount > 0 ? calculateReadingTime(textWordCount) : ''
+
+  container.innerHTML = `
+    <div class="story-detail"${typeAttr}>
+      <div class="story-detail-header">
+        <button class="back-btn" data-action="back" title="Back to stories">
+          ${icons.back}
+          <span>Back</span>
+        </button>
+      </div>
+      
+      <div class="offline-badge">
+        ${icons.wifiOff}
+        <span>Viewing cached version (offline)</span>
+      </div>
+      
+      <article class="story-detail-content">
+        <h1 class="story-detail-title">
+          ${story.url ? `<a href="${story.url}" target="_blank" rel="noopener">${escapeHtml(story.title || 'Untitled')}</a>` : escapeHtml(story.title || 'Untitled')}
+        </h1>
+        ${domain ? `<div class="story-detail-domain"><a href="${story.url}" target="_blank" rel="noopener">${icons.link}${domain}</a></div>` : ''}
+        <div class="story-detail-meta">
+          <span class="story-score"${heatAttr}>${icons.points}${story.score} points</span>
+          <span class="meta-sep"></span>
+          <span class="story-by">${icons.user}<a href="#user/${encodeURIComponent(story.by || 'unknown')}" class="user-link">${escapeHtml(story.by || 'unknown')}</a></span>
+          <span class="meta-sep"></span>
+          <span class="story-time">${icons.clock}${timeAgo}</span>
+          <span class="meta-sep"></span>
+          <span class="story-comments-count">${icons.comment}${story.descendants || 0} comments</span>
+          ${textReadingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${textReadingTime}</span>` : ''}
+        </div>
+        <div class="story-actions">
+          <button class="story-action-btn${isStoryBookmarked(story.id) ? ' bookmarked' : ''}" data-action="toggle-bookmark" data-id="${story.id}" title="${isStoryBookmarked(story.id) ? 'Remove bookmark' : 'Bookmark story'}">
+            ${isStoryBookmarked(story.id) ? icons.bookmarkFilled : icons.bookmark}
+            <span>${isStoryBookmarked(story.id) ? 'Bookmarked' : 'Bookmark'}</span>
+          </button>
+          <button class="story-action-btn" data-action="copy-hn-link" data-id="${story.id}" title="Copy HN link">
+            ${icons.copy}
+            <span>Copy HN Link</span>
+          </button>
+          ${
+            story.url
+              ? `<button class="story-action-btn" data-action="copy-article-link" data-url="${escapeAttr(story.url)}" title="Copy article link">
+            ${icons.link}
+            <span>Copy Article Link</span>
+          </button>`
+              : ''
+          }
+        </div>
+      </article>
+      
+      ${
+        story.text
+          ? `
+        <div class="story-detail-text">${sanitizeHtml(story.text)}</div>
+      `
+          : ''
+      }
+      
+      <div class="offline-story-notice">
+        ${icons.wifiOff}
+        Comments are not available while offline. Connect to the internet to load comments.
+      </div>
+    </div>
+  `
+
+  // Scroll to top
+  setScrollTop(0)
+
+  // Update assistant visibility (disabled in offline mode)
+  updateAssistantZenMode(isZenModeActive(), 'detail')
+}
+
 async function renderStoryDetail(
   storyId: number,
   clickedStoryEl?: HTMLElement,
@@ -977,16 +1075,26 @@ async function renderStoryDetail(
     // Announce to screen readers
     announce(`Story loaded with ${commentCount} comments`)
   } catch (error) {
-    const parsed = parseApiError(error)
-    container.innerHTML = renderErrorWithRetry(
-      parsed,
-      'Story',
-      'retry-story',
-      true,
-    )
-    showErrorToast(error, 'Load story')
-    announce('Error loading story')
-    console.error('Failed to load story:', error)
+    // Check if we have a cached version from bookmarks when offline
+    const cachedStory = getBookmarkedStoryById(storyId)
+
+    if (cachedStory && isCurrentlyOffline()) {
+      // Show cached version with offline badge
+      renderOfflineStoryDetail(container, cachedStory)
+      toastInfo('Showing cached version (offline)')
+      announce('Showing cached story. You are offline.')
+    } else {
+      const parsed = parseApiError(error)
+      container.innerHTML = renderErrorWithRetry(
+        parsed,
+        'Story',
+        'retry-story',
+        true,
+      )
+      showErrorToast(error, 'Load story')
+      announce('Error loading story')
+      console.error('Failed to load story:', error)
+    }
   } finally {
     isLoading = false
   }
@@ -1697,6 +1805,9 @@ async function main(): Promise<void> {
 
     // Initialize AI assistant (conditionally enabled if Copilot available)
     initAssistant()
+
+    // Initialize offline detection
+    initOfflineDetection()
 
     // Set up zen mode callback for virtual scroll re-render and assistant updates
     setZenModeChangeCallback((isActive) => {

@@ -545,6 +545,16 @@ export function getBookmarkedStoryIds(): Set<number> {
   return new Set(bookmarks.map((b) => b.story.id))
 }
 
+/**
+ * Get a bookmarked story by ID (for offline fallback)
+ * Returns null if not bookmarked
+ */
+export function getBookmarkedStoryById(storyId: number): HNItem | null {
+  const bookmarks = getBookmarksData()
+  const entry = bookmarks.find((b) => b.story.id === storyId)
+  return entry?.story ?? null
+}
+
 function getBookmarksData(): BookmarkEntry[] {
   try {
     const stored = localStorage.getItem(BOOKMARKS_KEY)

@@ -8,6 +8,7 @@ import {
   clearStoryScrollPosition,
   clearStoryScores,
   getBookmarkedStories,
+  getBookmarkedStoryById,
   getBookmarkedStoryIds,
   getBookmarksCount,
   getBookmarksWithTimestamps,
@@ -695,6 +696,70 @@ describe('storage', () => {
 
       const bookmarks = getBookmarkedStories()
       expect(bookmarks[0]).toEqual(story)
+    })
+
+    describe('getBookmarkedStoryById', () => {
+      it('returns the story when bookmarked', () => {
+        const story = createTestStory(12345, {
+          title: 'Test Story for Lookup',
+          url: 'https://example.com/lookup',
+        })
+        bookmarkStory(story)
+
+        const result = getBookmarkedStoryById(12345)
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(12345)
+        expect(result?.title).toBe('Test Story for Lookup')
+      })
+
+      it('returns null when story is not bookmarked', () => {
+        const result = getBookmarkedStoryById(99999)
+
+        expect(result).toBeNull()
+      })
+
+      it('returns null when bookmarks are empty', () => {
+        clearBookmarks()
+
+        const result = getBookmarkedStoryById(12345)
+
+        expect(result).toBeNull()
+      })
+
+      it('returns correct story from multiple bookmarks', () => {
+        bookmarkStory(createTestStory(1, { title: 'Story 1' }))
+        bookmarkStory(createTestStory(2, { title: 'Story 2' }))
+        bookmarkStory(createTestStory(3, { title: 'Story 3' }))
+
+        const result = getBookmarkedStoryById(2)
+
+        expect(result).not.toBeNull()
+        expect(result?.id).toBe(2)
+        expect(result?.title).toBe('Story 2')
+      })
+
+      it('returns full story data including text for Ask HN stories', () => {
+        const askStory = createTestStory(12345, {
+          title: 'Ask HN: How do you handle errors?',
+          text: '<p>I am curious about error handling strategies...</p>',
+          url: undefined,
+        })
+        bookmarkStory(askStory)
+
+        const result = getBookmarkedStoryById(12345)
+
+        expect(result).not.toBeNull()
+        expect(result?.text).toBe('<p>I am curious about error handling strategies...</p>')
+      })
+
+      it('handles corrupted localStorage gracefully', () => {
+        localStorage.setItem('pastel-hn-bookmarks', 'invalid json {{{')
+
+        const result = getBookmarkedStoryById(12345)
+
+        expect(result).toBeNull()
+      })
     })
   })
 })
