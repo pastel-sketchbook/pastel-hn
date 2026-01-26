@@ -150,7 +150,9 @@ body {
 .skip-link:focus {
   top: 1rem;
   outline: none;
-  box-shadow: 0 0 0 3px var(--cyan-soft), 0 0 20px var(--cyan-glow);
+  box-shadow:
+    0 0 0 3px var(--cyan-soft),
+    0 0 20px var(--cyan-glow);
 }
 
 /* Accessibility: Screen reader only content */
