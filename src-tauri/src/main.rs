@@ -45,6 +45,7 @@ fn main() {
             commands::fetch_user_submissions,
             commands::search_hn,
             commands::clear_cache,
+            commands::get_cache_stats,
             commands::clear_story_ids_cache,
             // Article extraction
             commands::fetch_article_content,

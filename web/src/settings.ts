@@ -2,6 +2,7 @@
  * Settings panel for user preferences
  */
 
+import { clearCache, getCacheStats } from './api'
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import { KEYBOARD_SHORTCUTS } from './keyboard'
 import {
@@ -11,6 +12,7 @@ import {
   getReadStoriesCount,
 } from './storage'
 import { setTheme, type Theme } from './theme'
+import type { CacheStats } from './types'
 
 export type FontSize = 'compact' | 'normal' | 'comfortable'
 export type Density = 'compact' | 'normal' | 'comfortable'
@@ -51,6 +53,7 @@ const settingsIcons = {
   trash: `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
   bookmark: `<svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
   download: `<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  database: `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`,
 }
 
 /**
@@ -128,9 +131,17 @@ export function initSettings(): void {
 /**
  * Show the settings modal
  */
-export function showSettingsModal(): void {
+export async function showSettingsModal(): Promise<void> {
   if (settingsModalOpen) return
   settingsModalOpen = true
+
+  // Fetch cache stats in parallel while building the modal
+  let cacheStats: CacheStats | null = null
+  try {
+    cacheStats = await getCacheStats()
+  } catch {
+    // Ignore errors - we'll show a fallback UI
+  }
 
   const modal = document.createElement('div')
   modal.className = 'settings-modal-overlay'
@@ -247,6 +258,18 @@ export function showSettingsModal(): void {
           </div>
         </div>
         
+        <!-- Cache Management -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">${settingsIcons.database}Cache</h3>
+          <div class="settings-cache">
+            ${renderCacheStats(cacheStats)}
+            <button class="settings-clear-cache-btn" data-action="clear-cache">
+              ${settingsIcons.trash}
+              <span>Clear Cache</span>
+            </button>
+          </div>
+        </div>
+        
         <!-- Keyboard Shortcuts -->
         <div class="settings-section">
           <h3 class="settings-section-title">${settingsIcons.keyboard}Keyboard Shortcuts</h3>
@@ -327,6 +350,11 @@ export function showSettingsModal(): void {
     if (target.closest('[data-action="export-bookmarks"]')) {
       downloadBookmarksExport()
     }
+
+    // Clear cache button click
+    if (target.closest('[data-action="clear-cache"]')) {
+      handleClearCache(modal)
+    }
   })
 
   // Handle escape key
@@ -390,4 +418,63 @@ function formatExportDate(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+/**
+ * Render cache statistics HTML
+ */
+function renderCacheStats(stats: CacheStats | null): string {
+  if (!stats) {
+    return `<span class="cache-stats">Unable to load cache stats</span>`
+  }
+
+  const totalItems = stats.itemCount + stats.storyIdsCount + stats.userCount
+  return `<span class="cache-stats">${totalItems} items cached</span>`
+}
+
+/**
+ * Handle clear cache button click
+ */
+async function handleClearCache(modal: HTMLElement): Promise<void> {
+  const btn = modal.querySelector(
+    '[data-action="clear-cache"]',
+  ) as HTMLButtonElement | null
+  const statsEl = modal.querySelector('.cache-stats')
+
+  if (btn) {
+    btn.disabled = true
+    const spanEl = btn.querySelector('span')
+    const originalText = spanEl?.textContent
+
+    if (spanEl) {
+      spanEl.textContent = 'Clearing...'
+    }
+
+    try {
+      await clearCache()
+      if (statsEl) {
+        statsEl.textContent = '0 items cached'
+      }
+      if (spanEl) {
+        spanEl.textContent = 'Cleared!'
+      }
+      // Reset button text after a delay
+      setTimeout(() => {
+        if (spanEl) {
+          spanEl.textContent = originalText ?? 'Clear Cache'
+        }
+        btn.disabled = false
+      }, 1500)
+    } catch {
+      if (spanEl) {
+        spanEl.textContent = 'Error'
+      }
+      setTimeout(() => {
+        if (spanEl) {
+          spanEl.textContent = originalText ?? 'Clear Cache'
+        }
+        btn.disabled = false
+      }, 1500)
+    }
+  }
 }

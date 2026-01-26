@@ -6,7 +6,11 @@ use crate::client::SharedHnClient;
 use crate::copilot::{
     self, AssistantResponse, CopilotStatus, DiscussionContext, ReplyContext, StoryContext,
 };
-use crate::types::*;
+use crate::types::{
+    ApiError, ArticleContent, CacheStats, CommentWithChildren, HNItem, HNUser, SearchFilter,
+    SearchResponse, SearchSort, StoriesResponse, StoryFeed, StoryWithComments, SubmissionFilter,
+    SubmissionsResponse,
+};
 
 /// Fetch paginated stories for a feed
 #[tauri::command]
@@ -93,6 +97,12 @@ pub async fn search_hn(
 #[tauri::command]
 pub fn clear_cache(client: State<'_, SharedHnClient>) {
     client.clear_cache();
+}
+
+/// Get cache statistics
+#[tauri::command]
+pub fn get_cache_stats(client: State<'_, SharedHnClient>) -> CacheStats {
+    client.get_cache_stats()
 }
 
 /// Clear story IDs cache for a specific feed or all feeds

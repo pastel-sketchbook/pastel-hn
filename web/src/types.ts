@@ -59,3 +59,12 @@ export interface ArticleContent {
   lang: string | null
   wordCount: number
 }
+
+export interface CacheStats {
+  itemCount: number
+  storyIdsCount: number
+  userCount: number
+  itemTtlSecs: number
+  storyIdsTtlSecs: number
+  userTtlSecs: number
+}

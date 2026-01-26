@@ -7,6 +7,7 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import type {
+  CacheStats,
   CommentWithChildren,
   HNItem,
   HNUser,
@@ -188,6 +189,13 @@ export async function clearCache(): Promise<void> {
  */
 export async function clearStoryIdsCache(feed?: StoryFeed): Promise<void> {
   return invoke('clear_story_ids_cache', { feed: feed ?? null })
+}
+
+/**
+ * Get cache statistics
+ */
+export async function getCacheStats(): Promise<CacheStats> {
+  return invoke('get_cache_stats')
 }
 
 // ===== Utility Functions (kept in TypeScript as they're UI-related) =====

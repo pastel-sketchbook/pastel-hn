@@ -4960,6 +4960,57 @@ main {
   fill: none;
 }
 
+/* Cache management in settings */
+.settings-cache {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-panel-inner);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.cache-stats {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.settings-clear-cache-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--magenta);
+  border-radius: 4px;
+  color: var(--magenta);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-clear-cache-btn:hover:not(:disabled) {
+  background: var(--magenta);
+  color: var(--bg-primary);
+}
+
+.settings-clear-cache-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-clear-cache-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
 /* Keyboard shortcuts in settings */
 .settings-shortcuts {
   display: grid;

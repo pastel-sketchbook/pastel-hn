@@ -368,6 +368,18 @@ impl HnClient {
         }
     }
 
+    /// Get cache statistics
+    pub fn get_cache_stats(&self) -> CacheStats {
+        CacheStats {
+            item_count: self.item_cache.entry_count(),
+            story_ids_count: self.story_ids_cache.entry_count(),
+            user_count: self.user_cache.entry_count(),
+            item_ttl_secs: ITEM_CACHE_TTL.as_secs(),
+            story_ids_ttl_secs: STORY_IDS_CACHE_TTL.as_secs(),
+            user_ttl_secs: USER_CACHE_TTL.as_secs(),
+        }
+    }
+
     /// Fetch and extract article content from an external URL
     #[instrument(skip(self))]
     pub async fn fetch_article_content(&self, url: &str) -> Result<ArticleContent, ApiError> {

@@ -315,6 +315,24 @@ pub struct ArticleContent {
     pub word_count: usize,
 }
 
+/// Cache statistics for display in settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CacheStats {
+    /// Number of cached items
+    pub item_count: u64,
+    /// Number of cached story ID lists
+    pub story_ids_count: u64,
+    /// Number of cached users
+    pub user_count: u64,
+    /// Item cache TTL in seconds
+    pub item_ttl_secs: u64,
+    /// Story IDs cache TTL in seconds
+    pub story_ids_ttl_secs: u64,
+    /// User cache TTL in seconds
+    pub user_ttl_secs: u64,
+}
+
 #[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum ApiError {

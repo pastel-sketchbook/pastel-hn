@@ -10,24 +10,45 @@ import {
   showSettingsModal,
 } from './settings'
 import { bookmarkStory } from './storage'
-import type { HNItem } from './types'
+import type { CacheStats, HNItem } from './types'
 
 // Mock theme module
 vi.mock('./theme', () => ({
   setTheme: vi.fn(),
 }))
 
+// Mock API module
+vi.mock('./api', () => ({
+  getCacheStats: vi.fn(),
+  clearCache: vi.fn(),
+}))
+
 import { setTheme } from './theme'
+import { clearCache, getCacheStats } from './api'
 
 const mockSetTheme = vi.mocked(setTheme)
+const mockGetCacheStats = vi.mocked(getCacheStats)
+const mockClearCache = vi.mocked(clearCache)
 
 describe('settings', () => {
+  const mockCacheStats: CacheStats = {
+    itemCount: 10,
+    storyIdsCount: 5,
+    userCount: 3,
+    itemTtlSecs: 300,
+    storyIdsTtlSecs: 60,
+    userTtlSecs: 600,
+  }
+
   beforeEach(() => {
     localStorage.clear()
     document.body.innerHTML = ''
     document.documentElement.removeAttribute('data-font-size')
     document.documentElement.removeAttribute('data-density')
     vi.clearAllMocks()
+    // Default mock returns
+    mockGetCacheStats.mockResolvedValue(mockCacheStats)
+    mockClearCache.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -230,42 +251,42 @@ describe('settings', () => {
       loadSettings()
     })
 
-    it('showSettingsModal creates modal element', () => {
-      showSettingsModal()
+    it('showSettingsModal creates modal element', async () => {
+      await showSettingsModal()
 
       const modal = document.querySelector('.settings-modal-overlay')
       expect(modal).not.toBeNull()
     })
 
-    it('isSettingsModalOpen returns correct state', () => {
+    it('isSettingsModalOpen returns correct state', async () => {
       expect(isSettingsModalOpen()).toBe(false)
 
-      showSettingsModal()
+      await showSettingsModal()
       expect(isSettingsModalOpen()).toBe(true)
 
       closeSettingsModal()
       expect(isSettingsModalOpen()).toBe(false)
     })
 
-    it('does not open multiple modals', () => {
-      showSettingsModal()
-      showSettingsModal()
-      showSettingsModal()
+    it('does not open multiple modals', async () => {
+      await showSettingsModal()
+      await showSettingsModal()
+      await showSettingsModal()
 
       const modals = document.querySelectorAll('.settings-modal-overlay')
       expect(modals.length).toBe(1)
     })
 
-    it('closeSettingsModal removes modal element', () => {
-      showSettingsModal()
+    it('closeSettingsModal removes modal element', async () => {
+      await showSettingsModal()
       closeSettingsModal()
 
       const modal = document.querySelector('.settings-modal-overlay')
       expect(modal).toBeNull()
     })
 
-    it('modal contains theme options', () => {
-      showSettingsModal()
+    it('modal contains theme options', async () => {
+      await showSettingsModal()
 
       const lightBtn = document.querySelector(
         '[data-setting="theme"][data-value="light"]',
@@ -282,8 +303,8 @@ describe('settings', () => {
       expect(systemBtn).not.toBeNull()
     })
 
-    it('modal contains font size options', () => {
-      showSettingsModal()
+    it('modal contains font size options', async () => {
+      await showSettingsModal()
 
       const compact = document.querySelector(
         '[data-setting="fontSize"][data-value="compact"]',
@@ -300,8 +321,8 @@ describe('settings', () => {
       expect(comfortable).not.toBeNull()
     })
 
-    it('modal contains density options', () => {
-      showSettingsModal()
+    it('modal contains density options', async () => {
+      await showSettingsModal()
 
       const compact = document.querySelector(
         '[data-setting="density"][data-value="compact"]',
@@ -318,8 +339,8 @@ describe('settings', () => {
       expect(comfortable).not.toBeNull()
     })
 
-    it('modal contains default feed options', () => {
-      showSettingsModal()
+    it('modal contains default feed options', async () => {
+      await showSettingsModal()
 
       const feeds = ['top', 'new', 'best', 'ask', 'show', 'jobs']
       for (const feed of feeds) {
@@ -330,8 +351,8 @@ describe('settings', () => {
       }
     })
 
-    it('clicking setting option updates settings', () => {
-      showSettingsModal()
+    it('clicking setting option updates settings', async () => {
+      await showSettingsModal()
 
       const darkBtn = document.querySelector(
         '[data-setting="theme"][data-value="dark"]',
@@ -341,8 +362,8 @@ describe('settings', () => {
       expect(getSettings().theme).toBe('dark')
     })
 
-    it('clicking close button closes modal', () => {
-      showSettingsModal()
+    it('clicking close button closes modal', async () => {
+      await showSettingsModal()
 
       const closeBtn = document.querySelector(
         '[data-action="close-settings"]',
@@ -352,8 +373,8 @@ describe('settings', () => {
       expect(isSettingsModalOpen()).toBe(false)
     })
 
-    it('clicking backdrop closes modal', () => {
-      showSettingsModal()
+    it('clicking backdrop closes modal', async () => {
+      await showSettingsModal()
 
       const overlay = document.querySelector(
         '.settings-modal-overlay',
@@ -363,17 +384,17 @@ describe('settings', () => {
       expect(isSettingsModalOpen()).toBe(false)
     })
 
-    it('pressing Escape closes modal', () => {
-      showSettingsModal()
+    it('pressing Escape closes modal', async () => {
+      await showSettingsModal()
 
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
 
       expect(isSettingsModalOpen()).toBe(false)
     })
 
-    it('marks current setting as active', () => {
+    it('marks current setting as active', async () => {
       saveSettings({ theme: 'dark' })
-      showSettingsModal()
+      await showSettingsModal()
 
       const darkBtn = document.querySelector(
         '[data-setting="theme"][data-value="dark"]',
@@ -386,8 +407,8 @@ describe('settings', () => {
       expect(lightBtn?.classList.contains('active')).toBe(false)
     })
 
-    it('modal contains bookmarks export section', () => {
-      showSettingsModal()
+    it('modal contains bookmarks export section', async () => {
+      await showSettingsModal()
 
       const exportBtn = document.querySelector(
         '[data-action="export-bookmarks"]',
@@ -395,7 +416,7 @@ describe('settings', () => {
       expect(exportBtn).not.toBeNull()
     })
 
-    it('displays correct bookmarks count', () => {
+    it('displays correct bookmarks count', async () => {
       // Add some bookmarks
       const story: HNItem = {
         id: 12345,
@@ -414,13 +435,13 @@ describe('settings', () => {
       }
       bookmarkStory(story)
 
-      showSettingsModal()
+      await showSettingsModal()
 
       const countEl = document.querySelector('.bookmarks-count')
       expect(countEl?.textContent).toBe('1 stories saved')
     })
 
-    it('clicking export button triggers download', () => {
+    it('clicking export button triggers download', async () => {
       // Mock URL.createObjectURL and URL.revokeObjectURL
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
@@ -444,7 +465,7 @@ describe('settings', () => {
         },
       )
 
-      showSettingsModal()
+      await showSettingsModal()
 
       const exportBtn = document.querySelector(
         '[data-action="export-bookmarks"]',
@@ -458,6 +479,161 @@ describe('settings', () => {
         /^pastel-hn-bookmarks-\d{4}-\d{2}-\d{2}\.json$/,
       )
       expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+    })
+  })
+
+  describe('cache management', () => {
+    beforeEach(() => {
+      loadSettings()
+    })
+
+    it('displays cache stats in settings modal', async () => {
+      await showSettingsModal()
+
+      const statsEl = document.querySelector('.cache-stats')
+      expect(statsEl).not.toBeNull()
+      // 10 items + 5 story IDs + 3 users = 18 total
+      expect(statsEl?.textContent).toBe('18 items cached')
+    })
+
+    it('displays fallback when cache stats fails to load', async () => {
+      mockGetCacheStats.mockRejectedValue(new Error('Failed to fetch'))
+
+      await showSettingsModal()
+
+      const statsEl = document.querySelector('.cache-stats')
+      expect(statsEl?.textContent).toBe('Unable to load cache stats')
+    })
+
+    it('modal contains clear cache button', async () => {
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector('[data-action="clear-cache"]')
+      expect(clearBtn).not.toBeNull()
+    })
+
+    it('clicking clear cache button calls clearCache API', async () => {
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector(
+        '[data-action="clear-cache"]',
+      ) as HTMLButtonElement
+      clearBtn.click()
+
+      // Allow promise to resolve
+      await vi.waitFor(() => {
+        expect(mockClearCache).toHaveBeenCalled()
+      })
+    })
+
+    it('clear cache button shows loading state', async () => {
+      // Make clearCache hang so we can check the intermediate state
+      let resolveClearCache: () => void
+      mockClearCache.mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveClearCache = resolve
+          }),
+      )
+
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector(
+        '[data-action="clear-cache"]',
+      ) as HTMLButtonElement
+      clearBtn.click()
+
+      // Check loading state
+      await vi.waitFor(() => {
+        expect(clearBtn.disabled).toBe(true)
+        expect(clearBtn.querySelector('span')?.textContent).toBe('Clearing...')
+      })
+
+      // Resolve and check final state
+      resolveClearCache?.()
+      await vi.waitFor(() => {
+        expect(clearBtn.querySelector('span')?.textContent).toBe('Cleared!')
+      })
+    })
+
+    it('updates cache stats display after clearing', async () => {
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector(
+        '[data-action="clear-cache"]',
+      ) as HTMLButtonElement
+      clearBtn.click()
+
+      await vi.waitFor(() => {
+        const statsEl = document.querySelector('.cache-stats')
+        expect(statsEl?.textContent).toBe('0 items cached')
+      })
+    })
+
+    it('shows error state when clear cache fails', async () => {
+      mockClearCache.mockRejectedValue(new Error('Clear failed'))
+
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector(
+        '[data-action="clear-cache"]',
+      ) as HTMLButtonElement
+      clearBtn.click()
+
+      await vi.waitFor(() => {
+        expect(clearBtn.querySelector('span')?.textContent).toBe('Error')
+      })
+    })
+
+    it('resets button text after successful clear', async () => {
+      vi.useFakeTimers()
+
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector(
+        '[data-action="clear-cache"]',
+      ) as HTMLButtonElement
+      clearBtn.click()
+
+      // Flush microtasks to let clearCache resolve
+      await vi.advanceTimersByTimeAsync(0)
+
+      // Should show "Cleared!" initially
+      expect(clearBtn.querySelector('span')?.textContent).toBe('Cleared!')
+
+      // Advance timer to reset (1500ms)
+      await vi.advanceTimersByTimeAsync(1500)
+
+      expect(clearBtn.querySelector('span')?.textContent).toBe('Clear Cache')
+      expect(clearBtn.disabled).toBe(false)
+
+      vi.useRealTimers()
+    })
+
+    it('resets button text after error', async () => {
+      vi.useFakeTimers()
+      mockClearCache.mockRejectedValue(new Error('Clear failed'))
+
+      await showSettingsModal()
+
+      const clearBtn = document.querySelector(
+        '[data-action="clear-cache"]',
+      ) as HTMLButtonElement
+      clearBtn.click()
+
+      // Flush microtasks to let clearCache reject
+      await vi.advanceTimersByTimeAsync(0)
+
+      // Should show "Error" initially
+      expect(clearBtn.querySelector('span')?.textContent).toBe('Error')
+
+      // Advance timer to reset (1500ms)
+      await vi.advanceTimersByTimeAsync(1500)
+
+      expect(clearBtn.querySelector('span')?.textContent).toBe('Clear Cache')
+      expect(clearBtn.disabled).toBe(false)
+
+      vi.useRealTimers()
     })
   })
 })

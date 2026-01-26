@@ -174,7 +174,7 @@
 - [x] Default feed selection
 - [x] Keyboard shortcut reference
 - [x] **Clear reading history option**
-- [ ] **Cache management (view size, clear)**
+- [x] **Cache management (view size, clear)**
 - [ ] **Export/import settings**
 
 ---
@@ -342,7 +342,7 @@
 - [x] Unit tests for virtual scroll (virtual-scroll.test.ts - 8 tests)
 - [x] Unit tests for keyboard.ts (keyboard.test.ts - 31 tests)
 - [x] Unit tests for storage.ts (storage.test.ts - 74 tests)
-- [x] Unit tests for settings.ts (settings.test.ts - 29 tests)
+- [x] Unit tests for settings.ts (settings.test.ts - 41 tests)
 - [x] Unit tests for toast.ts (toast.test.ts - 30 tests)
 - [x] Unit tests for prefetch.ts (prefetch.test.ts - 14 tests)
 - [x] Unit tests for offline.ts (offline.test.ts - 16 tests)
