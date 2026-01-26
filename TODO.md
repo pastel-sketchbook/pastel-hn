@@ -324,7 +324,7 @@
 - [ ] First contentful paint <500ms
 - [ ] **Image/favicon lazy loading for story domains**
 - [ ] **Request deduplication for concurrent fetches**
-- [ ] **Split main.ts into smaller, focused modules**
+- [x] **Split main.ts into smaller, focused modules**
 
 ### 7.2 Accessibility
 - [x] Full keyboard navigation
