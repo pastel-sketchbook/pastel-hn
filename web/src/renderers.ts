@@ -5,7 +5,7 @@
 
 import { extractDomain, formatTimeAgo } from './api'
 import { icons } from './icons'
-import type { CommentWithChildren, HNItem, ItemType } from './types'
+import type { CommentWithChildren, HNItem } from './types'
 import {
   calculateReadingTime,
   countWords,

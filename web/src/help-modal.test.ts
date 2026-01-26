@@ -104,7 +104,9 @@ describe('help-modal', () => {
   describe('click interaction', () => {
     it('closes on backdrop click', () => {
       showHelpModal()
-      const overlay = document.querySelector('.help-modal-overlay') as HTMLElement
+      const overlay = document.querySelector(
+        '.help-modal-overlay',
+      ) as HTMLElement
       expect(overlay).not.toBeNull()
 
       // Simulate click on the overlay itself (not the modal content)
@@ -115,7 +117,9 @@ describe('help-modal', () => {
 
     it('closes on close button click', () => {
       showHelpModal()
-      const closeBtn = document.querySelector('[data-action="close-help"]') as HTMLElement
+      const closeBtn = document.querySelector(
+        '[data-action="close-help"]',
+      ) as HTMLElement
       expect(closeBtn).not.toBeNull()
 
       closeBtn.click()

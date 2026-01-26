@@ -51,7 +51,9 @@ export async function animateStoriesAway(
 /**
  * Animate detail view entering
  */
-export async function animateDetailEnter(container: HTMLElement): Promise<void> {
+export async function animateDetailEnter(
+  container: HTMLElement,
+): Promise<void> {
   if (prefersReducedMotion()) return
 
   container.classList.add('view-transition', 'view-enter-from-bottom')

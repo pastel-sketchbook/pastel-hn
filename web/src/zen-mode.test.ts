@@ -4,7 +4,9 @@ describe('zen-mode', () => {
   // Store reference to the imported module functions
   let isZenModeActive: () => boolean
   let isZenModeTransitioning: () => boolean
-  let setZenModeChangeCallback: (callback: ((isActive: boolean) => void) | null) => void
+  let setZenModeChangeCallback: (
+    callback: ((isActive: boolean) => void) | null,
+  ) => void
   let toggleZenMode: () => Promise<void>
   let exitZenMode: () => Promise<void>
 
@@ -130,7 +132,9 @@ describe('zen-mode', () => {
       await vi.runAllTimersAsync()
       await promise
 
-      expect(document.documentElement.classList.contains('zen-mode')).toBe(false)
+      expect(document.documentElement.classList.contains('zen-mode')).toBe(
+        false,
+      )
     })
 
     it('removes badge when deactivated', async () => {
@@ -218,7 +222,9 @@ describe('zen-mode', () => {
       await vi.runAllTimersAsync()
       await promise
 
-      expect(document.documentElement.classList.contains('zen-mode')).toBe(false)
+      expect(document.documentElement.classList.contains('zen-mode')).toBe(
+        false,
+      )
     })
 
     it('removes badge', async () => {

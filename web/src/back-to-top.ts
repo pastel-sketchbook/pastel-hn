@@ -12,7 +12,8 @@ const BACK_TO_TOP_THRESHOLD = 400 // Show button after scrolling this much
 let backToTopBtn: HTMLButtonElement | null = null
 
 // Callbacks
-let setScrollTop: ((top: number, behavior: ScrollBehavior) => void) | null = null
+let setScrollTop: ((top: number, behavior: ScrollBehavior) => void) | null =
+  null
 let getScrollTop: (() => number) | null = null
 
 /**

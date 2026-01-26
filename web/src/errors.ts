@@ -8,11 +8,7 @@ import { toastError } from './toast'
 /**
  * Error types for user-friendly messages
  */
-export type ApiErrorType =
-  | 'rate_limited'
-  | 'not_found'
-  | 'network'
-  | 'unknown'
+export type ApiErrorType = 'rate_limited' | 'not_found' | 'network' | 'unknown'
 
 export interface ParsedError {
   type: ApiErrorType

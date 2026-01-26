@@ -1,20 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  escapeHtml,
-  sanitizeHtml,
   calculateReadingTime,
   countWords,
-  getStoryType,
-  getScoreHeat,
+  escapeHtml,
   formatAccountAge,
+  getScoreHeat,
+  getStoryType,
   prefersReducedMotion,
+  sanitizeHtml,
 } from './utils'
 
 describe('utils', () => {
   describe('escapeHtml', () => {
     it('escapes HTML special characters', () => {
       expect(escapeHtml('<script>alert("xss")</script>')).toBe(
-        '&lt;script&gt;alert("xss")&lt;/script&gt;'
+        '&lt;script&gt;alert("xss")&lt;/script&gt;',
       )
     })
 
@@ -38,19 +38,19 @@ describe('utils', () => {
   describe('sanitizeHtml', () => {
     it('removes script tags', () => {
       expect(sanitizeHtml('<p>Hello</p><script>alert("xss")</script>')).toBe(
-        '<p>Hello</p>'
+        '<p>Hello</p>',
       )
     })
 
     it('removes onclick handlers', () => {
       expect(sanitizeHtml('<a onclick="alert(1)">link</a>')).toBe(
-        '<a >link</a>'
+        '<a >link</a>',
       )
     })
 
     it('removes onmouseover handlers', () => {
       expect(sanitizeHtml('<div onmouseover="hack()">text</div>')).toBe(
-        '<div >text</div>'
+        '<div >text</div>',
       )
     })
 
@@ -60,7 +60,7 @@ describe('utils', () => {
 
     it('preserves safe HTML tags', () => {
       expect(sanitizeHtml('<p>Hello <a href="url">link</a></p>')).toBe(
-        '<p>Hello <a href="url">link</a></p>'
+        '<p>Hello <a href="url">link</a></p>',
       )
     })
   })

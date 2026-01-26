@@ -1,7 +1,14 @@
 /**
  * Search modal functionality for Hacker News search
  */
-import { extractDomain, formatTimeAgo, searchHN, type SearchFilter, type SearchResult, type SearchSort } from './api'
+import {
+  extractDomain,
+  formatTimeAgo,
+  type SearchFilter,
+  type SearchResult,
+  type SearchSort,
+  searchHN,
+} from './api'
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import { icons } from './icons'
 import { escapeHtml } from './utils'

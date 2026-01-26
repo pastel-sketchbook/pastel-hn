@@ -33,7 +33,9 @@ export function isZenModeTransitioning(): boolean {
  * Set a callback to be called when zen mode changes
  * This allows external code to react to zen mode state changes
  */
-export function setZenModeChangeCallback(callback: ZenModeChangeCallback | null): void {
+export function setZenModeChangeCallback(
+  callback: ZenModeChangeCallback | null,
+): void {
   onZenModeChangeCallback = callback
 }
 

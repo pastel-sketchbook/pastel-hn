@@ -172,8 +172,22 @@ describe('renderComment', () => {
     const commentWithChildren: CommentWithChildren = {
       ...baseComment,
       children: [
-        { id: 789, type: 1, by: 'user1', time: 0, text: 'Reply 1', parent: 456 },
-        { id: 790, type: 1, by: 'user2', time: 0, text: 'Reply 2', parent: 456 },
+        {
+          id: 789,
+          type: 1,
+          by: 'user1',
+          time: 0,
+          text: 'Reply 1',
+          parent: 456,
+        },
+        {
+          id: 790,
+          type: 1,
+          by: 'user2',
+          time: 0,
+          text: 'Reply 2',
+          parent: 456,
+        },
       ],
     }
     const result = renderComment(commentWithChildren)

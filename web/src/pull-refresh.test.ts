@@ -438,8 +438,12 @@ describe('pull-refresh', () => {
     })
 
     it('resets state on touchend', async () => {
-      const { configurePullRefresh, setupPullToRefresh, isPullActive, getPullDistance } =
-        await import('./pull-refresh')
+      const {
+        configurePullRefresh,
+        setupPullToRefresh,
+        isPullActive,
+        getPullDistance,
+      } = await import('./pull-refresh')
 
       configurePullRefresh({
         onRefresh: vi.fn().mockResolvedValue(undefined),

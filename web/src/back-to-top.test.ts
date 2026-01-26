@@ -11,7 +11,9 @@ describe('back-to-top', () => {
 
   describe('configureBackToTop', () => {
     it('sets up scroll callbacks', async () => {
-      const { configureBackToTop, setupBackToTop } = await import('./back-to-top')
+      const { configureBackToTop, setupBackToTop } = await import(
+        './back-to-top'
+      )
 
       const mockSetScrollTop = vi.fn()
       const mockGetScrollTop = vi.fn().mockReturnValue(0)
@@ -66,7 +68,9 @@ describe('back-to-top', () => {
     })
 
     it('returns true after setup', async () => {
-      const { setupBackToTop, hasBackToTopButton } = await import('./back-to-top')
+      const { setupBackToTop, hasBackToTopButton } = await import(
+        './back-to-top'
+      )
       setupBackToTop()
       expect(hasBackToTopButton()).toBe(true)
     })
@@ -79,8 +83,12 @@ describe('back-to-top', () => {
     })
 
     it('returns false after setup when not scrolled', async () => {
-      const { configureBackToTop, setupBackToTop, isBackToTopVisible, updateBackToTopVisibility } =
-        await import('./back-to-top')
+      const {
+        configureBackToTop,
+        setupBackToTop,
+        isBackToTopVisible,
+        updateBackToTopVisibility,
+      } = await import('./back-to-top')
 
       configureBackToTop({
         setScrollTop: vi.fn(),
@@ -93,8 +101,12 @@ describe('back-to-top', () => {
     })
 
     it('returns true when scrolled past threshold', async () => {
-      const { configureBackToTop, setupBackToTop, isBackToTopVisible, updateBackToTopVisibility } =
-        await import('./back-to-top')
+      const {
+        configureBackToTop,
+        setupBackToTop,
+        isBackToTopVisible,
+        updateBackToTopVisibility,
+      } = await import('./back-to-top')
 
       configureBackToTop({
         setScrollTop: vi.fn(),
@@ -148,12 +160,16 @@ describe('back-to-top', () => {
       setupBackToTop()
 
       // Button should be in body
-      expect(document.body.contains(document.querySelector('.back-to-top'))).toBe(true)
+      expect(
+        document.body.contains(document.querySelector('.back-to-top')),
+      ).toBe(true)
     })
 
     it('attaches click handler', async () => {
       const mockSetScrollTop = vi.fn()
-      const { configureBackToTop, setupBackToTop } = await import('./back-to-top')
+      const { configureBackToTop, setupBackToTop } = await import(
+        './back-to-top'
+      )
 
       configureBackToTop({
         setScrollTop: mockSetScrollTop,
@@ -295,7 +311,7 @@ describe('back-to-top', () => {
 
       // Initially at top - should be hidden
       updateBackToTopVisibility()
-      let button = document.querySelector('.back-to-top')
+      const button = document.querySelector('.back-to-top')
       expect(button?.classList.contains('visible')).toBe(false)
 
       // Scroll down past threshold - should show

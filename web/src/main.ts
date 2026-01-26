@@ -1,4 +1,3 @@
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import { announce, escapeAttr } from './accessibility'
 import {
   animateDetailEnter,
@@ -6,7 +5,6 @@ import {
   animateListEnter,
   animateStoriesAway,
   applyStaggerAnimation,
-  TRANSITION_DURATION,
 } from './animations'
 import {
   clearStoryIdsCache,
@@ -29,30 +27,15 @@ import {
   updateAssistantZenMode,
 } from './assistant-ui'
 import {
-  parseApiError,
-  renderErrorWithRetry,
-  showErrorToast,
-} from './errors'
-import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
-import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
-import { icons } from './icons'
-import {
   configureBackToTop,
   scrollToTop,
   setupBackToTop,
   updateBackToTopVisibility,
 } from './back-to-top'
-import {
-  initKeyboard,
-  resetSelection,
-  setKeyboardCallbacks,
-} from './keyboard'
-import {
-  configurePullRefresh,
-  setupPullToRefresh,
-  updatePullIndicator,
-  getPullThreshold,
-} from './pull-refresh'
+import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
+import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
+import { icons } from './icons'
+import { initKeyboard, resetSelection, setKeyboardCallbacks } from './keyboard'
 import {
   clearPrefetchCache,
   getCachedStoryDetail,
@@ -61,12 +44,14 @@ import {
   prefetchNextPage,
   prefetchVisibleStories,
 } from './prefetch'
+import { configurePullRefresh, setupPullToRefresh } from './pull-refresh'
 import {
   renderComment,
   renderLoadMoreIndicator,
   renderStory,
   renderSubmissionItem,
 } from './renderers'
+import { closeSearchModal, isSearchModalOpen, showSearchModal } from './search'
 import {
   closeSettingsModal,
   getSettings,
@@ -74,7 +59,6 @@ import {
   isSettingsModalOpen,
   showSettingsModal,
 } from './settings'
-import { closeSearchModal, isSearchModalOpen, showSearchModal } from './search'
 import {
   renderCommentSkeletons,
   renderStorySkeletons,
@@ -91,12 +75,7 @@ import {
 } from './storage'
 import { toggleTheme } from './theme'
 import { toastError, toastInfo, toastSuccess } from './toast'
-import {
-  type CommentWithChildren,
-  type HNItem,
-  ItemType,
-  type StoryFeed,
-} from './types'
+import { type HNItem, ItemType, type StoryFeed } from './types'
 import {
   calculateReadingTime,
   countWords,
@@ -104,7 +83,6 @@ import {
   formatAccountAge,
   getScoreHeat,
   getStoryType,
-  prefersReducedMotion,
   sanitizeHtml,
 } from './utils'
 import { VirtualScroll } from './virtual-scroll'
@@ -140,7 +118,7 @@ async function navigateBackToList(): Promise<void> {
 
   // Exit zen mode when going back to list
   // This ensures window decorations and header are restored
-if (isZenModeActive()) {
+  if (isZenModeActive()) {
     await exitZenMode()
   }
 
@@ -320,8 +298,11 @@ function renderStoriesStandard(
   stories: HNItem[],
 ): void {
   container.innerHTML =
-    stories.map((story, idx) => renderStory(story, idx + 1, readStoryIds.has(story.id))).join('') +
-    renderLoadMoreIndicator(hasMoreStories)
+    stories
+      .map((story, idx) =>
+        renderStory(story, idx + 1, readStoryIds.has(story.id)),
+      )
+      .join('') + renderLoadMoreIndicator(hasMoreStories)
 
   // Apply stagger animation to stories
   applyStaggerAnimation(container, '.story')
@@ -373,7 +354,8 @@ function initVirtualScroll(container: HTMLElement): void {
     container,
     itemHeight: STORY_ITEM_HEIGHT,
     bufferSize: 10,
-    renderItem: (story, index) => renderStory(story, index + 1, readStoryIds.has(story.id)),
+    renderItem: (story, index) =>
+      renderStory(story, index + 1, readStoryIds.has(story.id)),
     onNearEnd: () => {
       if (hasMoreStories && !isLoadingMore) {
         loadMoreStoriesVirtual()
@@ -468,11 +450,16 @@ async function loadMoreStories(): Promise<void> {
       // Append new stories
       const startRank = currentStories.length + 1
       const newStoriesHtml = stories
-        .map((story, idx) => renderStory(story, startRank + idx, readStoryIds.has(story.id)))
+        .map((story, idx) =>
+          renderStory(story, startRank + idx, readStoryIds.has(story.id)),
+        )
         .join('')
 
       container.insertAdjacentHTML('beforeend', newStoriesHtml)
-      container.insertAdjacentHTML('beforeend', renderLoadMoreIndicator(hasMoreStories))
+      container.insertAdjacentHTML(
+        'beforeend',
+        renderLoadMoreIndicator(hasMoreStories),
+      )
 
       // Setup hover prefetch for newly added story cards
       const newStoryCards = container.querySelectorAll(

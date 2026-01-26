@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeSearchModal, isSearchModalOpen, renderSearchResult, showSearchModal } from './search'
 import type { SearchResult } from './api'
+import {
+  closeSearchModal,
+  isSearchModalOpen,
+  renderSearchResult,
+  showSearchModal,
+} from './search'
 
 describe('search', () => {
   beforeEach(() => {
@@ -238,7 +243,7 @@ describe('search', () => {
         const html = renderSearchResult(result)
         // Should contain truncated text (200 chars) plus "..."
         const truncated = 'A'.repeat(200)
-        expect(html).toContain(truncated + '...')
+        expect(html).toContain(`${truncated}...`)
       })
 
       it('escapes HTML in comment text', () => {
@@ -272,7 +277,9 @@ describe('search', () => {
   describe('click interaction', () => {
     it('closes on backdrop click', () => {
       showSearchModal()
-      const overlay = document.querySelector('.search-modal-overlay') as HTMLElement
+      const overlay = document.querySelector(
+        '.search-modal-overlay',
+      ) as HTMLElement
       expect(overlay).not.toBeNull()
 
       // Simulate click on the overlay itself (not the modal content)
@@ -283,7 +290,9 @@ describe('search', () => {
 
     it('toggles sort between relevance and date', () => {
       showSearchModal()
-      const sortBtn = document.querySelector('[data-sort="toggle"]') as HTMLElement
+      const sortBtn = document.querySelector(
+        '[data-sort="toggle"]',
+      ) as HTMLElement
       const sortLabel = sortBtn.querySelector('.sort-label')
 
       expect(sortLabel?.textContent).toBe('Relevance')
@@ -299,8 +308,12 @@ describe('search', () => {
 
     it('switches filter buttons', () => {
       showSearchModal()
-      const allBtn = document.querySelector('[data-filter="all"]') as HTMLElement
-      const storiesBtn = document.querySelector('[data-filter="story"]') as HTMLElement
+      const allBtn = document.querySelector(
+        '[data-filter="all"]',
+      ) as HTMLElement
+      const storiesBtn = document.querySelector(
+        '[data-filter="story"]',
+      ) as HTMLElement
 
       expect(allBtn.classList.contains('active')).toBe(true)
       expect(storiesBtn.classList.contains('active')).toBe(false)
