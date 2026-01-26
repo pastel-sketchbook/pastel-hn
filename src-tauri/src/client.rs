@@ -436,24 +436,25 @@ mod tests {
     #[test]
     fn hn_client_new_creates_instance() {
         let client = HnClient::new();
-        // Verify caches are created with expected capacities
-        // We can't directly inspect capacity, but we can verify the client exists
-        assert!(std::mem::size_of_val(&client) > 0);
+        // Verify clear_cache doesn't panic on fresh instance
+        client.clear_cache();
     }
 
     #[test]
     fn hn_client_default_creates_instance() {
         let client = HnClient::default();
-        assert!(std::mem::size_of_val(&client) > 0);
+        // Verify clear_cache doesn't panic on fresh instance
+        client.clear_cache();
     }
 
     #[test]
     fn hn_client_default_equals_new() {
-        // Both should create valid clients (we can't compare them directly,
-        // but we verify both construction paths work)
-        let _client1 = HnClient::new();
-        let _client2 = HnClient::default();
-        // If we get here without panic, both constructors work
+        // Both should create valid clients that behave identically
+        let client1 = HnClient::new();
+        let client2 = HnClient::default();
+        // Both should handle clear_cache without panic
+        client1.clear_cache();
+        client2.clear_cache();
     }
 
     // ===== create_client Tests =====
@@ -565,15 +566,6 @@ mod tests {
 
         let comments = client.fetch_comments(&item, 3).await.unwrap();
         assert!(comments.is_empty());
-    }
-
-    // ===== check_response_status Tests =====
-
-    #[test]
-    fn check_response_status_ok_returns_ok() {
-        // We can't easily construct a reqwest::Response in tests,
-        // so we test this indirectly through integration tests.
-        // This test documents the expected behavior.
     }
 
     // ===== StoryFeed Cache Key Tests =====
