@@ -976,6 +976,45 @@ main {
   filter: drop-shadow(0 0 6px var(--cyan-glow));
 }
 
+/* New comments badge - indicates new comments since last visit */
+.new-comments-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-dim));
+  color: var(--bg-primary);
+  padding: 0.1rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  margin-left: 0.5rem;
+  text-shadow: none;
+  box-shadow: 0 0 8px var(--cyan-glow);
+  animation: badge-pulse 3s ease-in-out infinite;
+}
+
+[data-theme="light"] .new-comments-badge {
+  background: linear-gradient(135deg, var(--cyan), var(--cyan-dim));
+  color: #fff;
+}
+
+@keyframes badge-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--cyan-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 15px var(--cyan-glow);
+  }
+}
+
+/* Disable badge animation for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .new-comments-badge {
+    animation: none;
+  }
+}
+
 /* ===== LOADING STATE ===== */
 .loading {
   display: flex;

@@ -20,11 +20,13 @@ import {
  * @param story - The story data
  * @param rank - Display rank number
  * @param isRead - Whether the story has been read
+ * @param newComments - Number of new comments since last visit (0 = none or never visited)
  */
 export function renderStory(
   story: HNItem,
   rank: number,
   isRead: boolean,
+  newComments = 0,
 ): string {
   const domain = extractDomain(story.url)
   const timeAgo = formatTimeAgo(story.time)
@@ -40,6 +42,12 @@ export function renderStory(
   const heatAttr = scoreHeat ? ` data-heat="${scoreHeat}"` : ''
   const readClass = isRead ? ' story-read' : ''
   const readStatus = isRead ? 'Previously read. ' : ''
+
+  // New comments badge HTML
+  const newCommentsBadge =
+    newComments > 0
+      ? `<span class="new-comments-badge">+${newComments} new</span>`
+      : ''
 
   return `
     <article class="story${readClass}" data-id="${story.id}"${typeAttr} aria-label="${readStatus}${escapeHtml(story.title || 'Untitled')} - ${story.score} points, ${story.descendants || 0} comments">
@@ -62,7 +70,7 @@ export function renderStory(
           <span class="story-time">${icons.clock}${timeAgo}</span>
           <span class="meta-sep"></span>
           <span class="story-comments">
-            <a href="#item/${story.id}" aria-label="${story.descendants || 0} comments">${icons.comment}${story.descendants || 0} comments</a>
+            <a href="#item/${story.id}" aria-label="${story.descendants || 0} comments">${icons.comment}${story.descendants || 0} comments</a>${newCommentsBadge}
           </span>
           ${readingTime ? `<span class="meta-sep"></span><span class="story-reading-time">${icons.book}${readingTime}</span>` : ''}
         </div>

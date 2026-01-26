@@ -11,11 +11,14 @@ const STORAGE_PREFIX = 'pastel-hn'
 const FEED_SCROLL_KEY = `${STORAGE_PREFIX}-feed-scroll`
 const STORY_SCROLL_KEY = `${STORAGE_PREFIX}-story-scroll`
 const READ_STORIES_KEY = `${STORAGE_PREFIX}-read-stories`
+const COMMENT_COUNTS_KEY = `${STORAGE_PREFIX}-comment-counts`
 
 // Max number of read stories to track (prevents localStorage bloat)
 const MAX_READ_STORIES = 500
 // Max number of story scroll positions to track
 const MAX_STORY_POSITIONS = 100
+// Max number of comment counts to track
+const MAX_COMMENT_COUNTS = 500
 
 /**
  * Save scroll position for a feed
@@ -214,4 +217,99 @@ export function clearReadingHistory(): void {
  */
 export function getReadStoriesCount(): number {
   return getReadStories().length
+}
+
+// ============================================================================
+// Comment Count Tracking (for "new comments" indicator)
+// ============================================================================
+
+interface CommentCountEntry {
+  count: number
+  timestamp: number
+}
+
+/**
+ * Save the comment count for a story when the user views it
+ */
+export function saveStoryCommentCount(
+  storyId: number,
+  commentCount: number,
+): void {
+  try {
+    const data = getCommentCountsData()
+
+    data[storyId] = { count: commentCount, timestamp: Date.now() }
+
+    // Prune old entries if we have too many
+    const entries = Object.entries(data)
+    if (entries.length > MAX_COMMENT_COUNTS) {
+      // Sort by timestamp, keep newest
+      entries.sort((a, b) => b[1].timestamp - a[1].timestamp)
+      const pruned = Object.fromEntries(entries.slice(0, MAX_COMMENT_COUNTS))
+      localStorage.setItem(COMMENT_COUNTS_KEY, JSON.stringify(pruned))
+    } else {
+      localStorage.setItem(COMMENT_COUNTS_KEY, JSON.stringify(data))
+    }
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Get the last seen comment count for a story
+ * Returns null if the story has never been viewed
+ */
+export function getStoryCommentCount(storyId: number): number | null {
+  const data = getCommentCountsData()
+  return data[storyId]?.count ?? null
+}
+
+/**
+ * Calculate new comments since last visit
+ * Returns 0 if story hasn't been viewed before or no new comments
+ */
+export function getNewCommentsCount(
+  storyId: number,
+  currentCount: number,
+): number {
+  const lastSeenCount = getStoryCommentCount(storyId)
+  if (lastSeenCount === null) {
+    return 0 // Story hasn't been viewed before
+  }
+  return Math.max(0, currentCount - lastSeenCount)
+}
+
+/**
+ * Get all tracked comment counts as a map for efficient lookup
+ */
+export function getCommentCountsMap(): Map<number, number> {
+  const data = getCommentCountsData()
+  const map = new Map<number, number>()
+  for (const [id, entry] of Object.entries(data)) {
+    map.set(Number(id), entry.count)
+  }
+  return map
+}
+
+function getCommentCountsData(): Record<number, CommentCountEntry> {
+  try {
+    const stored = localStorage.getItem(COMMENT_COUNTS_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return {}
+}
+
+/**
+ * Clear all comment count data
+ */
+export function clearCommentCounts(): void {
+  try {
+    localStorage.removeItem(COMMENT_COUNTS_KEY)
+  } catch {
+    // Ignore
+  }
 }

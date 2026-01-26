@@ -66,11 +66,13 @@ import {
 } from './skeletons'
 import {
   clearFeedScrollPosition,
+  getCommentCountsMap,
   getFeedScrollPosition,
   getReadStoryIds,
   getStoryScrollPosition,
   markStoryAsRead,
   saveFeedScrollPosition,
+  saveStoryCommentCount,
   saveStoryScrollPosition,
 } from './storage'
 import { toggleTheme } from './theme'
@@ -106,6 +108,8 @@ let currentStoryAuthor: string | null = null // Track OP for comment highlightin
 let currentStoryId: number | null = null // Track current story for scroll position
 let currentUserId: string | null = null // Track current user profile
 let readStoryIds: Set<number> = new Set() // Cache of read stories
+let commentCountsMap: Map<number, number> = new Map() // Cache of last seen comment counts
+let currentStoryCommentCount: number | null = null // Track comment count of current story
 const STORIES_PER_PAGE = 30
 const SUBMISSIONS_PER_PAGE = 20
 
@@ -115,6 +119,14 @@ const SUBMISSIONS_PER_PAGE = 20
 async function navigateBackToList(): Promise<void> {
   const container = document.getElementById('stories')
   if (!container) return
+
+  // Save comment count when leaving story detail view
+  // This enables the "new comments" badge on next visit
+  if (currentStoryId && currentStoryCommentCount !== null) {
+    saveStoryCommentCount(currentStoryId, currentStoryCommentCount)
+    // Update local cache so badge reflects immediately
+    commentCountsMap.set(currentStoryId, currentStoryCommentCount)
+  }
 
   // Exit zen mode when going back to list
   // This ensures window decorations and header are restored
@@ -128,6 +140,9 @@ async function navigateBackToList(): Promise<void> {
   // Clear AI assistant context and close panel when leaving story
   clearStoryContext()
   closeAssistant()
+
+  // Reset current story tracking
+  currentStoryCommentCount = null
 
   // Update state and render list with animation
   currentView = 'list'
@@ -232,6 +247,9 @@ async function renderStories(
   // Load read stories cache
   readStoryIds = getReadStoryIds()
 
+  // Load comment counts cache for "new comments" badge
+  commentCountsMap = getCommentCountsMap()
+
   const container = document.getElementById('stories')
   if (!container) {
     isLoading = false
@@ -299,9 +317,20 @@ function renderStoriesStandard(
 ): void {
   container.innerHTML =
     stories
-      .map((story, idx) =>
-        renderStory(story, idx + 1, readStoryIds.has(story.id)),
-      )
+      .map((story, idx) => {
+        const lastSeenCount = commentCountsMap.get(story.id)
+        const currentCount = story.descendants || 0
+        const newComments =
+          lastSeenCount !== undefined
+            ? Math.max(0, currentCount - lastSeenCount)
+            : 0
+        return renderStory(
+          story,
+          idx + 1,
+          readStoryIds.has(story.id),
+          newComments,
+        )
+      })
       .join('') + renderLoadMoreIndicator(hasMoreStories)
 
   // Apply stagger animation to stories
@@ -354,8 +383,20 @@ function initVirtualScroll(container: HTMLElement): void {
     container,
     itemHeight: STORY_ITEM_HEIGHT,
     bufferSize: 10,
-    renderItem: (story, index) =>
-      renderStory(story, index + 1, readStoryIds.has(story.id)),
+    renderItem: (story, index) => {
+      const lastSeenCount = commentCountsMap.get(story.id)
+      const currentCount = story.descendants || 0
+      const newComments =
+        lastSeenCount !== undefined
+          ? Math.max(0, currentCount - lastSeenCount)
+          : 0
+      return renderStory(
+        story,
+        index + 1,
+        readStoryIds.has(story.id),
+        newComments,
+      )
+    },
     onNearEnd: () => {
       if (hasMoreStories && !isLoadingMore) {
         loadMoreStoriesVirtual()
@@ -450,9 +491,20 @@ async function loadMoreStories(): Promise<void> {
       // Append new stories
       const startRank = currentStories.length + 1
       const newStoriesHtml = stories
-        .map((story, idx) =>
-          renderStory(story, startRank + idx, readStoryIds.has(story.id)),
-        )
+        .map((story, idx) => {
+          const lastSeenCount = commentCountsMap.get(story.id)
+          const currentCount = story.descendants || 0
+          const newComments =
+            lastSeenCount !== undefined
+              ? Math.max(0, currentCount - lastSeenCount)
+              : 0
+          return renderStory(
+            story,
+            startRank + idx,
+            readStoryIds.has(story.id),
+            newComments,
+          )
+        })
         .join('')
 
       container.insertAdjacentHTML('beforeend', newStoriesHtml)
@@ -709,6 +761,9 @@ async function renderStoryDetail(
     // For Ask HN / text posts, show the text directly
     const hasExternalUrl = !!story.url && !story.url.startsWith('item?id=')
     const commentCount = story.descendants || 0
+
+    // Store comment count for "new comments" tracking
+    currentStoryCommentCount = commentCount
 
     // Calculate reading time for text posts (Ask HN, etc.)
     const textWordCount = story.text ? countWords(story.text) : 0

@@ -96,6 +96,32 @@ describe('renderStory', () => {
     expect(result).toContain('aria-label=')
     expect(result).toContain('aria-hidden="true"')
   })
+
+  it('renders new comments badge when newComments > 0', () => {
+    const result = renderStory(baseStory, 1, false, 15)
+
+    expect(result).toContain('new-comments-badge')
+    expect(result).toContain('+15 new')
+  })
+
+  it('does not render new comments badge when newComments is 0', () => {
+    const result = renderStory(baseStory, 1, false, 0)
+
+    expect(result).not.toContain('new-comments-badge')
+    expect(result).not.toContain('+0 new')
+  })
+
+  it('does not render new comments badge when newComments is not provided', () => {
+    const result = renderStory(baseStory, 1, false)
+
+    expect(result).not.toContain('new-comments-badge')
+  })
+
+  it('renders new comments badge with large numbers', () => {
+    const result = renderStory(baseStory, 1, false, 999)
+
+    expect(result).toContain('+999 new')
+  })
 })
 
 describe('renderComment', () => {

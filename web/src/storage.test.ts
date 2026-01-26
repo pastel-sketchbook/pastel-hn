@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearAllReadingData,
+  clearCommentCounts,
   clearFeedScrollPosition,
   clearStoryScrollPosition,
+  getCommentCountsMap,
   getFeedScrollPosition,
+  getNewCommentsCount,
   getReadStoryIds,
+  getStoryCommentCount,
   getStoryScrollPosition,
   isStoryRead,
   markStoryAsRead,
   saveFeedScrollPosition,
+  saveStoryCommentCount,
   saveStoryScrollPosition,
 } from './storage'
 
@@ -213,6 +218,110 @@ describe('storage', () => {
       clearAllReadingData()
 
       expect(localStorage.getItem('other-key')).toBe('other-value')
+    })
+  })
+
+  describe('comment count tracking', () => {
+    it('saves and retrieves story comment count', () => {
+      saveStoryCommentCount(12345, 50)
+      expect(getStoryCommentCount(12345)).toBe(50)
+    })
+
+    it('returns null for story never viewed', () => {
+      expect(getStoryCommentCount(99999)).toBeNull()
+    })
+
+    it('saves counts for multiple stories independently', () => {
+      saveStoryCommentCount(1, 10)
+      saveStoryCommentCount(2, 20)
+      saveStoryCommentCount(3, 30)
+
+      expect(getStoryCommentCount(1)).toBe(10)
+      expect(getStoryCommentCount(2)).toBe(20)
+      expect(getStoryCommentCount(3)).toBe(30)
+    })
+
+    it('overwrites previous count for same story', () => {
+      saveStoryCommentCount(12345, 10)
+      saveStoryCommentCount(12345, 50)
+
+      expect(getStoryCommentCount(12345)).toBe(50)
+    })
+
+    it('getNewCommentsCount returns 0 for never-viewed story', () => {
+      expect(getNewCommentsCount(99999, 100)).toBe(0)
+    })
+
+    it('getNewCommentsCount returns difference for viewed story', () => {
+      saveStoryCommentCount(12345, 50)
+
+      expect(getNewCommentsCount(12345, 75)).toBe(25)
+    })
+
+    it('getNewCommentsCount returns 0 when current count equals last seen', () => {
+      saveStoryCommentCount(12345, 50)
+
+      expect(getNewCommentsCount(12345, 50)).toBe(0)
+    })
+
+    it('getNewCommentsCount returns 0 when current count is less (deleted comments)', () => {
+      saveStoryCommentCount(12345, 50)
+
+      expect(getNewCommentsCount(12345, 40)).toBe(0)
+    })
+
+    it('getCommentCountsMap returns all tracked counts as Map', () => {
+      saveStoryCommentCount(1, 10)
+      saveStoryCommentCount(2, 20)
+      saveStoryCommentCount(3, 30)
+
+      const map = getCommentCountsMap()
+
+      expect(map).toBeInstanceOf(Map)
+      expect(map.get(1)).toBe(10)
+      expect(map.get(2)).toBe(20)
+      expect(map.get(3)).toBe(30)
+      expect(map.get(4)).toBeUndefined()
+    })
+
+    it('clearCommentCounts removes all comment count data', () => {
+      saveStoryCommentCount(1, 10)
+      saveStoryCommentCount(2, 20)
+
+      clearCommentCounts()
+
+      expect(getStoryCommentCount(1)).toBeNull()
+      expect(getStoryCommentCount(2)).toBeNull()
+      expect(getCommentCountsMap().size).toBe(0)
+    })
+
+    it('prunes old entries when exceeding max capacity', () => {
+      // Save 501 counts (max is 500)
+      for (let i = 0; i < 501; i++) {
+        saveStoryCommentCount(i, i * 10)
+      }
+
+      const data = JSON.parse(
+        localStorage.getItem('pastel-hn-comment-counts') || '{}',
+      )
+      expect(Object.keys(data).length).toBeLessThanOrEqual(500)
+    })
+
+    it('handles corrupted localStorage data gracefully', () => {
+      localStorage.setItem('pastel-hn-comment-counts', 'not valid json')
+
+      expect(getStoryCommentCount(123)).toBeNull()
+      expect(getCommentCountsMap()).toEqual(new Map())
+    })
+
+    it('handles localStorage errors gracefully on save', () => {
+      const mockSetItem = vi.spyOn(Storage.prototype, 'setItem')
+      mockSetItem.mockImplementation(() => {
+        throw new Error('QuotaExceededError')
+      })
+
+      // Should not throw
+      expect(() => saveStoryCommentCount(12345, 50)).not.toThrow()
     })
   })
 })
