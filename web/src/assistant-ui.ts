@@ -200,7 +200,7 @@ function renderPanel(): void {
   panel.innerHTML = `
     <div class="assistant-header">
       <div class="assistant-header-titles">
-        <h3>AI Assistant</h3>
+        <h2>AI Assistant</h2>
         <div class="readability-toggle ${initialReadability ? 'active' : ''}" id="readability-toggle" title="Toggle High Comfort Reading Mode">
           <span class="toggle-label">Reading Mode</span>
           <div class="toggle-switch"></div>

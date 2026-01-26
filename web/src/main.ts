@@ -1721,7 +1721,7 @@ async function renderUserProfile(userId: string): Promise<void> {
             user.about
               ? `
             <div class="user-about">
-              <h3 class="user-about-title">About</h3>
+              <h2 class="user-about-title">About</h2>
               <div class="user-about-content">${sanitizeHtml(user.about)}</div>
             </div>
           `
