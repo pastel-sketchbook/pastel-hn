@@ -1,10 +1,5 @@
-import { describe, expect, it, beforeEach } from 'vitest'
-import {
-  buildUrlIndex,
-  findDuplicates,
-  normalizeUrl,
-  type DuplicateInfo,
-} from './duplicates'
+import { describe, expect, it } from 'vitest'
+import { buildUrlIndex, findDuplicates, normalizeUrl } from './duplicates'
 import type { HNItem } from './types'
 import { ItemType } from './types'
 
