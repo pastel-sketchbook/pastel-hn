@@ -42,6 +42,12 @@ import {
   setKeyboardCallbacks,
 } from './keyboard'
 import {
+  configurePullRefresh,
+  setupPullToRefresh,
+  updatePullIndicator,
+  getPullThreshold,
+} from './pull-refresh'
+import {
   clearPrefetchCache,
   getCachedStoryDetail,
   onStoryHoverEnd,
@@ -233,158 +239,12 @@ function updateBackToTopVisibility(): void {
   }
 }
 
-// Pull-to-refresh state
-let pullStartY = 0
-let pullDistance = 0
-let isPulling = false
-let pullRefreshEnabled = true
-const PULL_THRESHOLD = 80 // Distance needed to trigger refresh
-
-function setupPullToRefresh(): void {
-  const indicator = document.createElement('div')
-  indicator.className = 'pull-refresh-indicator'
-  indicator.innerHTML = `
-    <div class="pull-refresh-content">
-      <div class="pull-refresh-spinner"></div>
-      <span class="pull-refresh-text">Pull to refresh</span>
-    </div>
-  `
-  document.body.prepend(indicator)
-
-  let touchStartY = 0
-
-  // Touch events for mobile
-  document.addEventListener(
-    'touchstart',
-    (e) => {
-      if (getScrollTop() === 0 && currentView === 'list' && !isLoading) {
-        touchStartY = e.touches[0].clientY
-        pullStartY = touchStartY
-        isPulling = true
-      }
-    },
-    { passive: true },
-  )
-
-  document.addEventListener(
-    'touchmove',
-    (e) => {
-      if (!isPulling || getScrollTop() > 0) {
-        isPulling = false
-        updatePullIndicator(0)
-        return
-      }
-
-      const touchY = e.touches[0].clientY
-      pullDistance = Math.max(0, touchY - pullStartY)
-
-      if (pullDistance > 0) {
-        updatePullIndicator(pullDistance)
-      }
-    },
-    { passive: true },
-  )
-
-  document.addEventListener('touchend', () => {
-    if (isPulling && pullDistance >= PULL_THRESHOLD && !isLoading) {
-      triggerRefresh()
-    }
-    isPulling = false
-    pullDistance = 0
-    updatePullIndicator(0)
-  })
-
-  // Mouse wheel for desktop (overscroll at top)
-  let wheelDeltaAccumulator = 0
-  let wheelResetTimeout: ReturnType<typeof setTimeout> | null = null
-
-  document.addEventListener(
-    'wheel',
-    (e) => {
-      // Only trigger if at top of page, scrolling up, and in list view
-      if (
-        getScrollTop() === 0 &&
-        e.deltaY < 0 &&
-        currentView === 'list' &&
-        !isLoading
-      ) {
-        wheelDeltaAccumulator += Math.abs(e.deltaY)
-
-        // Reset accumulator after a pause in scrolling
-        if (wheelResetTimeout) clearTimeout(wheelResetTimeout)
-        wheelResetTimeout = setTimeout(() => {
-          wheelDeltaAccumulator = 0
-          updatePullIndicator(0)
-        }, 300)
-
-        // Show visual feedback
-        const progress = Math.min(
-          wheelDeltaAccumulator / 2,
-          PULL_THRESHOLD * 1.5,
-        )
-        updatePullIndicator(progress)
-
-        // Trigger refresh if threshold met
-        if (wheelDeltaAccumulator > PULL_THRESHOLD * 2 && pullRefreshEnabled) {
-          pullRefreshEnabled = false
-          wheelDeltaAccumulator = 0
-          triggerRefresh()
-
-          // Re-enable after a delay to prevent rapid refreshes
-          setTimeout(() => {
-            pullRefreshEnabled = true
-          }, 1000)
-        }
-      }
-    },
-    { passive: true },
-  )
-}
-
-function updatePullIndicator(distance: number): void {
-  const indicator = document.querySelector(
-    '.pull-refresh-indicator',
-  ) as HTMLElement
-  if (!indicator) return
-
-  const progress = Math.min(distance / PULL_THRESHOLD, 1.5)
-  const translateY = Math.min(distance * 0.5, 60) - 60 // Start hidden above
-
-  indicator.style.transform = `translateY(${translateY}px)`
-  indicator.style.opacity = String(Math.min(progress, 1))
-
-  const text = indicator.querySelector('.pull-refresh-text')
-  const spinner = indicator.querySelector(
-    '.pull-refresh-spinner',
-  ) as HTMLElement
-
-  if (text && spinner) {
-    if (isLoading) {
-      text.textContent = 'Refreshing...'
-      spinner.classList.add('spinning')
-    } else if (progress >= 1) {
-      text.textContent = 'Release to refresh'
-      spinner.classList.remove('spinning')
-    } else {
-      text.textContent = 'Pull to refresh'
-      spinner.classList.remove('spinning')
-    }
-  }
-}
-
-async function triggerRefresh(): Promise<void> {
-  if (isZenModeTransitioning()) return // Guard against accidental refresh during layout shifts
-  updatePullIndicator(PULL_THRESHOLD) // Show loading state
-
+// Pull-to-refresh handler called by the pull-refresh module
+async function handlePullRefresh(): Promise<void> {
   if (currentView === 'list') {
     await renderStories(currentFeed, true)
     toastSuccess('Feed refreshed')
   }
-
-  // Hide indicator after refresh completes
-  setTimeout(() => {
-    updatePullIndicator(0)
-  }, 300)
 }
 
 async function renderStories(
@@ -1721,6 +1581,14 @@ async function main(): Promise<void> {
     setupThemeToggle()
     setupSettingsToggle()
     setupKeyboardNavigation()
+
+    // Configure and setup pull-to-refresh
+    configurePullRefresh({
+      onRefresh: handlePullRefresh,
+      getScrollTop: getScrollTop,
+      canRefresh: () => currentView === 'list' && !isZenModeTransitioning(),
+      isLoading: () => isLoading,
+    })
     setupPullToRefresh()
 
     // Initialize AI assistant (conditionally enabled if Copilot available)
