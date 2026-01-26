@@ -596,5 +596,278 @@ test.describe('pastel-hn E2E Tests', () => {
       // Help modal should be removed from DOM
       await expect(page.locator('.help-modal-overlay')).toBeHidden()
     })
+
+    test('number keys switch feeds (1-6)', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Press '2' for "new" feed
+      await page.keyboard.press('2')
+      await expect(page.locator('[data-feed="new"]')).toHaveClass(/active/)
+
+      // Press '3' for "best" feed
+      await page.keyboard.press('3')
+      await expect(page.locator('[data-feed="best"]')).toHaveClass(/active/)
+
+      // Press '1' for "top" feed
+      await page.keyboard.press('1')
+      await expect(page.locator('[data-feed="top"]')).toHaveClass(/active/)
+
+      // Press '4' for "ask" feed
+      await page.keyboard.press('4')
+      await expect(page.locator('[data-feed="ask"]')).toHaveClass(/active/)
+    })
+  })
+
+  test.describe('User Profile', () => {
+    test('navigates to user profile when clicking username', async ({
+      page,
+    }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // Get the first user link
+      const userLink = page.locator('.user-link').first()
+      const username = await userLink.textContent()
+
+      // Click on the user link
+      await userLink.click()
+
+      // Should navigate to user profile
+      await expect(page.locator('.user-profile')).toBeVisible({ timeout: 15000 })
+      await expect(page.locator('.user-name')).toContainText(username || '')
+    })
+
+    test('user profile displays karma and account age', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // Navigate to user profile
+      await page.locator('.user-link').first().click()
+      await expect(page.locator('.user-profile')).toBeVisible({ timeout: 15000 })
+
+      // Should show karma and account age
+      await expect(page.locator('.user-karma')).toBeVisible()
+      await expect(page.locator('.user-age')).toBeVisible()
+    })
+
+    test('back button returns from user profile', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // Navigate to user profile
+      await page.locator('.user-link').first().click()
+      await expect(page.locator('.user-profile')).toBeVisible({ timeout: 15000 })
+
+      // Click back button
+      await page.locator('.back-btn').click()
+
+      // Should return to list view
+      await waitForStories(page)
+      await expect(page.locator('.user-profile')).toBeHidden()
+    })
+  })
+
+  test.describe('Settings Panel', () => {
+    test('opens settings with s key', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Press 's' to open settings
+      await page.keyboard.press('s')
+
+      // Settings panel should be visible
+      await expect(page.locator('.settings-panel')).toBeVisible()
+      await expect(page.locator('.settings-title')).toBeVisible()
+    })
+
+    test('closes settings with Escape key', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Open settings
+      await page.keyboard.press('s')
+      await expect(page.locator('.settings-panel')).toBeVisible()
+
+      // Close with Escape
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.settings-panel')).toBeHidden()
+    })
+
+    test('closes settings by clicking overlay', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Open settings
+      await page.keyboard.press('s')
+      await expect(page.locator('.settings-panel')).toBeVisible()
+
+      // Click overlay to close
+      await page.locator('.settings-overlay').click({ force: true })
+      await expect(page.locator('.settings-panel')).toBeHidden()
+    })
+
+    test('can change font size in settings', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Open settings
+      await page.keyboard.press('s')
+      await expect(page.locator('.settings-panel')).toBeVisible()
+
+      // Find font size slider
+      const fontSlider = page.locator('.font-size-slider')
+      await expect(fontSlider).toBeVisible()
+
+      // Change font size
+      await fontSlider.fill('18')
+
+      // Verify CSS variable updated
+      const fontSize = await page.evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--font-size-base')
+          .trim()
+      )
+      expect(fontSize).toBe('18px')
+    })
+  })
+
+  test.describe('Search', () => {
+    test('opens search with / key', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Press '/' to open search
+      await page.keyboard.press('/')
+
+      // Search modal should be visible
+      await expect(page.locator('.search-modal')).toBeVisible()
+      await expect(page.locator('.search-input')).toBeFocused()
+    })
+
+    test('closes search with Escape key', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Open search
+      await page.keyboard.press('/')
+      await expect(page.locator('.search-modal')).toBeVisible()
+
+      // Close with Escape
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.search-modal')).toBeHidden()
+    })
+  })
+
+  test.describe('Share and Copy', () => {
+    test('copy HN link button is present in story detail', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // Navigate to story detail
+      await page.locator('.story').first().click()
+      await expect(page.locator('.story-detail')).toBeVisible({ timeout: 15000 })
+
+      // Copy HN link button should be visible
+      await expect(page.locator('[data-action="copy-hn-link"]')).toBeVisible()
+    })
+
+    test('share button is present in story detail', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // Navigate to story detail
+      await page.locator('.story').first().click()
+      await expect(page.locator('.story-detail')).toBeVisible({ timeout: 15000 })
+
+      // Share button should be visible
+      await expect(page.locator('[data-action="share"]')).toBeVisible()
+    })
+  })
+
+  test.describe('Accessibility', () => {
+    test('skip link is present and focusable', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // Skip link should exist
+      const skipLink = page.locator('.skip-link')
+      await expect(skipLink).toBeAttached()
+
+      // Tab to it
+      await page.keyboard.press('Tab')
+      await expect(skipLink).toBeFocused()
+      await expect(skipLink).toBeVisible()
+    })
+
+    test('stories have accessible labels', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // First story should have aria-label
+      const firstStory = page.locator('.story').first()
+      const ariaLabel = await firstStory.getAttribute('aria-label')
+
+      expect(ariaLabel).toBeTruthy()
+      expect(ariaLabel).toContain('points')
+      expect(ariaLabel).toContain('comments')
+    })
+
+    test('story detail has proper heading hierarchy', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      if (!(await storiesLoaded(page))) {
+        test.skip(true, 'API returned no stories')
+        return
+      }
+
+      // Navigate to story detail
+      await page.locator('.story').first().click()
+      await expect(page.locator('.story-detail')).toBeVisible({ timeout: 15000 })
+
+      // Should have h1 for story title
+      await expect(page.locator('h1.story-detail-title')).toBeVisible()
+    })
+
+    test('ARIA announcer region exists', async ({ page }) => {
+      await page.goto('/')
+      await waitForStories(page)
+
+      // ARIA live region should exist for announcements
+      const announcer = page.locator('#announcer')
+      await expect(announcer).toBeAttached()
+      await expect(announcer).toHaveAttribute('aria-live', 'polite')
+    })
   })
 })
