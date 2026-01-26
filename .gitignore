@@ -41,3 +41,4 @@ Thumbs.db
 test-results/
 playwright-report/
 hangul-typing-codebase.md
+web/coverage

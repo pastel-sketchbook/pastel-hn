@@ -11,7 +11,12 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "test:coverage": "vitest run --coverage",
+    "check:all": "bun run format && bun run lint && bun run test:coverage"
   },
   "dependencies": {
     "@fontsource/orbitron": "^5.2.8",
@@ -24,6 +29,7 @@
     "@happy-dom/global-registrator": "^20.3.7",
     "@playwright/test": "^1.58.0",
     "@testing-library/dom": "^10.4.1",
+    "@vitest/coverage-v8": "4.0.18",
     "jsdom": "^27.4.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",

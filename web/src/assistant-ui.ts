@@ -112,6 +112,30 @@ export function closeAssistant(): void {
 }
 
 /**
+ * Update assistant visibility based on Zen mode state and current view
+ */
+export function updateAssistantZenMode(isZen: boolean, view: string): void {
+  const toggleBtn = document.getElementById('assistant-toggle')
+  // AI Assistant FAB only shown in Zen mode + Story Detail view
+  const isVisible = isZen && view === 'detail'
+
+  if (toggleBtn) {
+    toggleBtn.style.display = isVisible ? 'flex' : 'none'
+  }
+
+  // Update a helper class for other UI elements (like Back-to-Top) to react
+  document.documentElement.classList.toggle(
+    'assistant-toggle-visible',
+    isVisible,
+  )
+
+  // Auto-close if leaving Zen mode or Detail view while open
+  if (!isVisible && state.isOpen) {
+    closeAssistant()
+  }
+}
+
+/**
  * Check if assistant is open
  */
 export function isAssistantOpen(): boolean {
@@ -149,6 +173,10 @@ function renderToggleButton(): void {
   button.addEventListener('click', toggleAssistant)
 
   document.body.appendChild(button)
+
+  // Initial visibility check
+  const isZen = document.documentElement.classList.contains('zen-mode')
+  button.style.display = isZen ? 'flex' : 'none'
 }
 
 function renderPanel(): void {
@@ -450,6 +478,9 @@ function setupKeyboardShortcut(): void {
       document.activeElement?.tagName !== 'INPUT' &&
       document.activeElement?.tagName !== 'TEXTAREA'
     ) {
+      // Must be in Zen mode to use assistant
+      if (!document.documentElement.classList.contains('zen-mode')) return
+
       e.preventDefault()
       toggleAssistant()
     }

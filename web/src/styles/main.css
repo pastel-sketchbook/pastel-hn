@@ -3373,7 +3373,7 @@ main {
 .back-to-top {
   position: fixed;
   bottom: 2rem;
-  right: 2rem;
+  right: 16px;
   width: 48px;
   height: 48px;
   background: var(--bg-panel);
@@ -3395,14 +3395,19 @@ main {
     0 0 30px rgba(0, 217, 255, 0.1);
 }
 
-/* Back to top in Zen mode */
+/* Back to top in Zen mode - standard position */
 .zen-mode .back-to-top {
-  right: 3rem;
+  right: 16px;
   bottom: 3rem;
   width: 56px;
   height: 56px;
   z-index: 201;
   /* Ensure distinct layering */
+}
+
+/* Back to top in Zen mode - higher when AI toggle is visible */
+.assistant-toggle-visible.zen-mode .back-to-top {
+  bottom: calc(3rem + 56px + 1rem);
 }
 
 .back-to-top svg {
@@ -4922,8 +4927,8 @@ main {
 
 .assistant-toggle {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 2rem;
+  right: 16px;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -4937,6 +4942,13 @@ main {
   transition: all 0.25s ease;
   z-index: 1000;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.zen-mode .assistant-toggle {
+  bottom: 3rem;
+  right: 16px;
+  width: 56px;
+  height: 56px;
 }
 
 .assistant-toggle:hover {

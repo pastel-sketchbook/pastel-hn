@@ -44,6 +44,7 @@ export class VirtualScroll<T> {
   private startIndex = 0
   private endIndex = 0
   private isNearEndTriggered = false
+  private isRendering = false
 
   // Inner containers
   private scrollSpacer: HTMLElement | null = null
@@ -237,27 +238,34 @@ export class VirtualScroll<T> {
    * Render visible items
    */
   private render(): void {
-    if (!this.itemsContainer || this.items.length === 0) return
+    if (!this.itemsContainer || this.items.length === 0 || this.isRendering)
+      return
 
     const { start, end } = this.calculateVisibleRange()
 
     // Only re-render if range changed significantly
     if (start === this.startIndex && end === this.endIndex) return
 
-    this.startIndex = start
-    this.endIndex = end
+    this.isRendering = true
 
-    // Calculate offset for positioned items
-    const offsetY = start * this.itemHeight
-    this.itemsContainer.style.top = `${offsetY}px`
+    try {
+      this.startIndex = start
+      this.endIndex = end
 
-    // Render visible items
-    const visibleItems = this.items.slice(start, end)
-    const html = visibleItems
-      .map((item, idx) => this.renderItem(item, start + idx))
-      .join('')
+      // Calculate offset for positioned items
+      const offsetY = start * this.itemHeight
+      this.itemsContainer.style.top = `${offsetY}px`
 
-    this.itemsContainer.innerHTML = html
+      // Render visible items
+      const visibleItems = this.items.slice(start, end)
+      const html = visibleItems
+        .map((item, idx) => this.renderItem(item, start + idx))
+        .join('')
+
+      this.itemsContainer.innerHTML = html
+    } finally {
+      this.isRendering = false
+    }
   }
 
   /**

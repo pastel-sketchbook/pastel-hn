@@ -1,3 +1,4 @@
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import {
   clearStoryIdsCache,
   extractDomain,
@@ -20,6 +21,7 @@ import {
   initAssistant,
   isAssistantOpen,
   setStoryContext,
+  updateAssistantZenMode,
 } from './assistant-ui'
 import { createFocusTrap, type FocusTrapInstance } from './focus-trap'
 import {
@@ -333,8 +335,10 @@ async function navigateBackToList(): Promise<void> {
   // Animate detail view exiting
   await animateDetailExit(container)
 
-  // Clear AI assistant context when leaving story
+  // Clear AI assistant context and close panel when leaving story
   clearStoryContext()
+  closeAssistant()
+  updateAssistantZenMode(zenModeActive, 'list')
 
   // Update state and render list with animation
   currentView = 'list'
@@ -598,6 +602,7 @@ function updatePullIndicator(distance: number): void {
 }
 
 async function triggerRefresh(): Promise<void> {
+  if (zenModeTransitioning) return // Guard against accidental refresh during layout shifts
   updatePullIndicator(PULL_THRESHOLD) // Show loading state
 
   if (currentView === 'list') {
@@ -724,6 +729,9 @@ function renderStoriesStandard(
 
   // Setup infinite scroll observer
   setupInfiniteScroll()
+
+  // Update assistant visibility (disabled in list view)
+  updateAssistantZenMode(zenModeActive, 'list')
 }
 
 /**
@@ -865,11 +873,12 @@ async function loadMoreStories(): Promise<void> {
         '.story[data-id]:not([data-prefetch-bound])',
       )
       newStoryCards.forEach((card) => {
-        const storyId = Number((card as HTMLElement).dataset.id)
+        const el = card as HTMLElement
+        const storyId = Number(el.dataset.id)
         if (!storyId) return
-        ;(card as HTMLElement).dataset.prefetchBound = 'true'
-        card.addEventListener('mouseenter', () => onStoryHoverStart(storyId))
-        card.addEventListener('mouseleave', () => onStoryHoverEnd(storyId))
+        el.dataset.prefetchBound = 'true'
+        el.addEventListener('mouseenter', () => onStoryHoverStart(storyId))
+        el.addEventListener('mouseleave', () => onStoryHoverEnd(storyId))
       })
 
       currentStories = [...currentStories, ...stories]
@@ -899,7 +908,7 @@ async function loadMoreStories(): Promise<void> {
   }
 }
 // Expose retry function globally for the retry button
-;(window as unknown as { retryLoadMore: () => void }).retryLoadMore =
+;(window as { retryLoadMore?: typeof loadMoreStories }).retryLoadMore =
   loadMoreStories
 
 function renderLoadMoreIndicator(): string {
@@ -1530,6 +1539,9 @@ async function renderStoryDetail(
         setScrollTop(0)
       }
     })
+
+    // Update assistant visibility for detail view
+    updateAssistantZenMode(zenModeActive, 'detail')
   } catch (error) {
     const parsed = parseApiError(error)
     container.innerHTML = renderErrorWithRetry(
@@ -1992,7 +2004,6 @@ async function toggleZenMode(): Promise<void> {
   // Toggle fullscreen and decorations via Tauri API first (before CSS changes)
   // This ensures window state is correct before visual updates
   try {
-    const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const appWindow = getCurrentWindow()
 
     if (enteringZen) {
@@ -2012,6 +2023,9 @@ async function toggleZenMode(): Promise<void> {
     // Only update state after Tauri API calls succeed
     zenModeActive = enteringZen
     document.documentElement.classList.toggle('zen-mode', zenModeActive)
+
+    // Update assistant visibility
+    updateAssistantZenMode(zenModeActive, currentView)
 
     if (zenModeActive) {
       showZenModeBadge()
@@ -2059,7 +2073,6 @@ async function exitZenMode(): Promise<void> {
 
     // Exit fullscreen and restore decorations via Tauri API first
     try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window')
       const appWindow = getCurrentWindow()
       // Exit fullscreen first, then restore decorations
       // Add a small delay between operations to allow OS to process
@@ -2079,6 +2092,9 @@ async function exitZenMode(): Promise<void> {
     zenModeActive = false
     document.documentElement.classList.remove('zen-mode')
     hideZenModeBadge()
+
+    // Update assistant visibility
+    updateAssistantZenMode(false, currentView)
 
     // Force virtual scroll to re-render with normal styling
     // Use requestAnimationFrame to ensure CSS classes have been removed

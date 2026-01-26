@@ -218,8 +218,9 @@ pub struct ReplyContext {
 ### UI Design
 
 **Assistant Panel Placement**:
-- Collapsible panel on right side of story detail view
-- Toggle button in story header (only shown if Copilot available)
+- **Exclusive to Zen Mode**: To ensure a focused reading experience and simplify UI layout logic, the AI Assistant is only available when the user is in **Zen Mode**.
+- Collapsible panel on right side of story detail view (Zen mode only).
+- Toggle button in story header/badge area (only shown if Copilot available and in Zen mode).
 - **Width: 650px**: Optimized for scanability; hits the 50-75 characters-per-line "comfort zone" for long summaries.
 - **Height: Full viewport height**: Anchored below the header (**top: 134px**) to the bottom of the screen (**bottom: 12px**).
 

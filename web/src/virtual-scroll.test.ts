@@ -192,4 +192,31 @@ describe('VirtualScroll', () => {
 
     vs.destroy()
   })
+
+  it('prevents re-entrant renders using isRendering guard', async () => {
+    let renderCount = 0
+    const items: TestItem[] = Array.from({ length: 10 }, (_, i) => ({ id: i }))
+
+    const vs = new VirtualScroll<TestItem>({
+      container,
+      itemHeight: 50,
+      renderItem: (item) => {
+        renderCount++
+        // Trigger another render inside the render loop!
+        if (renderCount === 1) {
+          vs.forceRender()
+        }
+        return `<div>${item.id}</div>`
+      },
+    })
+
+    vs.init(items)
+
+    // Initial init should trigger one render pass (10 items)
+    // The first item render will call forceRender()
+    // but the guard should prevent that second pass from starting.
+    expect(renderCount).toBe(10)
+
+    vs.destroy()
+  })
 })
