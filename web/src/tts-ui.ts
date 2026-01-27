@@ -66,7 +66,9 @@ export function isTtsPlaying(): boolean {
 export function createTtsButton(isPlaying: boolean = false): string {
   const icon = isPlaying ? icons.speakerOff : icons.speaker
   const label = isPlaying ? 'Stop Reading' : 'Read Aloud'
-  const title = isPlaying ? 'Stop text-to-speech' : 'Read article aloud (uses system voice)'
+  const title = isPlaying
+    ? 'Stop text-to-speech'
+    : 'Read article aloud (uses system voice)'
 
   return `
     <button class="story-action-btn tts-btn${isPlaying ? ' playing' : ''}" 

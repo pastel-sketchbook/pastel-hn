@@ -132,7 +132,7 @@ export class TtsClient {
       const status = await this.getStatus()
       if (status.available) {
         this.voices = await this.fetchVoices()
-        
+
         // Load saved preferences
         this.loadPreferences()
       }
@@ -142,7 +142,8 @@ export class TtsClient {
       console.error('Failed to initialize TTS:', error)
       this.lastStatus = {
         ...UNAVAILABLE_STATUS,
-        message: error instanceof Error ? error.message : 'Failed to initialize',
+        message:
+          error instanceof Error ? error.message : 'Failed to initialize',
       }
       return this.lastStatus
     }

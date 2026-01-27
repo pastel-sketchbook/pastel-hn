@@ -5,8 +5,8 @@
  * and the interface methods.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { getTtsClient, TtsClient, type TtsStatus } from './tts-client'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { getTtsClient, TtsClient } from './tts-client'
 
 describe('tts-client', () => {
   describe('TtsClient', () => {

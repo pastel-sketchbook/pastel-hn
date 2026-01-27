@@ -32,7 +32,7 @@ import {
   saveStoryCommentCount,
 } from './storage'
 import { toastInfo } from './toast'
-import { createTtsButton, isTtsAvailable, setupTtsListeners } from './tts-ui'
+import { createTtsButton, setupTtsListeners } from './tts-ui'
 import { type HNItem, ItemType } from './types'
 import {
   calculateReadingTime,

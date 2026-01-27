@@ -350,8 +350,6 @@ function updateQuickActions(): void {
     )
     container.appendChild(analyzeBtn)
   }
-
-
 }
 
 /**

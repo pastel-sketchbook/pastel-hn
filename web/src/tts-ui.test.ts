@@ -4,11 +4,8 @@
  * These tests verify the TTS UI functions work correctly.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  createTtsButton,
-  extractArticleText,
-} from './tts-ui'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { createTtsButton, extractArticleText } from './tts-ui'
 
 describe('tts-ui', () => {
   describe('createTtsButton', () => {
@@ -69,14 +66,16 @@ describe('tts-ui', () => {
     })
 
     it('should remove skeleton elements', () => {
-      container.innerHTML = '<p>Content</p><div class="skeleton">Loading...</div>'
+      container.innerHTML =
+        '<p>Content</p><div class="skeleton">Loading...</div>'
       const text = extractArticleText(container)
       expect(text).toBe('Content')
       expect(text).not.toContain('Loading')
     })
 
     it('should remove loading indicators', () => {
-      container.innerHTML = '<p>Content</p><div class="article-loading">Loading article...</div>'
+      container.innerHTML =
+        '<p>Content</p><div class="article-loading">Loading article...</div>'
       const text = extractArticleText(container)
       expect(text).toBe('Content')
     })
@@ -94,7 +93,8 @@ describe('tts-ui', () => {
     })
 
     it('should preserve text from nested elements', () => {
-      container.innerHTML = '<div><span>Nested <strong>text</strong> content</span></div>'
+      container.innerHTML =
+        '<div><span>Nested <strong>text</strong> content</span></div>'
       const text = extractArticleText(container)
       expect(text).toBe('Nested text content')
     })
