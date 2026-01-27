@@ -20,6 +20,8 @@ export interface VirtualScrollOptions<T> {
   nearEndThreshold?: number
   /** Callback after items are rendered (for lazy loading, etc.) */
   onRender?: () => void
+  /** Optional HTML to render as header before the virtual scroll content */
+  headerHtml?: string
 }
 
 export interface VirtualScrollState<T> {
@@ -40,6 +42,7 @@ export class VirtualScroll<T> {
   private onNearEnd?: () => void
   private nearEndThreshold: number
   private onRender?: () => void
+  private headerHtml: string
 
   private items: T[] = []
   private scrollTop = 0
@@ -69,6 +72,7 @@ export class VirtualScroll<T> {
     this.onNearEnd = options.onNearEnd
     this.nearEndThreshold = options.nearEndThreshold ?? 200
     this.onRender = options.onRender
+    this.headerHtml = options.headerHtml ?? ''
   }
 
   /**
@@ -106,6 +110,11 @@ export class VirtualScroll<T> {
     // Create scroll structure
     this.container.innerHTML = ''
     this.container.style.position = 'relative'
+
+    // Add header HTML if provided (e.g., h1 feed title)
+    if (this.headerHtml) {
+      this.container.insertAdjacentHTML('beforeend', this.headerHtml)
+    }
 
     // Spacer to maintain scroll height
     this.scrollSpacer = document.createElement('div')

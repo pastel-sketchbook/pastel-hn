@@ -707,6 +707,39 @@ main {
   z-index: 5;
 }
 
+/* ===== FEED TITLE (h1) ===== */
+.feed-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1rem 1.75rem 0.5rem;
+  padding: 0;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--cyan), var(--pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Light theme feed title - solid color for better readability */
+[data-theme="light"] .feed-title {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  color: var(--text-primary);
+}
+
+/* High contrast mode - solid colors */
+[data-high-contrast="true"] .feed-title {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  color: var(--text-primary);
+}
+
 /* ===== STORY ITEM ===== */
 .story {
   display: flex;
@@ -6107,9 +6140,9 @@ main {
   word-wrap: break-word;
 }
 
-.assistant-message-content h2,
 .assistant-message-content h3,
 .assistant-message-content h4,
+.assistant-message-content h5,
 .assistant-message-content strong {
   margin: 16px 0 8px 0;
   font-family: var(--font-mono);
@@ -6122,15 +6155,15 @@ main {
   margin: 0;
 }
 
-.assistant-message-content h2 {
+.assistant-message-content h3 {
   font-size: 20px;
 }
 
-.assistant-message-content h3 {
+.assistant-message-content h4 {
   font-size: 19px;
 }
 
-.assistant-message-content h4 {
+.assistant-message-content h5 {
   font-size: 18px;
 }
 
@@ -6300,9 +6333,9 @@ main {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.assistant-panel.light-reading-mode .assistant-message-content h2,
 .assistant-panel.light-reading-mode .assistant-message-content h3,
 .assistant-panel.light-reading-mode .assistant-message-content h4,
+.assistant-panel.light-reading-mode .assistant-message-content h5,
 .assistant-panel.light-reading-mode .assistant-message-content strong {
   color: #006064;
   /* Desaturated high-contrast cyan */
@@ -6311,15 +6344,15 @@ main {
 [data-theme="dark"]
   .assistant-panel.light-reading-mode
   .assistant-message-content
-  h2,
-[data-theme="dark"]
-  .assistant-panel.light-reading-mode
-  .assistant-message-content
   h3,
 [data-theme="dark"]
   .assistant-panel.light-reading-mode
   .assistant-message-content
   h4,
+[data-theme="dark"]
+  .assistant-panel.light-reading-mode
+  .assistant-message-content
+  h5,
 [data-theme="dark"]
   .assistant-panel.light-reading-mode
   .assistant-message-content

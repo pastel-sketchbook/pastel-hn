@@ -464,4 +464,82 @@ describe('assistant-ui', () => {
       expect(menu?.id).toBe('assistant-context-menu')
     })
   })
+
+  describe('parseMarkdown', () => {
+    let parseMarkdown: (text: string) => string
+
+    beforeEach(async () => {
+      // Dynamically import to get the exported function
+      const module = await import('./assistant-ui')
+      parseMarkdown = module.parseMarkdown
+    })
+
+    describe('heading hierarchy', () => {
+      it('converts # to h3 (not h2) for proper nesting under panel h2', () => {
+        const result = parseMarkdown('# Main Heading')
+        expect(result).toContain('<h3>Main Heading</h3>')
+        expect(result).not.toContain('<h2>')
+      })
+
+      it('converts ## to h4 for proper nesting', () => {
+        const result = parseMarkdown('## Subheading')
+        expect(result).toContain('<h4>Subheading</h4>')
+        expect(result).not.toContain('<h3>Subheading</h3>')
+      })
+
+      it('converts ### to h5 for proper nesting', () => {
+        const result = parseMarkdown('### Sub-subheading')
+        expect(result).toContain('<h5>Sub-subheading</h5>')
+        expect(result).not.toContain('<h4>Sub-subheading</h4>')
+      })
+
+      it('handles multiple heading levels in same text', () => {
+        const result = parseMarkdown('# H1\n## H2\n### H3')
+        expect(result).toContain('<h3>H1</h3>')
+        expect(result).toContain('<h4>H2</h4>')
+        expect(result).toContain('<h5>H3</h5>')
+      })
+
+      it('preserves heading text with special characters', () => {
+        const result = parseMarkdown('# What is `async/await`?')
+        expect(result).toContain('<h3>What is <code>async/await</code>?</h3>')
+      })
+    })
+
+    describe('other markdown features', () => {
+      it('converts inline code', () => {
+        const result = parseMarkdown('Use `const` for constants')
+        expect(result).toContain('<code>const</code>')
+      })
+
+      it('converts code blocks', () => {
+        const result = parseMarkdown('```js\nconst x = 1;\n```')
+        expect(result).toContain('<pre><code>')
+        expect(result).toContain('const x = 1;')
+      })
+
+      it('converts bold text', () => {
+        const result = parseMarkdown('This is **important**')
+        expect(result).toContain('<strong>important</strong>')
+      })
+
+      it('converts italic text', () => {
+        const result = parseMarkdown('This is *emphasized*')
+        expect(result).toContain('<em>emphasized</em>')
+      })
+
+      it('converts unordered lists', () => {
+        const result = parseMarkdown('- Item 1\n- Item 2')
+        expect(result).toContain('<ul>')
+        expect(result).toContain('<li>Item 1</li>')
+        expect(result).toContain('<li>Item 2</li>')
+      })
+
+      it('escapes HTML in input', () => {
+        const result = parseMarkdown('<script>alert("xss")</script>')
+        expect(result).not.toContain('<script>')
+        expect(result).toContain('&lt;script&gt;')
+      })
+    })
+  })
 })

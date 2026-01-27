@@ -219,4 +219,57 @@ describe('VirtualScroll', () => {
 
     vs.destroy()
   })
+
+  it('renders headerHtml before scroll content', () => {
+    const items: TestItem[] = Array.from({ length: 10 }, (_, i) => ({ id: i }))
+
+    const vs = new VirtualScroll<TestItem>({
+      container,
+      itemHeight: 50,
+      renderItem: (item) => `<div class="item">${item.id}</div>`,
+      headerHtml: '<h1 class="feed-title">Test Stories</h1>',
+    })
+
+    vs.init(items)
+
+    // Header should be rendered
+    const header = container.querySelector('.feed-title')
+    expect(header).toBeTruthy()
+    expect(header?.textContent).toBe('Test Stories')
+    expect(header?.tagName).toBe('H1')
+
+    // Header should come before the scroll spacer
+    const children = Array.from(container.children)
+    const headerIndex = children.indexOf(header as Element)
+    const spacerIndex = children.indexOf(
+      container.querySelector('.virtual-scroll-spacer') as Element,
+    )
+    expect(headerIndex).toBeLessThan(spacerIndex)
+
+    vs.destroy()
+  })
+
+  it('works without headerHtml', () => {
+    const items: TestItem[] = Array.from({ length: 10 }, (_, i) => ({ id: i }))
+
+    const vs = new VirtualScroll<TestItem>({
+      container,
+      itemHeight: 50,
+      renderItem: (item) => `<div class="item">${item.id}</div>`,
+      // No headerHtml provided
+    })
+
+    vs.init(items)
+
+    // Should still work, just no header
+    const header = container.querySelector('.feed-title')
+    expect(header).toBeFalsy()
+
+    // Spacer should be first child
+    expect(container.firstChild).toBe(
+      container.querySelector('.virtual-scroll-spacer'),
+    )
+
+    vs.destroy()
+  })
 })

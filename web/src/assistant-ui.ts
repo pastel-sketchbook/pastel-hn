@@ -592,12 +592,12 @@ function stripHtml(html: string): string {
 }
 
 /**
- * Parse basic markdown syntax into HTML for assistant responses
+ * Parse simple markdown to HTML for AI responses.
  * Supports: code blocks, inline code, headers, bold, italic, lists
  * @param text - Markdown text to parse
  * @returns HTML string
  */
-function parseMarkdown(text: string): string {
+export function parseMarkdown(text: string): string {
   let html = escapeHtml(text)
 
   // Code blocks
@@ -606,10 +606,11 @@ function parseMarkdown(text: string): string {
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
 
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>')
-  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>')
-  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>')
+  // Headers - shifted down one level to nest under panel's h2
+  // # becomes h3, ## becomes h4, ### becomes h5
+  html = html.replace(/^### (.+)$/gm, '<h5>$1</h5>')
+  html = html.replace(/^## (.+)$/gm, '<h4>$1</h4>')
+  html = html.replace(/^# (.+)$/gm, '<h3>$1</h3>')
 
   // Bold and italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')

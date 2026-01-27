@@ -45,6 +45,24 @@ const STORIES_PER_PAGE = 30
 const STORY_ITEM_HEIGHT = 95
 const VIRTUAL_SCROLL_THRESHOLD = 100
 
+/** Feed display titles for h1 heading */
+const FEED_TITLES: Record<StoryFeed, string> = {
+  top: 'Top Stories',
+  new: 'New Stories',
+  best: 'Best Stories',
+  ask: 'Ask HN',
+  show: 'Show HN',
+  jobs: 'Jobs',
+  saved: 'Saved Stories',
+}
+
+/**
+ * Get display title for a feed.
+ */
+export function getFeedTitle(feed: StoryFeed): string {
+  return FEED_TITLES[feed]
+}
+
 // Module state
 let currentFeed: StoryFeed = 'top'
 let currentStories: HNItem[] = []
@@ -146,7 +164,10 @@ function renderStoriesStandard(
     saveStoryScore(story.id, story.score || 0)
   }
 
+  const feedTitle = getFeedTitle(currentFeed)
+
   container.innerHTML =
+    `<h1 class="feed-title">${feedTitle}</h1>` +
     stories
       .map((story, idx) => {
         const duplicateInfo = currentDuplicates.get(story.id)
@@ -175,11 +196,14 @@ function renderStoriesStandard(
  * Render saved/bookmarked stories with special empty state.
  */
 function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
+  const feedTitle = getFeedTitle('saved')
+
   if (stories.length === 0) {
     container.innerHTML = `
+      <h1 class="feed-title">${feedTitle}</h1>
       <div class="saved-empty-state">
         <div class="saved-empty-icon">${icons.bookmark}</div>
-        <h2 class="saved-empty-title">No saved stories</h2>
+        <p class="saved-empty-title">No saved stories</p>
         <p class="saved-empty-text">
           Stories you bookmark will appear here for easy access.
           <br>
@@ -190,11 +214,13 @@ function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
     return
   }
 
-  container.innerHTML = stories
-    .map((story, idx) =>
-      renderStory(story, idx + 1, readStoryIds.has(story.id), 0, 'none', 0),
-    )
-    .join('')
+  container.innerHTML =
+    `<h1 class="feed-title">${feedTitle}</h1>` +
+    stories
+      .map((story, idx) =>
+        renderStory(story, idx + 1, readStoryIds.has(story.id), 0, 'none', 0),
+      )
+      .join('')
 
   // Observe newly added favicons for lazy loading
   observeNewFavicons()
@@ -216,10 +242,13 @@ function initVirtualScroll(container: HTMLElement): void {
     virtualScroll.destroy()
   }
 
+  const feedTitle = getFeedTitle(currentFeed)
+
   virtualScroll = new VirtualScroll<HNItem>({
     container,
     itemHeight: STORY_ITEM_HEIGHT,
     bufferSize: 10,
+    headerHtml: `<h1 class="feed-title">${feedTitle}</h1>`,
     renderItem: (story, index) => {
       const duplicateInfo = currentDuplicates.get(story.id)
       return renderStory(
