@@ -8,9 +8,13 @@
     "core:window:default",
     "core:window:allow-set-fullscreen",
     "core:window:allow-set-decorations",
+    "core:event:default",
+    "core:event:allow-emit",
+    "core:event:allow-listen",
     "shell:allow-open",
     "window-state:default",
     "dialog:allow-save",
-    "fs:allow-write-text-file"
+    "fs:allow-write-text-file",
+    "notification:default"
   ]
 }

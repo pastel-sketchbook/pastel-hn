@@ -4,7 +4,14 @@
  */
 
 import { icons } from './icons'
-import { bookmarkStory, isStoryBookmarked, removeBookmark } from './storage'
+import {
+  bookmarkStory,
+  followStory,
+  isStoryBookmarked,
+  isStoryFollowed,
+  removeBookmark,
+  unfollowStory,
+} from './storage'
 import { toastError, toastInfo, toastSuccess } from './toast'
 import type { HNItem, StoryFeed } from './types'
 
@@ -144,6 +151,27 @@ export function setupActionHandlers(): void {
           actionBtn.title = 'Remove bookmark'
           actionBtn.innerHTML = `${icons.bookmarkFilled}<span>Bookmarked</span>`
           toastSuccess('Story bookmarked')
+        }
+      }
+    } else if (action === 'toggle-follow') {
+      e.preventDefault()
+      const storyId = Number(actionBtn.dataset.id)
+      if (!storyId) return
+
+      if (isStoryFollowed(storyId)) {
+        unfollowStory(storyId)
+        actionBtn.classList.remove('followed')
+        actionBtn.title = 'Get notified of new comments'
+        actionBtn.innerHTML = `${icons.bell}<span>Follow</span>`
+        toastInfo('Stopped following story')
+      } else {
+        const storyData = callbacks.getCurrentStoryData()
+        if (storyData) {
+          followStory(storyData)
+          actionBtn.classList.add('followed')
+          actionBtn.title = 'Unfollow story'
+          actionBtn.innerHTML = `${icons.bellFilled}<span>Following</span>`
+          toastSuccess("Following story - you'll be notified of new comments")
         }
       }
     } else if (action === 'copy-hn-link') {
