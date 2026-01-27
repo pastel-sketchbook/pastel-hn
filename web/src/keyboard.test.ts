@@ -413,5 +413,108 @@ describe('keyboard', () => {
       expect(keys).toContain('1-7')
       expect(keys).toContain('?')
     })
+
+    it('includes vim-style navigation shortcuts', () => {
+      const keys = KEYBOARD_SHORTCUTS.map((s) => s.key)
+
+      expect(keys).toContain('h / l')
+      expect(keys).toContain('G')
+      expect(keys).toContain('gg')
+      expect(keys).toContain('g<n>g')
+      expect(keys).toContain('yy')
+    })
+  })
+
+  describe('vim-style scroll', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <div id="stories" style="width: 500px; height: 300px; overflow: auto;">
+          <div style="width: 1000px; height: 1000px;"></div>
+        </div>
+      `
+      initKeyboard()
+    })
+
+    it('h scrolls left', () => {
+      const container = document.getElementById('stories')!
+      container.scrollLeft = 200
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }))
+      expect(container.scrollLeft).toBeLessThan(200)
+    })
+
+    it('l scrolls right', () => {
+      const container = document.getElementById('stories')!
+      container.scrollLeft = 0
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'l' }))
+      expect(container.scrollLeft).toBeGreaterThan(0)
+    })
+  })
+
+  describe('vim-style G/gg navigation', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <div class="story" data-id="1"></div>
+        <div class="story" data-id="2"></div>
+        <div class="story" data-id="3"></div>
+        <div class="story" data-id="4"></div>
+        <div class="story" data-id="5"></div>
+      `
+      initKeyboard()
+    })
+
+    it('G jumps to last item', () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'G', shiftKey: true }),
+      )
+      expect(getSelectedIndex()).toBe(4)
+    })
+
+    it('gg jumps to first item (two g presses)', () => {
+      setSelectedIndex(4)
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      expect(getSelectedIndex()).toBe(0)
+    })
+
+    it('nG jumps to nth item (e.g., 3G)', () => {
+      // First press 'g' to enter numeric mode, then type number, then 'g' again
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      expect(getSelectedIndex()).toBe(2) // 0-indexed, so item 3 is index 2
+    })
+
+    it('nG clamps to last item if n exceeds count', () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '9' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '9' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      expect(getSelectedIndex()).toBe(4) // Last item
+    })
+  })
+
+  describe('vim-style yy copy', () => {
+    beforeEach(() => {
+      initKeyboard()
+    })
+
+    it('yy triggers copy callback in detail view', () => {
+      const onCopy = vi.fn()
+      setKeyboardCallbacks({ onCopy })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+
+      expect(onCopy).toHaveBeenCalledTimes(1)
+    })
+
+    it('single y does not trigger copy', () => {
+      const onCopy = vi.fn()
+      setKeyboardCallbacks({ onCopy })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+
+      expect(onCopy).not.toHaveBeenCalled()
+    })
   })
 })

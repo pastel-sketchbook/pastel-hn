@@ -64,7 +64,7 @@ import {
   setCurrentFeed,
 } from './story-list'
 import { toggleTheme } from './theme'
-import { toastInfo, toastSuccess } from './toast'
+import { toastError, toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
 import type { StoryFeed } from './types'
 import {
@@ -296,6 +296,34 @@ function setupKeyboardNavigation(): void {
         await appWindow.close()
       } catch {
         // Not in Tauri environment
+      }
+    },
+    onCopy: async () => {
+      if (currentView === 'detail') {
+        const storyId = getCurrentStoryId()
+        if (storyId) {
+          const hnUrl = `https://news.ycombinator.com/item?id=${storyId}`
+          try {
+            await navigator.clipboard.writeText(hnUrl)
+            toastSuccess('HN link copied to clipboard')
+          } catch {
+            toastError('Failed to copy link')
+          }
+        }
+      } else if (currentView === 'list') {
+        // In list view, copy selected story's HN link
+        const stories = getCurrentStories()
+        const { getSelectedIndex } = await import('./keyboard')
+        const index = getSelectedIndex()
+        if (index >= 0 && stories[index]) {
+          const hnUrl = `https://news.ycombinator.com/item?id=${stories[index].id}`
+          try {
+            await navigator.clipboard.writeText(hnUrl)
+            toastSuccess('HN link copied to clipboard')
+          } catch {
+            toastError('Failed to copy link')
+          }
+        }
       }
     },
   })

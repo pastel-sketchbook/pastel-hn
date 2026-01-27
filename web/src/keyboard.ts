@@ -22,6 +22,12 @@ import type { StoryFeed } from './types'
 let selectedIndex = -1
 let isEnabled = true
 
+// Vim-style command state
+let pendingKey: string | null = null
+let numericPrefix = ''
+let pendingTimeout: ReturnType<typeof setTimeout> | null = null
+const PENDING_TIMEOUT_MS = 1000
+
 /**
  * Callback functions for keyboard actions
  * Set via setKeyboardCallbacks()
@@ -55,6 +61,8 @@ type KeyboardCallback = {
   onToggleTheme?: () => void
   /** Called when pressing Cmd/Ctrl+Q to quit */
   onQuit?: () => void
+  /** Called when pressing yy to copy */
+  onCopy?: () => void
 }
 
 let callbacks: KeyboardCallback = {}
@@ -169,6 +177,60 @@ function openExternalLink(): void {
   }
 }
 
+function navigateToFirst(): void {
+  const items = getSelectableItems()
+  if (items.length === 0) return
+  selectedIndex = 0
+  updateSelection()
+  callbacks.onNavigate?.(selectedIndex)
+}
+
+function navigateToLast(): void {
+  const items = getSelectableItems()
+  if (items.length === 0) return
+  selectedIndex = items.length - 1
+  updateSelection()
+  callbacks.onNavigate?.(selectedIndex)
+}
+
+function navigateToIndex(n: number): void {
+  const items = getSelectableItems()
+  if (items.length === 0) return
+  // n is 1-indexed, clamp to valid range
+  selectedIndex = Math.min(Math.max(0, n - 1), items.length - 1)
+  updateSelection()
+  callbacks.onNavigate?.(selectedIndex)
+}
+
+function scrollHorizontal(direction: 'left' | 'right'): void {
+  const container =
+    document.getElementById('stories') ||
+    document.getElementById('story-detail') ||
+    document.documentElement
+  const scrollAmount = 100
+  if (direction === 'left') {
+    container.scrollLeft -= scrollAmount
+  } else {
+    container.scrollLeft += scrollAmount
+  }
+}
+
+function clearPendingState(): void {
+  pendingKey = null
+  numericPrefix = ''
+  if (pendingTimeout) {
+    clearTimeout(pendingTimeout)
+    pendingTimeout = null
+  }
+}
+
+function resetPendingTimeout(): void {
+  if (pendingTimeout) {
+    clearTimeout(pendingTimeout)
+  }
+  pendingTimeout = setTimeout(clearPendingState, PENDING_TIMEOUT_MS)
+}
+
 function handleKeydown(e: KeyboardEvent): void {
   if (!isEnabled) return
 
@@ -180,16 +242,82 @@ function handleKeydown(e: KeyboardEvent): void {
     return
   }
 
-  const key = e.key.toLowerCase()
+  const key = e.key
 
   // Handle Cmd+Q (macOS) or Ctrl+Q (Windows/Linux) to quit
-  if (key === 'q' && (e.metaKey || e.ctrlKey)) {
+  if (key.toLowerCase() === 'q' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault()
     callbacks.onQuit?.()
     return
   }
 
-  switch (key) {
+  // Handle vim-style commands with pending state (gg, yy, g<n>g)
+  if (pendingKey === 'g') {
+    // Accumulate digits after 'g' for g<n>g command
+    if (/^[0-9]$/.test(key)) {
+      e.preventDefault()
+      numericPrefix += key
+      resetPendingTimeout()
+      return
+    }
+    if (key === 'g') {
+      e.preventDefault()
+      if (numericPrefix) {
+        navigateToIndex(Number.parseInt(numericPrefix, 10))
+      } else {
+        navigateToFirst()
+      }
+      clearPendingState()
+      return
+    }
+    clearPendingState()
+  }
+
+  if (pendingKey === 'y') {
+    if (key === 'y') {
+      e.preventDefault()
+      callbacks.onCopy?.()
+      clearPendingState()
+      return
+    }
+    clearPendingState()
+  }
+
+  // Handle number keys for feed switching (1-6)
+  if (/^[1-6]$/.test(key) && !e.ctrlKey && !e.metaKey && !e.altKey && FEED_KEYS[key]) {
+    e.preventDefault()
+    callbacks.onFeedChange?.(FEED_KEYS[key])
+    return
+  }
+
+  // Handle 'g' key - start pending state for gg or ng
+  if (key === 'g') {
+    e.preventDefault()
+    pendingKey = 'g'
+    resetPendingTimeout()
+    return
+  }
+
+  // Handle 'G' (shift+g) - jump to last item
+  if (key === 'G') {
+    e.preventDefault()
+    navigateToLast()
+    clearPendingState()
+    return
+  }
+
+  // Handle 'y' key - start pending state for yy
+  if (key === 'y') {
+    e.preventDefault()
+    pendingKey = 'y'
+    resetPendingTimeout()
+    return
+  }
+
+  // Clear pending state for any other key
+  clearPendingState()
+
+  switch (key.toLowerCase()) {
     case 'j':
     case 'arrowdown':
       e.preventDefault()
@@ -200,6 +328,18 @@ function handleKeydown(e: KeyboardEvent): void {
     case 'arrowup':
       e.preventDefault()
       navigateUp()
+      break
+
+    case 'h':
+    case 'arrowleft':
+      e.preventDefault()
+      scrollHorizontal('left')
+      break
+
+    case 'l':
+    case 'arrowright':
+      e.preventDefault()
+      scrollHorizontal('right')
       break
 
     case 'enter':
@@ -258,21 +398,6 @@ function handleKeydown(e: KeyboardEvent): void {
       e.preventDefault()
       callbacks.onToggleTheme?.()
       break
-
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault()
-        const feed = FEED_KEYS[key]
-        if (feed) {
-          callbacks.onFeedChange?.(feed)
-        }
-      }
-      break
   }
 }
 
@@ -292,8 +417,13 @@ export function disableKeyboard(): void {
 export const KEYBOARD_SHORTCUTS = [
   { key: 'j / ↓', description: 'Next item' },
   { key: 'k / ↑', description: 'Previous item' },
+  { key: 'h / l', description: 'Scroll left / right' },
+  { key: 'G', description: 'Jump to last item' },
+  { key: 'gg', description: 'Jump to first item' },
+  { key: 'g<n>g', description: 'Jump to nth item (e.g., g5g)' },
   { key: 'Enter', description: 'Open story / expand' },
   { key: 'o', description: 'Open link in browser' },
+  { key: 'yy', description: 'Copy link' },
   { key: 'c', description: 'Focus comments' },
   { key: 'b', description: 'Back to list' },
   { key: 'z', description: 'Toggle Zen mode' },
