@@ -20,12 +20,14 @@ import {
 } from './back-to-top'
 import { initErrorBoundary } from './error-boundary'
 import { initFaviconLazyLoading } from './favicon'
+import { startFollowedStoriesPolling } from './follow-polling'
 import { initKeyboard, setKeyboardCallbacks } from './keyboard'
 import {
   configureNavigation,
   handleHashChange,
   setupAllNavigation,
 } from './navigation'
+import { initNotifications } from './notifications'
 import { initOfflineDetection } from './offline'
 import { configurePullRefresh, setupPullToRefresh } from './pull-refresh'
 import {
@@ -61,6 +63,7 @@ import {
 } from './story-list'
 import { toggleTheme } from './theme'
 import { toastInfo, toastSuccess } from './toast'
+import { configureTrayEvents, initTrayEvents } from './tray-events'
 import type { StoryFeed } from './types'
 import {
   getCurrentUserId,
@@ -78,6 +81,22 @@ import './styles/main.css'
 // Application state
 let currentView: 'list' | 'detail' | 'user' = 'list'
 let currentFeed: StoryFeed = 'top'
+
+/**
+ * Get display name for a feed type.
+ */
+function getFeedDisplayName(feed: StoryFeed): string {
+  const names: Record<StoryFeed, string> = {
+    top: 'Top Stories',
+    new: 'New Stories',
+    best: 'Best Stories',
+    ask: 'Ask HN',
+    show: 'Show HN',
+    jobs: 'Jobs',
+    saved: 'Saved',
+  }
+  return names[feed] ?? feed
+}
 
 /**
  * Navigate back to list view with animation.
@@ -380,6 +399,62 @@ async function main(): Promise<void> {
 
     // Initialize favicon lazy loading
     initFaviconLazyLoading()
+
+    // Initialize native notifications (requests permission if needed)
+    initNotifications().then((available) => {
+      if (available) {
+        // Start background polling for followed story updates
+        startFollowedStoriesPolling()
+      }
+    })
+
+    // Configure and initialize system tray events
+    configureTrayEvents({
+      onFeedChange: (feed) => {
+        if (currentView !== 'list' || feed === currentFeed) {
+          // Navigate to list view first if needed
+          if (currentView !== 'list') {
+            navigateBackToList().then(() => {
+              currentFeed = feed
+              document.querySelectorAll('[data-feed]').forEach((btn) => {
+                btn.classList.toggle(
+                  'active',
+                  btn.getAttribute('data-feed') === feed,
+                )
+              })
+              renderStories(feed)
+            })
+          }
+        } else {
+          currentFeed = feed
+          document.querySelectorAll('[data-feed]').forEach((btn) => {
+            btn.classList.toggle(
+              'active',
+              btn.getAttribute('data-feed') === feed,
+            )
+          })
+          renderStories(feed)
+        }
+        toastInfo(`Switched to ${getFeedDisplayName(feed)}`)
+      },
+      onRefresh: () => {
+        if (currentView === 'list') {
+          renderStoriesModule(currentFeed, true)
+          toastSuccess('Feed refreshed')
+        } else if (currentView === 'detail') {
+          const storyId = getCurrentStoryId()
+          if (storyId) {
+            renderStoryDetail(storyId)
+            toastSuccess('Story refreshed')
+          }
+        }
+      },
+      onSearch: async () => {
+        const { showSearchModal } = await import('./search')
+        showSearchModal()
+      },
+    })
+    initTrayEvents()
 
     // Set up zen mode callback
     setZenModeChangeCallback((isActive) => {
