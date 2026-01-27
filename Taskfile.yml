@@ -56,6 +56,12 @@ tasks:
     cmds:
       - bun run test:e2e:ui
 
+  test:perf:
+    desc: Run performance benchmark tests
+    dir: web
+    cmds:
+      - bun run test:e2e -- --grep "Performance Benchmarks"
+
   test:
     desc: Run all unit tests (web + rust)
     cmds:

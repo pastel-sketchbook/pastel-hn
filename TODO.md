@@ -322,7 +322,7 @@
 - [x] Concurrent request fetching with Tokio
 - [x] Lazy comment loading (fetch on expand with depth=1)
 - [x] Bundle size optimization (128KB → 106KB main bundle, 17% reduction)
-- [ ] First contentful paint <500ms
+- [x] First contentful paint <500ms (measured: ~76-120ms)
 - [x] **Image/favicon lazy loading for story domains**
 - [x] **Request deduplication for concurrent fetches**
 - [x] **Split main.ts into smaller, focused modules**
@@ -352,11 +352,11 @@
 - [x] Unit tests for copilot-client.ts (copilot-client.test.ts - 32 tests)
 - [x] Rust unit tests for HnClient (client.rs - 16 tests)
 - [x] Rust unit tests for types.rs (types.rs - 40 tests)
-- [ ] Component tests for UI
+- [x] Component tests for UI (navigation.test.ts - 38 tests, user-profile.test.ts - 37 tests, story-detail.test.ts - 44 tests)
 - [x] E2E tests with Playwright (38 tests covering navigation, feeds, comments, themes, keyboard shortcuts, settings, search, accessibility)
-- [ ] Visual regression tests
-- [ ] Performance benchmarks
-- [ ] Accessibility audit (axe-core)
+- [x] Visual regression tests (visual.spec.ts - 21 tests for light/dark themes, modals, zen mode, responsive layouts)
+- [x] Performance benchmarks (Playwright E2E tests measuring FCP, TTFS, interaction timing)
+- [x] Accessibility audit (accessibility.spec.ts - 16 tests using axe-core for WCAG 2.1 AA compliance)
 - [ ] **Integration tests for Tauri command responses**
 
 ### 7.4 Documentation

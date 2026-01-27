@@ -42,3 +42,4 @@ test-results/
 playwright-report/
 hangul-typing-codebase.md
 web/coverage
+web/e2e/*.spec.ts-snapshots/
