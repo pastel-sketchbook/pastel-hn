@@ -327,8 +327,8 @@ test.describe('Performance Benchmarks', () => {
       const navigationStart = Date.now()
       await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-      // Wait for paint metrics
-      await page.waitForTimeout(100)
+      // Wait for paint metrics to be recorded (longer wait for stability)
+      await page.waitForTimeout(500)
 
       const metrics = await collectMetrics(page)
 
