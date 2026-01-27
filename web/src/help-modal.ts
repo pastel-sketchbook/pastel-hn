@@ -25,7 +25,7 @@ export function showHelpModal(): void {
   const modal = document.createElement('div')
   modal.className = 'help-modal-overlay'
   modal.innerHTML = `
-    <div class="help-modal cyber-frame" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+    <div id="help-modal" class="help-modal cyber-frame" role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
       <span class="corner-tr"></span>
       <span class="corner-bl"></span>
       <h2 class="help-modal-title" id="help-modal-title">Keyboard Shortcuts</h2>
