@@ -3,6 +3,9 @@
  *
  * All API calls are handled by the Rust backend for better performance,
  * caching, and error handling. See docs/rationale/0002_rust_api_layer.md
+ *
+ * Request deduplication: Concurrent calls for the same resource share a single
+ * in-flight request, preventing redundant network traffic.
  */
 
 import { invoke } from '@tauri-apps/api/core'
@@ -14,6 +17,58 @@ import type {
   StoryFeed,
   StoryWithComments,
 } from './types'
+
+// ===== Request Deduplication =====
+
+/** In-flight request cache for deduplication */
+const inFlightRequests = new Map<string, Promise<unknown>>()
+
+/** Safety timeout to prevent stuck entries (30 seconds) */
+const IN_FLIGHT_TIMEOUT_MS = 30_000
+
+/**
+ * Invoke a Tauri command with request deduplication.
+ * Concurrent calls with the same cache key share a single in-flight request.
+ *
+ * @param cacheKey - Unique key identifying this request
+ * @param cmd - Tauri command name
+ * @param args - Command arguments
+ * @returns Promise resolving to the command result
+ */
+function deduplicatedInvoke<T>(
+  cacheKey: string,
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  const existing = inFlightRequests.get(cacheKey)
+  if (existing) {
+    return existing as Promise<T>
+  }
+
+  const promise = invoke<T>(cmd, args).finally(() => {
+    inFlightRequests.delete(cacheKey)
+  })
+
+  // Safety timeout to prevent memory leaks from hung requests
+  setTimeout(() => inFlightRequests.delete(cacheKey), IN_FLIGHT_TIMEOUT_MS)
+
+  inFlightRequests.set(cacheKey, promise)
+  return promise
+}
+
+/**
+ * Get the number of in-flight requests (for testing/debugging)
+ */
+export function getInFlightRequestCount(): number {
+  return inFlightRequests.size
+}
+
+/**
+ * Clear all in-flight requests (for testing)
+ */
+export function clearInFlightRequests(): void {
+  inFlightRequests.clear()
+}
 
 // ===== HN Firebase API =====
 
@@ -39,7 +94,11 @@ export async function fetchStoriesPaginated(
   offset: number,
   limit: number,
 ): Promise<StoriesResponse> {
-  return invoke('fetch_stories', { feed, offset, limit })
+  return deduplicatedInvoke<StoriesResponse>(
+    `stories:${feed}:${offset}:${limit}`,
+    'fetch_stories',
+    { feed, offset, limit },
+  )
 }
 
 /**
@@ -57,14 +116,17 @@ export async function fetchStories(
  * Fetch a single item by ID
  */
 export async function fetchItem(id: number): Promise<HNItem> {
-  return invoke('fetch_item', { id })
+  return deduplicatedInvoke<HNItem>(`item:${id}`, 'fetch_item', { id })
 }
 
 /**
  * Fetch multiple items by IDs
+ * Note: IDs are sorted to normalize cache keys - [1,2,3] and [3,2,1] share same request
  */
 export async function fetchItems(ids: number[]): Promise<HNItem[]> {
-  return invoke('fetch_items', { ids })
+  const sortedIds = [...ids].sort((a, b) => a - b)
+  const cacheKey = `items:${sortedIds.join(',')}`
+  return deduplicatedInvoke<HNItem[]>(cacheKey, 'fetch_items', { ids })
 }
 
 /**
@@ -74,7 +136,11 @@ export async function fetchStoryWithComments(
   id: number,
   depth = 2,
 ): Promise<StoryWithComments> {
-  return invoke('fetch_story_with_comments', { id, depth })
+  return deduplicatedInvoke<StoryWithComments>(
+    `story:${id}:${depth}`,
+    'fetch_story_with_comments',
+    { id, depth },
+  )
 }
 
 /**
@@ -84,14 +150,18 @@ export async function fetchCommentChildren(
   id: number,
   depth = 2,
 ): Promise<CommentWithChildren[]> {
-  return invoke('fetch_comment_children', { id, depth })
+  return deduplicatedInvoke<CommentWithChildren[]>(
+    `comments:${id}:${depth}`,
+    'fetch_comment_children',
+    { id, depth },
+  )
 }
 
 /**
  * Fetch a user by ID
  */
 export async function fetchUser(id: string): Promise<HNUser> {
-  return invoke('fetch_user', { id })
+  return deduplicatedInvoke<HNUser>(`user:${id}`, 'fetch_user', { id })
 }
 
 /**
@@ -103,7 +173,11 @@ export async function fetchUserSubmissions(
   limit: number,
   filter: SubmissionFilter = 'all',
 ): Promise<SubmissionsResponse> {
-  return invoke('fetch_user_submissions', { userId, offset, limit, filter })
+  return deduplicatedInvoke<SubmissionsResponse>(
+    `submissions:${userId}:${offset}:${limit}:${filter}`,
+    'fetch_user_submissions',
+    { userId, offset, limit, filter },
+  )
 }
 
 // ===== Search API (Algolia) =====
@@ -153,7 +227,8 @@ export async function searchHN(
     filter = 'all',
   } = options
 
-  return invoke('search_hn', {
+  const cacheKey = `search:${query}:${page}:${hitsPerPage}:${sort}:${filter}`
+  return deduplicatedInvoke<SearchResponse>(cacheKey, 'search_hn', {
     query,
     page,
     hitsPerPage,
@@ -172,7 +247,11 @@ import type { ArticleContent } from './types'
 export async function fetchArticleContent(
   url: string,
 ): Promise<ArticleContent> {
-  return invoke('fetch_article_content', { url })
+  return deduplicatedInvoke<ArticleContent>(
+    `article:${url}`,
+    'fetch_article_content',
+    { url },
+  )
 }
 
 // ===== Cache Management =====

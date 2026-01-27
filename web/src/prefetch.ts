@@ -5,6 +5,9 @@
  * 1. Prefetch next page of stories when user scrolls near bottom
  * 2. Prefetch story details (comments) on hover with delay
  * 3. Prefetch visible story details in idle time
+ *
+ * Note: Request deduplication is handled at the API layer (deduplicatedInvoke),
+ * so concurrent calls for the same resource are automatically coalesced.
  */
 
 import type { StoriesResponse } from './api'
@@ -13,9 +16,6 @@ import type { StoryFeed, StoryWithComments } from './types'
 
 // Cache for prefetched story details
 const storyDetailCache = new Map<number, StoryWithComments>()
-
-// Track pending prefetch requests to avoid duplicates
-const pendingPrefetches = new Set<string>()
 
 // Track stories that have been prefetched
 const prefetchedStories = new Set<number>()
@@ -43,14 +43,14 @@ export function isStoryCached(id: number): boolean {
 /**
  * Prefetch story details (comments) for a story ID
  * Silent failure - prefetching errors shouldn't affect the user
+ *
+ * Note: Concurrent calls for the same story ID are deduplicated at the API layer.
  */
 export async function prefetchStoryDetail(id: number): Promise<void> {
-  // Skip if already cached or pending
-  if (storyDetailCache.has(id) || pendingPrefetches.has(`story:${id}`)) {
+  // Skip if already cached locally
+  if (storyDetailCache.has(id)) {
     return
   }
-
-  pendingPrefetches.add(`story:${id}`)
 
   try {
     // Use depth=1 for lazy loading - only prefetch top-level comments
@@ -59,8 +59,6 @@ export async function prefetchStoryDetail(id: number): Promise<void> {
     prefetchedStories.add(id)
   } catch {
     // Silent failure - prefetching is best-effort
-  } finally {
-    pendingPrefetches.delete(`story:${id}`)
   }
 }
 
@@ -121,6 +119,8 @@ export function getCachedNextPage(
 
 /**
  * Prefetch next page of stories
+ *
+ * Note: Concurrent calls for the same page are deduplicated at the API layer.
  */
 export async function prefetchNextPage(
   feed: StoryFeed,
@@ -130,20 +130,16 @@ export async function prefetchNextPage(
   const nextOffset = currentOffset + pageSize
   const cacheKey = getFeedCacheKey(feed, nextOffset)
 
-  // Skip if already cached or pending
-  if (nextPageCache.has(cacheKey) || pendingPrefetches.has(cacheKey)) {
+  // Skip if already cached locally
+  if (nextPageCache.has(cacheKey)) {
     return
   }
-
-  pendingPrefetches.add(cacheKey)
 
   try {
     const result = await fetchStoriesPaginated(feed, nextOffset, pageSize)
     nextPageCache.set(cacheKey, result)
   } catch {
     // Silent failure
-  } finally {
-    pendingPrefetches.delete(cacheKey)
   }
 }
 
@@ -198,11 +194,9 @@ export function clearFeedPrefetchCache(feed: StoryFeed): void {
 export function getPrefetchStats(): {
   cachedStories: number
   cachedPages: number
-  pendingRequests: number
 } {
   return {
     cachedStories: storyDetailCache.size,
     cachedPages: nextPageCache.size,
-    pendingRequests: pendingPrefetches.size,
   }
 }

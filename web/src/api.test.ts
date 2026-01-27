@@ -8,13 +8,18 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core'
 import {
   clearCache,
+  clearInFlightRequests,
   extractDomain,
+  fetchArticleContent,
   fetchItem,
+  fetchItems,
   fetchStoriesPaginated,
   fetchStoryWithComments,
   fetchUser,
+  fetchUserSubmissions,
   formatTimeAgo,
   getCacheStats,
+  getInFlightRequestCount,
   searchHN,
 } from './api'
 
@@ -23,10 +28,12 @@ const mockInvoke = vi.mocked(invoke)
 describe('api', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    clearInFlightRequests()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    clearInFlightRequests()
   })
 
   describe('fetchUser', () => {
@@ -346,6 +353,315 @@ describe('api', () => {
 
     it('returns null for invalid URL', () => {
       expect(extractDomain('not a url')).toBeNull()
+    })
+  })
+
+  describe('request deduplication', () => {
+    it('deduplicates concurrent identical fetchItem calls', async () => {
+      const mockItem = {
+        id: 123,
+        type: 0,
+        by: 'user1',
+        time: 1700000000,
+        title: 'Test Story',
+      }
+
+      // Create a promise that we can resolve manually
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      // Fire three concurrent requests for the same item
+      const promise1 = fetchItem(123)
+      const promise2 = fetchItem(123)
+      const promise3 = fetchItem(123)
+
+      // Only one invoke call should be made
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+      expect(getInFlightRequestCount()).toBe(1)
+
+      // Resolve the underlying promise
+      resolveInvoke!(mockItem)
+
+      // All three promises should resolve to the same value
+      const [result1, result2, result3] = await Promise.all([
+        promise1,
+        promise2,
+        promise3,
+      ])
+
+      expect(result1).toEqual(mockItem)
+      expect(result2).toEqual(mockItem)
+      expect(result3).toEqual(mockItem)
+
+      // In-flight request should be cleaned up
+      expect(getInFlightRequestCount()).toBe(0)
+    })
+
+    it('makes new request after previous one completes', async () => {
+      const mockItem1 = { id: 123, title: 'First' }
+      const mockItem2 = { id: 123, title: 'Second' }
+
+      mockInvoke.mockResolvedValueOnce(mockItem1).mockResolvedValueOnce(mockItem2)
+
+      // First request
+      const result1 = await fetchItem(123)
+      expect(result1).toEqual(mockItem1)
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+
+      // Second request (after first completed)
+      const result2 = await fetchItem(123)
+      expect(result2).toEqual(mockItem2)
+      expect(mockInvoke).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not deduplicate different item IDs', async () => {
+      const mockItem1 = { id: 123, title: 'Story 1' }
+      const mockItem2 = { id: 456, title: 'Story 2' }
+
+      let resolveFirst: (value: unknown) => void
+      let resolveSecond: (value: unknown) => void
+
+      mockInvoke
+        .mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveFirst = resolve
+          }),
+        )
+        .mockReturnValueOnce(
+          new Promise((resolve) => {
+            resolveSecond = resolve
+          }),
+        )
+
+      const promise1 = fetchItem(123)
+      const promise2 = fetchItem(456)
+
+      // Two different invoke calls should be made
+      expect(mockInvoke).toHaveBeenCalledTimes(2)
+      expect(getInFlightRequestCount()).toBe(2)
+
+      resolveFirst!(mockItem1)
+      resolveSecond!(mockItem2)
+
+      const [result1, result2] = await Promise.all([promise1, promise2])
+
+      expect(result1).toEqual(mockItem1)
+      expect(result2).toEqual(mockItem2)
+    })
+
+    it('deduplicates fetchItems regardless of ID order', async () => {
+      const mockItems = [
+        { id: 1, title: 'Item 1' },
+        { id: 2, title: 'Item 2' },
+        { id: 3, title: 'Item 3' },
+      ]
+
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      // Fire concurrent requests with same IDs in different orders
+      const promise1 = fetchItems([1, 2, 3])
+      const promise2 = fetchItems([3, 2, 1])
+      const promise3 = fetchItems([2, 1, 3])
+
+      // Only one invoke call should be made (IDs are normalized by sorting)
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+      expect(getInFlightRequestCount()).toBe(1)
+
+      resolveInvoke!(mockItems)
+
+      const [result1, result2, result3] = await Promise.all([
+        promise1,
+        promise2,
+        promise3,
+      ])
+
+      expect(result1).toEqual(mockItems)
+      expect(result2).toEqual(mockItems)
+      expect(result3).toEqual(mockItems)
+    })
+
+    it('allows retry after failed request', async () => {
+      const mockError = new Error('Network error')
+      const mockItem = { id: 123, title: 'Success' }
+
+      mockInvoke.mockRejectedValueOnce(mockError).mockResolvedValueOnce(mockItem)
+
+      // First request fails
+      await expect(fetchItem(123)).rejects.toThrow('Network error')
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+      expect(getInFlightRequestCount()).toBe(0) // Cleaned up after failure
+
+      // Retry should make a new request
+      const result = await fetchItem(123)
+      expect(result).toEqual(mockItem)
+      expect(mockInvoke).toHaveBeenCalledTimes(2)
+    })
+
+    it('deduplicates concurrent fetchUser calls', async () => {
+      const mockUser = {
+        id: 'testuser',
+        karma: 100,
+        created: 1600000000,
+      }
+
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      const promise1 = fetchUser('testuser')
+      const promise2 = fetchUser('testuser')
+
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+
+      resolveInvoke!(mockUser)
+
+      const [result1, result2] = await Promise.all([promise1, promise2])
+      expect(result1).toEqual(mockUser)
+      expect(result2).toEqual(mockUser)
+    })
+
+    it('deduplicates concurrent searchHN calls with same params', async () => {
+      const mockResponse = {
+        hits: [],
+        nbHits: 0,
+        page: 0,
+        nbPages: 0,
+        hitsPerPage: 20,
+        query: 'test',
+      }
+
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      const promise1 = searchHN('test', { page: 0 })
+      const promise2 = searchHN('test', { page: 0 })
+
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+
+      resolveInvoke!(mockResponse)
+
+      const [result1, result2] = await Promise.all([promise1, promise2])
+      expect(result1).toEqual(mockResponse)
+      expect(result2).toEqual(mockResponse)
+    })
+
+    it('does not deduplicate searchHN calls with different params', async () => {
+      mockInvoke
+        .mockResolvedValueOnce({ hits: [], query: 'test', page: 0 })
+        .mockResolvedValueOnce({ hits: [], query: 'test', page: 1 })
+
+      const promise1 = searchHN('test', { page: 0 })
+      const promise2 = searchHN('test', { page: 1 })
+
+      expect(mockInvoke).toHaveBeenCalledTimes(2)
+
+      await Promise.all([promise1, promise2])
+    })
+
+    it('deduplicates concurrent fetchArticleContent calls', async () => {
+      const mockArticle = {
+        title: 'Test Article',
+        content: '<p>Content</p>',
+        textContent: 'Content',
+      }
+
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      const promise1 = fetchArticleContent('https://example.com/article')
+      const promise2 = fetchArticleContent('https://example.com/article')
+
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+
+      resolveInvoke!(mockArticle)
+
+      const [result1, result2] = await Promise.all([promise1, promise2])
+      expect(result1).toEqual(mockArticle)
+      expect(result2).toEqual(mockArticle)
+    })
+
+    it('deduplicates concurrent fetchUserSubmissions calls', async () => {
+      const mockResponse = {
+        items: [],
+        hasMore: false,
+        total: 0,
+      }
+
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      const promise1 = fetchUserSubmissions('testuser', 0, 30, 'all')
+      const promise2 = fetchUserSubmissions('testuser', 0, 30, 'all')
+
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+
+      resolveInvoke!(mockResponse)
+
+      const [result1, result2] = await Promise.all([promise1, promise2])
+      expect(result1).toEqual(mockResponse)
+      expect(result2).toEqual(mockResponse)
+    })
+
+    it('deduplicates fetchStoryWithComments with same id and depth', async () => {
+      const mockResponse = {
+        story: { id: 100, title: 'Test' },
+        comments: [],
+      }
+
+      let resolveInvoke: (value: unknown) => void
+      mockInvoke.mockReturnValue(
+        new Promise((resolve) => {
+          resolveInvoke = resolve
+        }),
+      )
+
+      const promise1 = fetchStoryWithComments(100, 2)
+      const promise2 = fetchStoryWithComments(100, 2)
+
+      expect(mockInvoke).toHaveBeenCalledTimes(1)
+
+      resolveInvoke!(mockResponse)
+
+      const [result1, result2] = await Promise.all([promise1, promise2])
+      expect(result1).toEqual(mockResponse)
+      expect(result2).toEqual(mockResponse)
+    })
+
+    it('does not deduplicate fetchStoryWithComments with different depths', async () => {
+      mockInvoke
+        .mockResolvedValueOnce({ story: { id: 100 }, comments: [] })
+        .mockResolvedValueOnce({ story: { id: 100 }, comments: [] })
+
+      const promise1 = fetchStoryWithComments(100, 1)
+      const promise2 = fetchStoryWithComments(100, 3)
+
+      expect(mockInvoke).toHaveBeenCalledTimes(2)
+
+      await Promise.all([promise1, promise2])
     })
   })
 })

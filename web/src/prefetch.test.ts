@@ -155,7 +155,7 @@ describe('prefetch', () => {
       expect(mockFetchStoryWithComments).not.toHaveBeenCalled()
     })
 
-    it('skips prefetch for already cached stories', () => {
+    it('skips prefetch for already cached stories', async () => {
       const mockStory = {
         story: {
           id: 300,
@@ -177,14 +177,13 @@ describe('prefetch', () => {
 
       mockFetchStoryWithComments.mockResolvedValue(mockStory)
 
-      // Pre-cache the story
-      prefetchStoryDetail(300)
-      vi.runAllTimers()
+      // Pre-cache the story (await to ensure it's cached)
+      await prefetchStoryDetail(300)
 
       // Clear mock to track new calls
       mockFetchStoryWithComments.mockClear()
 
-      // Hover should not trigger new fetch
+      // Hover should not trigger new fetch since story is cached
       onStoryHoverStart(300)
       vi.advanceTimersByTime(200)
 
@@ -451,6 +450,7 @@ describe('prefetch', () => {
 
       const afterStats = getPrefetchStats()
       expect(afterStats.cachedStories).toBe(1)
+      expect(afterStats.cachedPages).toBe(0)
     })
   })
 })
