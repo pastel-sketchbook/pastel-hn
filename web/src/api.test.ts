@@ -681,7 +681,9 @@ describe('api', () => {
 
         const result = await isFeedStale('top')
 
-        expect(mockInvoke).toHaveBeenCalledWith('is_feed_stale', { feed: 'top' })
+        expect(mockInvoke).toHaveBeenCalledWith('is_feed_stale', {
+          feed: 'top',
+        })
         expect(result).toBe(true)
       })
 
@@ -796,7 +798,9 @@ describe('api', () => {
 
         expect(result).toBe(false)
         expect(mockInvoke).toHaveBeenCalledTimes(1)
-        expect(mockInvoke).toHaveBeenCalledWith('is_feed_stale', { feed: 'top' })
+        expect(mockInvoke).toHaveBeenCalledWith('is_feed_stale', {
+          feed: 'top',
+        })
       })
 
       it('returns true and triggers refresh when feed is stale', async () => {

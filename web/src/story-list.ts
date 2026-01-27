@@ -657,7 +657,9 @@ function showNewStoriesBanner(count: number): void {
   })
 
   // Announce for screen readers
-  announce(`${count} new ${count === 1 ? 'story' : 'stories'} available. Click to refresh.`)
+  announce(
+    `${count} new ${count === 1 ? 'story' : 'stories'} available. Click to refresh.`,
+  )
 }
 
 /**
