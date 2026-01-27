@@ -8,8 +8,8 @@
  * - pastelhn://search?q=rust - Search for "rust"
  */
 
-import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link'
 import { listen } from '@tauri-apps/api/event'
+import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link'
 
 /** Valid feed names */
 const VALID_FEEDS = ['top', 'new', 'best', 'ask', 'show', 'jobs', 'saved']
@@ -49,7 +49,7 @@ export function parseDeepLink(urlString: string): DeepLinkRoute {
         case 'item':
         case 'story': {
           const id = parseInt(routeValue, 10)
-          if (!isNaN(id) && id > 0) {
+          if (!Number.isNaN(id) && id > 0) {
             return { type: 'item', id }
           }
           break

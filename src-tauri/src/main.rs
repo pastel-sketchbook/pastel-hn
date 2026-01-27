@@ -47,8 +47,10 @@ fn main() {
                         return;
                     }
 
-                    let show_window = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyH);
-                    let refresh = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyR);
+                    let show_window =
+                        Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyH);
+                    let refresh =
+                        Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyR);
 
                     if shortcut == &show_window {
                         info!("Global shortcut: Show window");

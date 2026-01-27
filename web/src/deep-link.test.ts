@@ -1,12 +1,8 @@
 /**
  * Tests for deep-link.ts module.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  parseDeepLink,
-  configureDeepLinks,
-  handleDeepLink,
-} from './deep-link'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { configureDeepLinks, handleDeepLink, parseDeepLink } from './deep-link'
 
 vi.mock('@tauri-apps/plugin-deep-link', () => ({
   getCurrent: vi.fn().mockResolvedValue(null),
@@ -148,9 +144,7 @@ describe('deep-link', () => {
     it('should not throw for unknown URLs', () => {
       configureDeepLinks({})
 
-      expect(() =>
-        handleDeepLink('pastelhn://unknown/path')
-      ).not.toThrow()
+      expect(() => handleDeepLink('pastelhn://unknown/path')).not.toThrow()
     })
 
     it('should not call callbacks if not configured', () => {

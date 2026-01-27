@@ -1,8 +1,9 @@
 /**
  * Tests for global-shortcuts.ts module.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
 import { isRegistered } from '@tauri-apps/plugin-global-shortcut'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   configureGlobalShortcuts,
   DEFAULT_GLOBAL_SHORTCUTS,
@@ -28,7 +29,7 @@ describe('global-shortcuts', () => {
   describe('DEFAULT_GLOBAL_SHORTCUTS', () => {
     it('should define showWindow shortcut', () => {
       expect(DEFAULT_GLOBAL_SHORTCUTS.showWindow).toBe(
-        'CommandOrControl+Shift+H'
+        'CommandOrControl+Shift+H',
       )
     })
 

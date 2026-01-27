@@ -18,9 +18,11 @@ import {
   setupBackToTop,
   updateBackToTopVisibility,
 } from './back-to-top'
+import { configureDeepLinks, initDeepLinks } from './deep-link'
 import { initErrorBoundary } from './error-boundary'
 import { initFaviconLazyLoading } from './favicon'
 import { startFollowedStoriesPolling } from './follow-polling'
+import { configureGlobalShortcuts } from './global-shortcuts'
 import { initKeyboard, setKeyboardCallbacks } from './keyboard'
 import {
   configureNavigation,
@@ -64,8 +66,6 @@ import {
 import { toggleTheme } from './theme'
 import { toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
-import { configureGlobalShortcuts } from './global-shortcuts'
-import { configureDeepLinks, initDeepLinks } from './deep-link'
 import type { StoryFeed } from './types'
 import {
   getCurrentUserId,
