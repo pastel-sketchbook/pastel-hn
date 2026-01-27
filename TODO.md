@@ -322,7 +322,7 @@
 - [x] Lazy comment loading (fetch on expand with depth=1)
 - [x] Bundle size optimization (128KB → 106KB main bundle, 17% reduction)
 - [ ] First contentful paint <500ms
-- [ ] **Image/favicon lazy loading for story domains**
+- [x] **Image/favicon lazy loading for story domains**
 - [ ] **Request deduplication for concurrent fetches**
 - [x] **Split main.ts into smaller, focused modules**
 
@@ -363,7 +363,7 @@
 - [ ] Contributing guide
 - [x] Architecture overview (this document + ADRs)
 - [ ] **API module documentation (rustdoc)**
-- [ ] **TypeScript JSDoc for public functions**
+- [x] **TypeScript JSDoc for public functions**
 - [ ] **CHANGELOG.md for release notes**
 
 ---
