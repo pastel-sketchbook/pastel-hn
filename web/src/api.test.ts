@@ -384,7 +384,7 @@ describe('api', () => {
       expect(getInFlightRequestCount()).toBe(1)
 
       // Resolve the underlying promise
-      resolveInvoke!(mockItem)
+      resolveInvoke?.(mockItem)
 
       // All three promises should resolve to the same value
       const [result1, result2, result3] = await Promise.all([
@@ -405,7 +405,9 @@ describe('api', () => {
       const mockItem1 = { id: 123, title: 'First' }
       const mockItem2 = { id: 123, title: 'Second' }
 
-      mockInvoke.mockResolvedValueOnce(mockItem1).mockResolvedValueOnce(mockItem2)
+      mockInvoke
+        .mockResolvedValueOnce(mockItem1)
+        .mockResolvedValueOnce(mockItem2)
 
       // First request
       const result1 = await fetchItem(123)
@@ -444,8 +446,8 @@ describe('api', () => {
       expect(mockInvoke).toHaveBeenCalledTimes(2)
       expect(getInFlightRequestCount()).toBe(2)
 
-      resolveFirst!(mockItem1)
-      resolveSecond!(mockItem2)
+      resolveFirst?.(mockItem1)
+      resolveSecond?.(mockItem2)
 
       const [result1, result2] = await Promise.all([promise1, promise2])
 
@@ -476,7 +478,7 @@ describe('api', () => {
       expect(mockInvoke).toHaveBeenCalledTimes(1)
       expect(getInFlightRequestCount()).toBe(1)
 
-      resolveInvoke!(mockItems)
+      resolveInvoke?.(mockItems)
 
       const [result1, result2, result3] = await Promise.all([
         promise1,
@@ -493,7 +495,9 @@ describe('api', () => {
       const mockError = new Error('Network error')
       const mockItem = { id: 123, title: 'Success' }
 
-      mockInvoke.mockRejectedValueOnce(mockError).mockResolvedValueOnce(mockItem)
+      mockInvoke
+        .mockRejectedValueOnce(mockError)
+        .mockResolvedValueOnce(mockItem)
 
       // First request fails
       await expect(fetchItem(123)).rejects.toThrow('Network error')
@@ -525,7 +529,7 @@ describe('api', () => {
 
       expect(mockInvoke).toHaveBeenCalledTimes(1)
 
-      resolveInvoke!(mockUser)
+      resolveInvoke?.(mockUser)
 
       const [result1, result2] = await Promise.all([promise1, promise2])
       expect(result1).toEqual(mockUser)
@@ -554,7 +558,7 @@ describe('api', () => {
 
       expect(mockInvoke).toHaveBeenCalledTimes(1)
 
-      resolveInvoke!(mockResponse)
+      resolveInvoke?.(mockResponse)
 
       const [result1, result2] = await Promise.all([promise1, promise2])
       expect(result1).toEqual(mockResponse)
@@ -593,7 +597,7 @@ describe('api', () => {
 
       expect(mockInvoke).toHaveBeenCalledTimes(1)
 
-      resolveInvoke!(mockArticle)
+      resolveInvoke?.(mockArticle)
 
       const [result1, result2] = await Promise.all([promise1, promise2])
       expect(result1).toEqual(mockArticle)
@@ -619,7 +623,7 @@ describe('api', () => {
 
       expect(mockInvoke).toHaveBeenCalledTimes(1)
 
-      resolveInvoke!(mockResponse)
+      resolveInvoke?.(mockResponse)
 
       const [result1, result2] = await Promise.all([promise1, promise2])
       expect(result1).toEqual(mockResponse)
@@ -644,7 +648,7 @@ describe('api', () => {
 
       expect(mockInvoke).toHaveBeenCalledTimes(1)
 
-      resolveInvoke!(mockResponse)
+      resolveInvoke?.(mockResponse)
 
       const [result1, result2] = await Promise.all([promise1, promise2])
       expect(result1).toEqual(mockResponse)
