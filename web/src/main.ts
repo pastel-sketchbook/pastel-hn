@@ -324,7 +324,7 @@ function setupKeyboardNavigation(): void {
     },
     isDetailView: () => currentView === 'detail',
     onScrollVertical: (direction) => {
-      const container = document.getElementById('stories')
+      const container = getScrollContainer()
       if (!container) return
       const scrollAmount = 100
       if (direction === 'down') {
@@ -334,7 +334,7 @@ function setupKeyboardNavigation(): void {
       }
     },
     onPageScroll: (direction) => {
-      const container = document.getElementById('stories')
+      const container = getScrollContainer()
       if (!container) return
       const pageAmount = container.clientHeight * 0.8
       if (direction === 'down') {
@@ -344,12 +344,12 @@ function setupKeyboardNavigation(): void {
       }
     },
     onScrollToEnd: () => {
-      const container = document.getElementById('stories')
+      const container = getScrollContainer()
       if (!container) return
       container.scrollTop = container.scrollHeight
     },
     onScrollToStart: () => {
-      const container = document.getElementById('stories')
+      const container = getScrollContainer()
       if (!container) return
       container.scrollTop = 0
     },
