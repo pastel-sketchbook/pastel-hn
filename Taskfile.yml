@@ -27,10 +27,16 @@ tasks:
   # ===== Test Tasks =====
 
   test:web:
-    desc: Run TypeScript/web tests
+    desc: Run TypeScript/web unit tests
     dir: web
     cmds:
       - bun run test
+
+  test:rust:
+    desc: Run Rust unit tests
+    dir: src-tauri
+    cmds:
+      - cargo test
 
   test:e2e:
     desc: Run Playwright end-to-end tests
@@ -51,9 +57,17 @@ tasks:
       - bun run test:e2e:ui
 
   test:
-    desc: Run all tests
+    desc: Run all unit tests (web + rust)
     cmds:
       - task: test:web
+      - task: test:rust
+
+  test:all:
+    desc: Run all tests including E2E (slower)
+    cmds:
+      - task: test:web
+      - task: test:rust
+      - task: test:e2e
 
   # ===== Development Tasks =====
 
@@ -175,11 +189,11 @@ tasks:
       - task: check:rust
 
   check:all:
-    desc: Run format check, lint, test, and build
+    desc: Run format check, lint, all tests (including E2E), and build
     cmds:
       - task: fmt:check
       - task: lint
-      - task: test
+      - task: test:all
       - task: check:rust
       - task: build:web
 

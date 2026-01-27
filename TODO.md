@@ -353,7 +353,7 @@
 - [x] Rust unit tests for HnClient (client.rs - 16 tests)
 - [x] Rust unit tests for types.rs (types.rs - 40 tests)
 - [ ] Component tests for UI
-- [ ] E2E tests with Playwright
+- [x] E2E tests with Playwright (38 tests covering navigation, feeds, comments, themes, keyboard shortcuts, settings, search, accessibility)
 - [ ] Visual regression tests
 - [ ] Performance benchmarks
 - [ ] Accessibility audit (axe-core)
