@@ -684,7 +684,13 @@ export function initContextMenu(): void {
 
   // Event handlers
   contextMenu.addEventListener('click', handleContextMenuClick)
-  document.addEventListener('mousedown', hideContextMenu)
+  document.addEventListener('mousedown', (e) => {
+    // Don't hide menu if clicking inside it (let the click handler process it)
+    if (contextMenu && contextMenu.contains(e.target as Node)) {
+      return
+    }
+    hideContextMenu()
+  })
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') hideContextMenu()
   })

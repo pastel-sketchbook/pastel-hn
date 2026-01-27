@@ -133,6 +133,42 @@ describe('assistant-ui', () => {
         1,
       )
     })
+
+    it('does not hide menu on mousedown inside context menu', () => {
+      initContextMenu()
+      const menu = getContextMenu()
+      menu?.classList.add('visible')
+      expect(menu?.classList.contains('visible')).toBe(true)
+
+      // Simulate mousedown inside the context menu
+      const button = menu?.querySelector('[data-action="explain"]')
+      const mousedownEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        target: button as EventTarget,
+      })
+      Object.defineProperty(mousedownEvent, 'target', { value: button })
+      document.dispatchEvent(mousedownEvent)
+
+      // Menu should still be visible
+      expect(menu?.classList.contains('visible')).toBe(true)
+    })
+
+    it('hides menu on mousedown outside context menu', () => {
+      initContextMenu()
+      const menu = getContextMenu()
+      menu?.classList.add('visible')
+      expect(menu?.classList.contains('visible')).toBe(true)
+
+      // Simulate mousedown outside the context menu
+      const mousedownEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+      })
+      Object.defineProperty(mousedownEvent, 'target', { value: document.body })
+      document.dispatchEvent(mousedownEvent)
+
+      // Menu should be hidden
+      expect(menu?.classList.contains('visible')).toBe(false)
+    })
   })
 
   describe('hideContextMenu', () => {
