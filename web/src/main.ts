@@ -64,6 +64,7 @@ import {
 import { toggleTheme } from './theme'
 import { toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
+import { configureGlobalShortcuts } from './global-shortcuts'
 import type { StoryFeed } from './types'
 import {
   getCurrentUserId,
@@ -455,6 +456,22 @@ async function main(): Promise<void> {
       },
     })
     initTrayEvents()
+
+    // Configure global shortcuts (Cmd+Shift+H to show, Cmd+Shift+R to refresh)
+    // Note: The Rust backend handles these shortcuts; this is for any JS-only actions
+    configureGlobalShortcuts({
+      onShowWindow: () => {
+        // Window is already shown by Rust handler
+        console.log('Global shortcut: Show window triggered')
+      },
+      onRefresh: () => {
+        // Rust handler shows window, we just refresh content
+        if (currentView === 'list') {
+          renderStoriesModule(currentFeed, true)
+          toastSuccess('Feed refreshed')
+        }
+      },
+    })
 
     // Set up zen mode callback
     setZenModeChangeCallback((isActive) => {

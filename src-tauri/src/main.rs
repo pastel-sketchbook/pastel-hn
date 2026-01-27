@@ -11,6 +11,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager,
 };
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_window_state::StateFlags;
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -37,6 +38,35 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    if event.state() != ShortcutState::Pressed {
+                        return;
+                    }
+
+                    let show_window = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyH);
+                    let refresh = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyR);
+
+                    if shortcut == &show_window {
+                        info!("Global shortcut: Show window");
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.unminimize();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    } else if shortcut == &refresh {
+                        info!("Global shortcut: Refresh");
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("tray-refresh", ());
+                            let _ = window.unminimize();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(),
+        )
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(window_state_flags)
@@ -164,6 +194,23 @@ fn main() {
                 .build(app)?;
 
             info!("System tray initialized");
+
+            // Register global shortcuts
+            let show_window = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyH);
+            let refresh = Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyR);
+
+            if let Err(e) = app.global_shortcut().register(show_window) {
+                info!("Failed to register Cmd+Shift+H shortcut: {}", e);
+            } else {
+                info!("Registered global shortcut: Cmd+Shift+H (show window)");
+            }
+
+            if let Err(e) = app.global_shortcut().register(refresh) {
+                info!("Failed to register Cmd+Shift+R shortcut: {}", e);
+            } else {
+                info!("Registered global shortcut: Cmd+Shift+R (refresh)");
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
