@@ -4,7 +4,7 @@
 
 Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend with a Rust backend for native-like performance and small binary size.
 
-![Version](https://img.shields.io/badge/version-0.13.0-cyan)
+![Version](https://img.shields.io/badge/version-0.14.3-cyan)
 ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-purple)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -27,7 +27,9 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 - **Threaded Comments** - Collapsible comment trees with smooth animations and depth indicators
 - **Lazy Comment Loading** - Initial shallow fetch with on-demand deep loading for fast performance
 - **Intelligent Prefetching** - Prefetches stories on hover, near scroll end, and during idle time
+- **Background Refresh** - Automatically refreshes stale data and shows "new stories available" banner
 - **Zen Mode** - Distraction-free reading with fullscreen and hidden UI (`z` key)
+- **Vim-Style Navigation** - Full `j`/`k` navigation in both list and detail views
 - **Search** - Algolia-powered search with filters (stories/comments, date/relevance)
 - **User Profiles** - View karma, about, and submission history
 - **Keyboard Navigation** - Full keyboard support for power users
@@ -62,22 +64,37 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 
 ## Keyboard Shortcuts
 
+### List View
+
 | Key | Action |
 |-----|--------|
-| `j` / `k` | Navigate down / up |
-| `Enter` | Open story / expand comments |
+| `j` / `k` | Navigate down / up through stories |
+| `Enter` | Open selected story |
 | `o` | Open link in browser |
-| `c` | Focus comments section |
-| `b` | Back to list (preserves Zen mode) |
-| `z` | Toggle Zen mode |
-| `d` | Toggle dark/light theme |
-| `Escape` | Go back / exit Zen mode |
 | `r` | Refresh current feed |
 | `1-7` | Switch feeds (top/new/best/ask/show/jobs/saved) |
 | `/` | Focus search |
 | `t` | Scroll to top |
+| `d` | Toggle dark/light theme |
 | `?` | Show keyboard shortcuts |
+
+### Detail View (Story/Article)
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Scroll down / up |
+| `g` | Jump to top |
+| `G` | Jump to bottom |
+| `c` | Focus comments section |
+| `o` | Open article in browser |
+| `b` / `Escape` | Back to list (preserves Zen mode) |
+| `z` | Toggle Zen mode |
 | `a` | Toggle AI assistant panel |
+
+### Global
+
+| Key | Action |
+|-----|--------|
 | `⌘Q` | Quit app (Ctrl+Q on Windows/Linux) |
 
 ## Development
@@ -185,13 +202,15 @@ The assistant is automatically enabled when Copilot is available. Without it, th
 
 ## Caching Strategy
 
-The Rust backend implements intelligent caching:
+The Rust backend implements intelligent caching with stale-while-revalidate:
 
-| Cache | TTL | Max Size |
-|-------|-----|----------|
-| Items (stories/comments) | 5 minutes | 10,000 |
-| Story IDs per feed | 2 minutes | 10 |
-| User profiles | 10 minutes | 100 |
+| Cache | TTL | Max Size | Stale Threshold |
+|-------|-----|----------|-----------------|
+| Items (stories/comments) | 5 minutes | 10,000 | - |
+| Story IDs per feed | 2 minutes | 10 | 75% (90s) |
+| User profiles | 10 minutes | 100 | - |
+
+When feed data reaches 75% of its TTL, the app serves cached data immediately while triggering a background refresh. If new stories are found, a "new stories available" banner appears for one-click refresh.
 
 ## License
 
