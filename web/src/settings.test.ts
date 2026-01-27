@@ -530,9 +530,12 @@ describe('settings', () => {
       exportBtn.click()
 
       // Wait for async operations to complete (Tauri fails, falls back to web)
-      await vi.waitFor(() => {
-        expect(mockCreateObjectURL).toHaveBeenCalled()
-      })
+      await vi.waitFor(
+        () => {
+          expect(mockCreateObjectURL).toHaveBeenCalled()
+        },
+        { timeout: 2000 },
+      )
 
       expect(capturedLink).not.toBeNull()
       expect(capturedLink?.click).toHaveBeenCalled()
@@ -540,10 +543,13 @@ describe('settings', () => {
         /^pastel-hn-bookmarks-\d{4}-\d{2}-\d{2}\.json$/,
       )
 
-      // URL.revokeObjectURL is called after a timeout - verify with waitFor
-      await vi.waitFor(() => {
-        expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
-      })
+      // URL.revokeObjectURL is called after 1000ms setTimeout - use longer timeout
+      await vi.waitFor(
+        () => {
+          expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+        },
+        { timeout: 2000 },
+      )
     })
   })
 
