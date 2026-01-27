@@ -5,7 +5,12 @@
 
 import { announce } from './accessibility'
 import { animateListEnter, applyStaggerAnimation } from './animations'
-import { clearStoryIdsCache, fetchStoriesPaginated } from './api'
+import {
+  clearStoryIdsCache,
+  fetchStoriesPaginated,
+  onFeedRefresh,
+  triggerBackgroundRefreshIfStale,
+} from './api'
 import { updateAssistantZenMode } from './assistant-ui'
 import { type DuplicateInfo, findDuplicates } from './duplicates'
 import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
@@ -582,6 +587,11 @@ export async function renderStories(
     }
 
     restoreFeedScrollPosition(feed)
+
+    // Trigger background refresh if feed data is stale (but not for saved feed)
+    if (feed !== 'saved') {
+      triggerBackgroundRefreshIfStale(feed)
+    }
   } catch (error) {
     container.setAttribute('aria-busy', 'false')
     const parsed = parseApiError(error)
@@ -607,3 +617,77 @@ export function cleanupStoryList(): void {
     scrollObserver = null
   }
 }
+
+// ===== Background Refresh =====
+
+/** Track if new stories banner is currently shown */
+let newStoriesBannerVisible = false
+
+/**
+ * Show a banner indicating new stories are available.
+ */
+function showNewStoriesBanner(count: number): void {
+  if (newStoriesBannerVisible) return
+
+  const container = document.getElementById('stories')
+  if (!container) return
+
+  // Remove any existing banner
+  const existingBanner = document.querySelector('.new-stories-banner')
+  if (existingBanner) existingBanner.remove()
+
+  const banner = document.createElement('button')
+  banner.className = 'new-stories-banner'
+  banner.innerHTML = `${icons.retry} ${count} new ${count === 1 ? 'story' : 'stories'} available`
+  banner.setAttribute('aria-live', 'polite')
+
+  banner.addEventListener('click', () => {
+    hideNewStoriesBanner()
+    // Refresh the current feed
+    renderStories(currentFeed, true)
+  })
+
+  // Insert at the top of the stories container
+  container.insertAdjacentElement('afterbegin', banner)
+  newStoriesBannerVisible = true
+
+  // Animate in
+  requestAnimationFrame(() => {
+    banner.classList.add('visible')
+  })
+
+  // Announce for screen readers
+  announce(`${count} new ${count === 1 ? 'story' : 'stories'} available. Click to refresh.`)
+}
+
+/**
+ * Hide the new stories banner.
+ */
+function hideNewStoriesBanner(): void {
+  const banner = document.querySelector('.new-stories-banner')
+  if (banner) {
+    banner.classList.remove('visible')
+    setTimeout(() => banner.remove(), 200)
+  }
+  newStoriesBannerVisible = false
+}
+
+/**
+ * Handle background refresh completion.
+ * Called when new stories are fetched in the background.
+ */
+function handleFeedRefresh(feed: StoryFeed, newIds: number[]): void {
+  // Only show banner if this is for the current feed
+  if (feed !== currentFeed) return
+
+  // Compare with current story IDs to find actually new stories
+  const currentIds = new Set(currentStories.map((s) => s.id))
+  const newStoryIds = newIds.filter((id) => !currentIds.has(id))
+
+  if (newStoryIds.length > 0) {
+    showNewStoriesBanner(newStoryIds.length)
+  }
+}
+
+// Register the background refresh callback on module load
+onFeedRefresh(handleFeedRefresh)

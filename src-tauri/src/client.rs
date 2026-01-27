@@ -1,10 +1,12 @@
 //! HN API client with caching
 
+use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use moka::future::Cache;
 use reqwest::Client;
+use tokio::sync::RwLock;
 use tracing::{debug, info, instrument, warn};
 
 use crate::types::*;
@@ -15,6 +17,9 @@ const ALGOLIA_BASE_URL: &str = "https://hn.algolia.com/api/v1";
 const ITEM_CACHE_TTL: Duration = Duration::from_secs(5 * 60); // 5 minutes
 const STORY_IDS_CACHE_TTL: Duration = Duration::from_secs(2 * 60); // 2 minutes
 const USER_CACHE_TTL: Duration = Duration::from_secs(10 * 60); // 10 minutes
+
+/// Staleness threshold: refresh in background when data is this old (75% of TTL)
+const STALE_THRESHOLD_PERCENT: u64 = 75;
 
 /// Check response for rate limiting and other errors
 fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
@@ -36,12 +41,55 @@ fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
     Ok(())
 }
 
-/// HN API client with built-in caching
+/// Tracks when feeds were last fetched for staleness detection
+#[derive(Debug, Default)]
+struct RefreshTracker {
+    /// Map of feed -> last fetch timestamp
+    last_fetch: HashMap<StoryFeed, Instant>,
+    /// Set of feeds currently being refreshed (to avoid duplicate requests)
+    refreshing: std::collections::HashSet<StoryFeed>,
+}
+
+impl RefreshTracker {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    /// Record that a feed was just fetched
+    fn mark_fetched(&mut self, feed: StoryFeed) {
+        self.last_fetch.insert(feed, Instant::now());
+        self.refreshing.remove(&feed);
+    }
+
+    /// Check if a feed's data is stale (past the threshold but not yet expired)
+    fn is_stale(&self, feed: &StoryFeed, ttl: Duration) -> bool {
+        if let Some(last) = self.last_fetch.get(feed) {
+            let age = last.elapsed();
+            let stale_threshold = ttl * STALE_THRESHOLD_PERCENT as u32 / 100;
+            age >= stale_threshold && age < ttl
+        } else {
+            false
+        }
+    }
+
+    /// Check if a background refresh is already in progress for this feed
+    fn is_refreshing(&self, feed: &StoryFeed) -> bool {
+        self.refreshing.contains(feed)
+    }
+
+    /// Mark that a background refresh is starting
+    fn start_refresh(&mut self, feed: StoryFeed) {
+        self.refreshing.insert(feed);
+    }
+}
+
+/// HN API client with built-in caching and background refresh
 pub struct HnClient {
     http: Client,
     item_cache: Cache<u32, HNItem>,
     story_ids_cache: Cache<StoryFeed, Vec<u32>>,
     user_cache: Cache<String, HNUser>,
+    refresh_tracker: RwLock<RefreshTracker>,
 }
 
 impl HnClient {
@@ -75,18 +123,40 @@ impl HnClient {
             item_cache,
             story_ids_cache,
             user_cache,
+            refresh_tracker: RwLock::new(RefreshTracker::new()),
         }
     }
 
     /// Fetch story IDs for a given feed
+    /// Returns (ids, is_stale) where is_stale indicates background refresh was triggered
     #[instrument(skip(self))]
     pub async fn fetch_story_ids(&self, feed: StoryFeed) -> Result<Vec<u32>, ApiError> {
         // Check cache first
         if let Some(ids) = self.story_ids_cache.get(&feed).await {
             debug!(feed = ?feed, count = ids.len(), "Cache hit for story IDs");
+
+            // Check if data is stale and trigger background refresh
+            let should_refresh = {
+                let tracker = self.refresh_tracker.read().await;
+                tracker.is_stale(&feed, STORY_IDS_CACHE_TTL) && !tracker.is_refreshing(&feed)
+            };
+
+            if should_refresh {
+                self.refresh_tracker.write().await.start_refresh(feed);
+                debug!(feed = ?feed, "Data is stale, triggering background refresh");
+            }
+
             return Ok(ids);
         }
 
+        // Not in cache, fetch fresh
+        self.fetch_story_ids_fresh(feed).await
+    }
+
+    /// Fetch story IDs directly from API (bypassing cache check)
+    /// Used for initial fetch and background refresh
+    #[instrument(skip(self))]
+    async fn fetch_story_ids_fresh(&self, feed: StoryFeed) -> Result<Vec<u32>, ApiError> {
         let url = format!("{}/{}.json", HN_BASE_URL, feed.endpoint());
         info!(url = %url, "Fetching story IDs");
 
@@ -98,7 +168,49 @@ impl HnClient {
         debug!(feed = ?feed, count = ids.len(), "Fetched story IDs");
         self.story_ids_cache.insert(feed, ids.clone()).await;
 
+        // Update refresh tracker
+        self.refresh_tracker.write().await.mark_fetched(feed);
+
         Ok(ids)
+    }
+
+    /// Perform background refresh for a feed
+    /// Returns Some(new_ids) if refresh succeeded and data changed, None otherwise
+    #[instrument(skip(self))]
+    pub async fn background_refresh_feed(&self, feed: StoryFeed) -> Option<Vec<u32>> {
+        // Get current cached IDs for comparison
+        let old_ids = self.story_ids_cache.get(&feed).await;
+
+        // Fetch fresh data
+        match self.fetch_story_ids_fresh(feed).await {
+            Ok(new_ids) => {
+                // Check if data actually changed
+                let changed = match old_ids {
+                    Some(old) => old != new_ids,
+                    None => true,
+                };
+
+                if changed {
+                    info!(feed = ?feed, "Background refresh found new data");
+                    Some(new_ids)
+                } else {
+                    debug!(feed = ?feed, "Background refresh: no new data");
+                    None
+                }
+            }
+            Err(e) => {
+                warn!(feed = ?feed, error = %e, "Background refresh failed");
+                // Clear refreshing flag on error
+                self.refresh_tracker.write().await.refreshing.remove(&feed);
+                None
+            }
+        }
+    }
+
+    /// Check if a feed's data is stale and should be refreshed
+    pub async fn is_feed_stale(&self, feed: &StoryFeed) -> bool {
+        let tracker = self.refresh_tracker.read().await;
+        tracker.is_stale(feed, STORY_IDS_CACHE_TTL) && !tracker.is_refreshing(feed)
     }
 
     /// Fetch a single item by ID
@@ -621,5 +733,82 @@ mod tests {
     #[test]
     fn algolia_base_url_is_correct() {
         assert_eq!(ALGOLIA_BASE_URL, "https://hn.algolia.com/api/v1");
+    }
+
+    // ===== Stale Threshold Constant Test =====
+
+    #[test]
+    fn stale_threshold_is_75_percent() {
+        assert_eq!(STALE_THRESHOLD_PERCENT, 75);
+    }
+
+    // ===== RefreshTracker Tests =====
+
+    #[test]
+    fn refresh_tracker_new_creates_empty() {
+        let tracker = RefreshTracker::new();
+        assert!(tracker.last_fetch.is_empty());
+        assert!(tracker.refreshing.is_empty());
+    }
+
+    #[test]
+    fn refresh_tracker_mark_fetched_records_time() {
+        let mut tracker = RefreshTracker::new();
+        tracker.mark_fetched(StoryFeed::Top);
+        assert!(tracker.last_fetch.contains_key(&StoryFeed::Top));
+    }
+
+    #[test]
+    fn refresh_tracker_mark_fetched_clears_refreshing() {
+        let mut tracker = RefreshTracker::new();
+        tracker.start_refresh(StoryFeed::Top);
+        assert!(tracker.is_refreshing(&StoryFeed::Top));
+
+        tracker.mark_fetched(StoryFeed::Top);
+        assert!(!tracker.is_refreshing(&StoryFeed::Top));
+    }
+
+    #[test]
+    fn refresh_tracker_is_stale_false_for_fresh_data() {
+        let mut tracker = RefreshTracker::new();
+        tracker.mark_fetched(StoryFeed::Top);
+        // Just fetched, should not be stale
+        assert!(!tracker.is_stale(&StoryFeed::Top, Duration::from_secs(120)));
+    }
+
+    #[test]
+    fn refresh_tracker_is_stale_false_for_unknown_feed() {
+        let tracker = RefreshTracker::new();
+        // Never fetched, should not be considered stale (will be fetched fresh)
+        assert!(!tracker.is_stale(&StoryFeed::Top, Duration::from_secs(120)));
+    }
+
+    #[test]
+    fn refresh_tracker_start_refresh_sets_flag() {
+        let mut tracker = RefreshTracker::new();
+        assert!(!tracker.is_refreshing(&StoryFeed::Top));
+        tracker.start_refresh(StoryFeed::Top);
+        assert!(tracker.is_refreshing(&StoryFeed::Top));
+    }
+
+    #[test]
+    fn refresh_tracker_independent_feeds() {
+        let mut tracker = RefreshTracker::new();
+        tracker.mark_fetched(StoryFeed::Top);
+        tracker.start_refresh(StoryFeed::New);
+
+        assert!(tracker.last_fetch.contains_key(&StoryFeed::Top));
+        assert!(!tracker.last_fetch.contains_key(&StoryFeed::New));
+        assert!(tracker.is_refreshing(&StoryFeed::New));
+        assert!(!tracker.is_refreshing(&StoryFeed::Top));
+    }
+
+    // ===== HnClient Background Refresh Tests =====
+
+    #[tokio::test]
+    async fn is_feed_stale_false_initially() {
+        let client = HnClient::new();
+        // No data cached yet, shouldn't be considered stale
+        assert!(!client.is_feed_stale(&StoryFeed::Top).await);
     }
 }

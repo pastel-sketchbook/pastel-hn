@@ -115,6 +115,25 @@ pub async fn clear_story_ids_cache(
     Ok(())
 }
 
+/// Check if a feed's cached data is stale
+#[tauri::command]
+pub async fn is_feed_stale(
+    client: State<'_, SharedHnClient>,
+    feed: StoryFeed,
+) -> Result<bool, ApiError> {
+    Ok(client.is_feed_stale(&feed).await)
+}
+
+/// Perform background refresh for a feed
+/// Returns the new story IDs if data changed, null otherwise
+#[tauri::command]
+pub async fn background_refresh_feed(
+    client: State<'_, SharedHnClient>,
+    feed: StoryFeed,
+) -> Result<Option<Vec<u32>>, ApiError> {
+    Ok(client.background_refresh_feed(feed).await)
+}
+
 /// Fetch and extract article content from an external URL
 #[tauri::command]
 pub async fn fetch_article_content(

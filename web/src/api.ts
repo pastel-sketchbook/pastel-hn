@@ -277,6 +277,82 @@ export async function getCacheStats(): Promise<CacheStats> {
   return invoke('get_cache_stats')
 }
 
+// ===== Background Refresh =====
+
+/**
+ * Check if a feed's cached data is stale (needs background refresh)
+ */
+export async function isFeedStale(feed: StoryFeed): Promise<boolean> {
+  return invoke<boolean>('is_feed_stale', { feed })
+}
+
+/**
+ * Perform background refresh for a feed.
+ * Returns the new story IDs if data changed, null otherwise.
+ */
+export async function backgroundRefreshFeed(
+  feed: StoryFeed,
+): Promise<number[] | null> {
+  return invoke<number[] | null>('background_refresh_feed', { feed })
+}
+
+/**
+ * Callback type for when a feed is refreshed in the background
+ */
+export type FeedRefreshCallback = (feed: StoryFeed, newIds: number[]) => void
+
+/** Registered callbacks for feed refresh events */
+const feedRefreshCallbacks: Set<FeedRefreshCallback> = new Set()
+
+/**
+ * Register a callback to be notified when a feed is refreshed
+ */
+export function onFeedRefresh(callback: FeedRefreshCallback): () => void {
+  feedRefreshCallbacks.add(callback)
+  return () => feedRefreshCallbacks.delete(callback)
+}
+
+/**
+ * Notify all registered callbacks about a feed refresh
+ * @internal
+ */
+export function notifyFeedRefresh(feed: StoryFeed, newIds: number[]): void {
+  for (const callback of feedRefreshCallbacks) {
+    try {
+      callback(feed, newIds)
+    } catch (error) {
+      console.error('Error in feed refresh callback:', error)
+    }
+  }
+}
+
+/**
+ * Trigger background refresh if feed is stale and notify on completion.
+ * This is the main entry point for initiating background refresh.
+ * Returns true if refresh was triggered, false if not needed.
+ */
+export async function triggerBackgroundRefreshIfStale(
+  feed: StoryFeed,
+): Promise<boolean> {
+  const isStale = await isFeedStale(feed)
+  if (!isStale) {
+    return false
+  }
+
+  // Fire and forget - don't await
+  backgroundRefreshFeed(feed)
+    .then((newIds) => {
+      if (newIds) {
+        notifyFeedRefresh(feed, newIds)
+      }
+    })
+    .catch((error) => {
+      console.warn('Background refresh failed:', error)
+    })
+
+  return true
+}
+
 // ===== Utility Functions (kept in TypeScript as they're UI-related) =====
 
 /**

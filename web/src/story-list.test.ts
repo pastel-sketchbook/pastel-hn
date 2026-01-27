@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('./api', () => ({
   fetchStoriesPaginated: vi.fn(),
   clearStoryIdsCache: vi.fn(),
+  onFeedRefresh: vi.fn(() => vi.fn()), // Returns unsubscribe function
+  triggerBackgroundRefreshIfStale: vi.fn(() => Promise.resolve(false)),
 }))
 
 vi.mock('./storage', () => ({

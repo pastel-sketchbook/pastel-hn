@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core'
 import {
+  backgroundRefreshFeed,
   clearCache,
   clearInFlightRequests,
   extractDomain,
@@ -20,7 +21,11 @@ import {
   formatTimeAgo,
   getCacheStats,
   getInFlightRequestCount,
+  isFeedStale,
+  notifyFeedRefresh,
+  onFeedRefresh,
   searchHN,
+  triggerBackgroundRefreshIfStale,
 } from './api'
 
 const mockInvoke = vi.mocked(invoke)
@@ -666,6 +671,195 @@ describe('api', () => {
       expect(mockInvoke).toHaveBeenCalledTimes(2)
 
       await Promise.all([promise1, promise2])
+    })
+  })
+
+  describe('background refresh', () => {
+    describe('isFeedStale', () => {
+      it('calls is_feed_stale command with feed', async () => {
+        mockInvoke.mockResolvedValueOnce(true)
+
+        const result = await isFeedStale('top')
+
+        expect(mockInvoke).toHaveBeenCalledWith('is_feed_stale', { feed: 'top' })
+        expect(result).toBe(true)
+      })
+
+      it('returns false when feed is fresh', async () => {
+        mockInvoke.mockResolvedValueOnce(false)
+
+        const result = await isFeedStale('new')
+
+        expect(result).toBe(false)
+      })
+    })
+
+    describe('backgroundRefreshFeed', () => {
+      it('calls background_refresh_feed command', async () => {
+        const newIds = [1, 2, 3, 4, 5]
+        mockInvoke.mockResolvedValueOnce(newIds)
+
+        const result = await backgroundRefreshFeed('top')
+
+        expect(mockInvoke).toHaveBeenCalledWith('background_refresh_feed', {
+          feed: 'top',
+        })
+        expect(result).toEqual(newIds)
+      })
+
+      it('returns null when no new data', async () => {
+        mockInvoke.mockResolvedValueOnce(null)
+
+        const result = await backgroundRefreshFeed('best')
+
+        expect(result).toBeNull()
+      })
+    })
+
+    describe('onFeedRefresh', () => {
+      it('registers callback and returns unsubscribe function', () => {
+        const callback = vi.fn()
+
+        const unsubscribe = onFeedRefresh(callback)
+
+        expect(typeof unsubscribe).toBe('function')
+        unsubscribe()
+      })
+
+      it('callback is called when notifyFeedRefresh is invoked', () => {
+        const callback = vi.fn()
+        const unsubscribe = onFeedRefresh(callback)
+
+        notifyFeedRefresh('top', [1, 2, 3])
+
+        expect(callback).toHaveBeenCalledWith('top', [1, 2, 3])
+        unsubscribe()
+      })
+
+      it('unsubscribed callback is not called', () => {
+        const callback = vi.fn()
+        const unsubscribe = onFeedRefresh(callback)
+
+        unsubscribe()
+        notifyFeedRefresh('top', [1, 2, 3])
+
+        expect(callback).not.toHaveBeenCalled()
+      })
+
+      it('multiple callbacks are all notified', () => {
+        const callback1 = vi.fn()
+        const callback2 = vi.fn()
+        const unsubscribe1 = onFeedRefresh(callback1)
+        const unsubscribe2 = onFeedRefresh(callback2)
+
+        notifyFeedRefresh('new', [10, 20])
+
+        expect(callback1).toHaveBeenCalledWith('new', [10, 20])
+        expect(callback2).toHaveBeenCalledWith('new', [10, 20])
+
+        unsubscribe1()
+        unsubscribe2()
+      })
+
+      it('handles callback errors gracefully', () => {
+        const errorCallback = vi.fn(() => {
+          throw new Error('callback error')
+        })
+        const normalCallback = vi.fn()
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {})
+
+        const unsubscribe1 = onFeedRefresh(errorCallback)
+        const unsubscribe2 = onFeedRefresh(normalCallback)
+
+        // Should not throw
+        expect(() => notifyFeedRefresh('top', [1])).not.toThrow()
+
+        // Error should be logged
+        expect(consoleSpy).toHaveBeenCalled()
+
+        // Other callbacks should still be called
+        expect(normalCallback).toHaveBeenCalled()
+
+        consoleSpy.mockRestore()
+        unsubscribe1()
+        unsubscribe2()
+      })
+    })
+
+    describe('triggerBackgroundRefreshIfStale', () => {
+      it('returns false when feed is not stale', async () => {
+        mockInvoke.mockResolvedValueOnce(false) // isFeedStale returns false
+
+        const result = await triggerBackgroundRefreshIfStale('top')
+
+        expect(result).toBe(false)
+        expect(mockInvoke).toHaveBeenCalledTimes(1)
+        expect(mockInvoke).toHaveBeenCalledWith('is_feed_stale', { feed: 'top' })
+      })
+
+      it('returns true and triggers refresh when feed is stale', async () => {
+        mockInvoke
+          .mockResolvedValueOnce(true) // isFeedStale returns true
+          .mockResolvedValueOnce([1, 2, 3]) // backgroundRefreshFeed returns new IDs
+
+        const callback = vi.fn()
+        const unsubscribe = onFeedRefresh(callback)
+
+        const result = await triggerBackgroundRefreshIfStale('top')
+
+        expect(result).toBe(true)
+
+        // Wait for the background refresh to complete
+        await new Promise((resolve) => setTimeout(resolve, 10))
+
+        expect(mockInvoke).toHaveBeenCalledTimes(2)
+        expect(callback).toHaveBeenCalledWith('top', [1, 2, 3])
+
+        unsubscribe()
+      })
+
+      it('does not notify when refresh returns null', async () => {
+        mockInvoke
+          .mockResolvedValueOnce(true) // isFeedStale returns true
+          .mockResolvedValueOnce(null) // backgroundRefreshFeed returns null (no new data)
+
+        const callback = vi.fn()
+        const unsubscribe = onFeedRefresh(callback)
+
+        await triggerBackgroundRefreshIfStale('top')
+
+        // Wait for the background refresh to complete
+        await new Promise((resolve) => setTimeout(resolve, 10))
+
+        expect(callback).not.toHaveBeenCalled()
+
+        unsubscribe()
+      })
+
+      it('handles refresh errors gracefully', async () => {
+        const consoleSpy = vi
+          .spyOn(console, 'warn')
+          .mockImplementation(() => {})
+        mockInvoke
+          .mockResolvedValueOnce(true) // isFeedStale returns true
+          .mockRejectedValueOnce(new Error('Network error'))
+
+        const result = await triggerBackgroundRefreshIfStale('top')
+
+        expect(result).toBe(true)
+
+        // Wait for the background refresh to fail
+        await new Promise((resolve) => setTimeout(resolve, 10))
+
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Background refresh failed:',
+          expect.any(Error),
+        )
+
+        consoleSpy.mockRestore()
+      })
     })
   })
 })

@@ -262,6 +262,8 @@ fn main() {
             commands::clear_cache,
             commands::get_cache_stats,
             commands::clear_story_ids_cache,
+            commands::is_feed_stale,
+            commands::background_refresh_feed,
             // Article extraction
             commands::fetch_article_content,
             // Utility commands

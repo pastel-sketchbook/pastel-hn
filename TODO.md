@@ -69,7 +69,7 @@
 - [x] Story IDs cache with 2min TTL
 - [x] User cache with 10min TTL
 - [x] Intelligent prefetching for visible stories
-- [ ] Background refresh for stale data
+- [x] Background refresh for stale data
 - [ ] Persistent cache (SQLite) for offline support
 
 ### 1.4 TypeScript API Wrapper
