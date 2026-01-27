@@ -331,7 +331,7 @@
 - [x] ARIA labels for all interactive elements
 - [x] Screen reader announcements (live regions for loading/errors)
 - [x] Focus trap in modals (settings, search, help)
-- [ ] High contrast mode
+- [x] High contrast mode
 - [x] Reduced motion support
 - [x] Skip-to-content link
 - [ ] **Proper heading hierarchy audit**

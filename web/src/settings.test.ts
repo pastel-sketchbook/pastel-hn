@@ -27,6 +27,7 @@ import type { CacheStats, HNItem } from './types'
 // Mock theme module
 vi.mock('./theme', () => ({
   setTheme: vi.fn(),
+  setHighContrast: vi.fn(),
 }))
 
 // Mock API module
@@ -36,9 +37,10 @@ vi.mock('./api', () => ({
 }))
 
 import { clearCache, getCacheStats } from './api'
-import { setTheme } from './theme'
+import { setHighContrast, setTheme } from './theme'
 
 const mockSetTheme = vi.mocked(setTheme)
+const mockSetHighContrast = vi.mocked(setHighContrast)
 const mockGetCacheStats = vi.mocked(getCacheStats)
 const mockClearCache = vi.mocked(clearCache)
 
@@ -74,6 +76,7 @@ describe('settings', () => {
 
       expect(settings).toEqual({
         theme: 'system',
+        highContrast: false,
         fontSize: 'normal',
         density: 'normal',
         defaultFeed: 'top',
@@ -83,6 +86,7 @@ describe('settings', () => {
     it('loads stored settings from localStorage', () => {
       const stored: Settings = {
         theme: 'dark',
+        highContrast: true,
         fontSize: 'compact',
         density: 'comfortable',
         defaultFeed: 'new',
@@ -100,6 +104,7 @@ describe('settings', () => {
       const settings = loadSettings()
 
       expect(settings.theme).toBe('light')
+      expect(settings.highContrast).toBe(false) // default
       expect(settings.fontSize).toBe('normal') // default
       expect(settings.density).toBe('normal') // default
       expect(settings.defaultFeed).toBe('top') // default
@@ -112,6 +117,7 @@ describe('settings', () => {
 
       expect(settings).toEqual({
         theme: 'system',
+        highContrast: false,
         fontSize: 'normal',
         density: 'normal',
         defaultFeed: 'top',
@@ -213,6 +219,20 @@ describe('settings', () => {
         'comfortable',
       )
     })
+
+    it('applies high contrast mode when enabled', () => {
+      loadSettings()
+      saveSettings({ highContrast: true })
+
+      expect(mockSetHighContrast).toHaveBeenCalledWith(true)
+    })
+
+    it('disables high contrast mode when disabled', () => {
+      loadSettings()
+      saveSettings({ highContrast: false })
+
+      expect(mockSetHighContrast).toHaveBeenCalledWith(false)
+    })
   })
 
   describe('initSettings', () => {
@@ -313,6 +333,31 @@ describe('settings', () => {
       expect(lightBtn).not.toBeNull()
       expect(darkBtn).not.toBeNull()
       expect(systemBtn).not.toBeNull()
+    })
+
+    it('modal contains high contrast options', async () => {
+      await showSettingsModal()
+
+      const onBtn = document.querySelector(
+        '[data-setting="highContrast"][data-value="true"]',
+      )
+      const offBtn = document.querySelector(
+        '[data-setting="highContrast"][data-value="false"]',
+      )
+
+      expect(onBtn).not.toBeNull()
+      expect(offBtn).not.toBeNull()
+    })
+
+    it('clicking high contrast option updates settings', async () => {
+      await showSettingsModal()
+
+      const onBtn = document.querySelector(
+        '[data-setting="highContrast"][data-value="true"]',
+      ) as HTMLElement
+      onBtn.click()
+
+      expect(getSettings().highContrast).toBe(true)
     })
 
     it('modal contains font size options', async () => {
@@ -738,6 +783,7 @@ describe('settings', () => {
     it('validates complete settings object', () => {
       const validSettings: Settings = {
         theme: 'dark',
+        highContrast: true,
         fontSize: 'compact',
         density: 'comfortable',
         defaultFeed: 'new',
@@ -754,6 +800,7 @@ describe('settings', () => {
         exportedAt: '2025-01-26T12:00:00.000Z',
         settings: {
           theme: 'light',
+          highContrast: false,
           fontSize: 'normal',
           density: 'normal',
           defaultFeed: 'top',
@@ -763,6 +810,32 @@ describe('settings', () => {
       const result = validateSettings(exportFormat)
 
       expect(result).toEqual(exportFormat.settings)
+    })
+
+    it('defaults highContrast to false for old settings files', () => {
+      const oldSettings = {
+        theme: 'dark',
+        fontSize: 'normal',
+        density: 'normal',
+        defaultFeed: 'top',
+      }
+
+      const result = validateSettings(oldSettings)
+
+      expect(result).not.toBeNull()
+      expect(result?.highContrast).toBe(false)
+    })
+
+    it('returns null for invalid highContrast value', () => {
+      const invalidSettings = {
+        theme: 'dark',
+        highContrast: 'yes', // should be boolean
+        fontSize: 'normal',
+        density: 'normal',
+        defaultFeed: 'top',
+      }
+
+      expect(validateSettings(invalidSettings)).toBeNull()
     })
 
     it('returns null for invalid theme value', () => {

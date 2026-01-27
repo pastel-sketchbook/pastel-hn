@@ -1,11 +1,13 @@
 /**
  * Theme management module for dark/light mode toggle
  * Maintains Cyberpunk aesthetic in both themes
+ * Includes high contrast mode for accessibility (WCAG AAA)
  */
 
 export type Theme = 'dark' | 'light'
 
 export const THEME_STORAGE_KEY = 'wasm-hn-theme'
+export const HIGH_CONTRAST_STORAGE_KEY = 'wasm-hn-high-contrast'
 
 /**
  * Get the current theme based on:
@@ -50,6 +52,10 @@ export function initTheme(): void {
   const theme = getTheme()
   setTheme(theme)
 
+  // Initialize high contrast mode
+  const highContrast = getHighContrast()
+  setHighContrast(highContrast)
+
   // Listen for system theme changes (only affects if no stored preference)
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   mediaQuery.addEventListener('change', (e) => {
@@ -59,4 +65,55 @@ export function initTheme(): void {
       setTheme(e.matches ? 'dark' : 'light')
     }
   })
+
+  // Listen for system high contrast preference
+  const contrastQuery = window.matchMedia('(prefers-contrast: more)')
+  contrastQuery.addEventListener('change', (e) => {
+    // Only update if user hasn't set a preference
+    const stored = localStorage.getItem(HIGH_CONTRAST_STORAGE_KEY)
+    if (stored === null) {
+      setHighContrast(e.matches)
+    }
+  })
+}
+
+/**
+ * Get the current high contrast mode based on:
+ * 1. Stored preference in localStorage
+ * 2. System preference via prefers-contrast: more
+ */
+export function getHighContrast(): boolean {
+  const stored = localStorage.getItem(HIGH_CONTRAST_STORAGE_KEY)
+  if (stored === 'true') {
+    return true
+  }
+  if (stored === 'false') {
+    return false
+  }
+  // Fall back to system preference
+  return window.matchMedia('(prefers-contrast: more)').matches
+}
+
+/**
+ * Set high contrast mode and persist to localStorage
+ */
+export function setHighContrast(enabled: boolean): void {
+  if (enabled) {
+    document.documentElement.setAttribute('data-high-contrast', 'true')
+  } else {
+    document.documentElement.removeAttribute('data-high-contrast')
+  }
+  localStorage.setItem(HIGH_CONTRAST_STORAGE_KEY, String(enabled))
+}
+
+/**
+ * Toggle high contrast mode
+ * Returns the new state
+ */
+export function toggleHighContrast(): boolean {
+  const current =
+    document.documentElement.getAttribute('data-high-contrast') === 'true'
+  const newState = !current
+  setHighContrast(newState)
+  return newState
 }

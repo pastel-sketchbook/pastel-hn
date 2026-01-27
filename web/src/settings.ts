@@ -20,7 +20,7 @@ import {
   getBookmarksCount,
   getReadStoriesCount,
 } from './storage'
-import { setTheme, type Theme } from './theme'
+import { setHighContrast, setTheme, type Theme } from './theme'
 import type { CacheStats } from './types'
 import { escapeHtml } from './utils'
 
@@ -53,6 +53,8 @@ type DefaultFeed = 'top' | 'new' | 'best' | 'ask' | 'show' | 'jobs'
 export interface Settings {
   /** Color theme preference (light, dark, or follow system) */
   theme: Theme | 'system'
+  /** High contrast mode for accessibility (WCAG AAA) */
+  highContrast: boolean
   /** Font size preference */
   fontSize: FontSize
   /** UI density preference */
@@ -67,6 +69,7 @@ const STORAGE_KEY = 'hn-settings'
 /** Default settings applied on first run or when storage is unavailable */
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  highContrast: false,
   fontSize: 'normal',
   density: 'normal',
   defaultFeed: 'top',
@@ -91,6 +94,7 @@ const settingsIcons = {
   sun: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
   moon: `<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
   monitor: `<svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  contrast: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z"/></svg>`,
   type: `<svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
   layout: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>`,
   home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
@@ -145,7 +149,13 @@ function updateSetting<K extends keyof Settings>(
  * Type guard to check if a string is a valid Settings key
  */
 function isValidSettingKey(key: string): key is keyof Settings {
-  return ['theme', 'fontSize', 'density', 'defaultFeed'].includes(key)
+  return [
+    'theme',
+    'highContrast',
+    'fontSize',
+    'density',
+    'defaultFeed',
+  ].includes(key)
 }
 
 /**
@@ -170,6 +180,9 @@ export function applySettings(): void {
   } else {
     setTheme(currentSettings.theme)
   }
+
+  // Apply high contrast mode
+  setHighContrast(currentSettings.highContrast)
 
   // Apply font size
   html.setAttribute('data-font-size', currentSettings.fontSize)
@@ -242,6 +255,20 @@ export async function showSettingsModal(): Promise<void> {
               <span>System</span>
             </button>
           </div>
+        </div>
+        
+        <!-- High Contrast (Accessibility) -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">${settingsIcons.contrast}High Contrast</h3>
+          <div class="settings-options">
+            <button class="settings-option ${currentSettings.highContrast ? 'active' : ''}" data-setting="highContrast" data-value="true">
+              <span>On</span>
+            </button>
+            <button class="settings-option ${!currentSettings.highContrast ? 'active' : ''}" data-setting="highContrast" data-value="false">
+              <span>Off</span>
+            </button>
+          </div>
+          <p class="settings-hint">WCAG AAA compliant colors for improved readability</p>
         </div>
         
         <!-- Font Size -->
@@ -412,8 +439,13 @@ export async function showSettingsModal(): Promise<void> {
           optionBtn.classList.add('active')
         }
 
-        // Save setting with type-safe helper
-        updateSetting(setting, value as Settings[typeof setting])
+        // Convert highContrast value from string to boolean
+        if (setting === 'highContrast') {
+          updateSetting(setting, value === 'true')
+        } else {
+          // Save setting with type-safe helper
+          updateSetting(setting, value as Settings[typeof setting])
+        }
       }
     }
 
@@ -856,6 +888,15 @@ export function validateSettings(data: unknown): Settings | null {
     return null
   }
 
+  // Validate highContrast (optional for backwards compatibility)
+  const highContrast = settingsObj.highContrast
+  // Default to false if not present (for importing old settings files)
+  const validatedHighContrast =
+    highContrast === undefined ? false : highContrast
+  if (validatedHighContrast !== false && validatedHighContrast !== true) {
+    return null
+  }
+
   // Validate fontSize
   const validFontSizes = ['compact', 'normal', 'comfortable']
   const fontSize = settingsObj.fontSize
@@ -879,6 +920,7 @@ export function validateSettings(data: unknown): Settings | null {
 
   return {
     theme: theme as Settings['theme'],
+    highContrast: validatedHighContrast,
     fontSize: fontSize as Settings['fontSize'],
     density: density as Settings['density'],
     defaultFeed: defaultFeed as Settings['defaultFeed'],
