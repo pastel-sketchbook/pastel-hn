@@ -13,10 +13,11 @@ import {
 } from './storage'
 import { setTheme, type Theme } from './theme'
 import type { CacheStats } from './types'
+import { escapeHtml } from './utils'
 
-export type FontSize = 'compact' | 'normal' | 'comfortable'
-export type Density = 'compact' | 'normal' | 'comfortable'
-export type DefaultFeed = 'top' | 'new' | 'best' | 'ask' | 'show' | 'jobs'
+type FontSize = 'compact' | 'normal' | 'comfortable'
+type Density = 'compact' | 'normal' | 'comfortable'
+type DefaultFeed = 'top' | 'new' | 'best' | 'ask' | 'show' | 'jobs'
 
 export interface Settings {
   theme: Theme | 'system'
@@ -773,15 +774,6 @@ function closeExportDialog(): void {
   // Remove dialog from DOM
   const dialog = document.querySelector('.export-dialog-overlay')
   dialog?.remove()
-}
-
-/**
- * Escape HTML special characters
- */
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
 }
 
 /**

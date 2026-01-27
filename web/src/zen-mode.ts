@@ -1,7 +1,6 @@
 /**
  * Zen mode functionality - fullscreen, distraction-free reading experience
  */
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import { toastInfo } from './toast'
 
 // Zen mode state
@@ -53,6 +52,7 @@ export async function toggleZenMode(): Promise<void> {
   // Toggle fullscreen and decorations via Tauri API first (before CSS changes)
   // This ensures window state is correct before visual updates
   try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const appWindow = getCurrentWindow()
 
     if (enteringZen) {
@@ -118,6 +118,7 @@ export async function exitZenMode(): Promise<void> {
 
     // Exit fullscreen and restore decorations via Tauri API first
     try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
       const appWindow = getCurrentWindow()
       // Exit fullscreen first, then restore decorations
       await appWindow.setFullscreen(false)

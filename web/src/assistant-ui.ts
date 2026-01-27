@@ -14,6 +14,7 @@ import {
   type StoryContext,
 } from './copilot-client'
 import type { CommentWithChildren, HNItem } from './types'
+import { escapeHtml } from './utils'
 
 /** Message in the assistant conversation */
 interface Message {
@@ -492,12 +493,6 @@ function setupKeyboardShortcut(): void {
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
-}
 
 function stripHtml(html: string): string {
   const div = document.createElement('div')

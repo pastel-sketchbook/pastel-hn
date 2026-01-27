@@ -2,6 +2,8 @@
  * Toast notification system for user feedback
  */
 
+import { escapeHtml } from './utils'
+
 export type ToastType = 'info' | 'success' | 'warning' | 'error'
 
 interface ToastOptions {
@@ -86,15 +88,6 @@ function createToastElement(options: ToastOptions, id: string): HTMLElement {
   `
 
   return toast
-}
-
-/**
- * Escape HTML to prevent XSS
- */
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
 }
 
 /**

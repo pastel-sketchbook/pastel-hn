@@ -19,7 +19,6 @@ import {
   updateBackToTopVisibility,
 } from './back-to-top'
 import { initErrorBoundary } from './error-boundary'
-import { closeHelpModal, isHelpModalOpen, showHelpModal } from './help-modal'
 import { initKeyboard, setKeyboardCallbacks } from './keyboard'
 import {
   configureNavigation,
@@ -35,7 +34,6 @@ import {
   setScrollTop,
   updateHeaderShadow,
 } from './scroll-utils'
-import { closeSearchModal, isSearchModalOpen, showSearchModal } from './search'
 import {
   closeSettingsModal,
   getSettings,
@@ -192,12 +190,14 @@ function setupKeyboardNavigation(): void {
         }
       }
     },
-    onBack: () => {
+    onBack: async () => {
       if (isSettingsModalOpen()) {
         closeSettingsModal()
-      } else if (isSearchModalOpen()) {
+      } else if (document.getElementById('search-modal')) {
+        const { closeSearchModal } = await import('./search')
         closeSearchModal()
-      } else if (isHelpModalOpen()) {
+      } else if (document.getElementById('help-modal')) {
+        const { closeHelpModal } = await import('./help-modal')
         closeHelpModal()
       } else if (isAssistantOpen()) {
         closeAssistant()
@@ -224,20 +224,24 @@ function setupKeyboardNavigation(): void {
         renderStories(feed)
       }
     },
-    onHelp: () => {
-      if (isHelpModalOpen()) {
+    onHelp: async () => {
+      if (document.getElementById('help-modal')) {
+        const { closeHelpModal } = await import('./help-modal')
         closeHelpModal()
       } else {
+        const { showHelpModal } = await import('./help-modal')
         showHelpModal()
       }
     },
     onScrollToTop: () => {
       scrollToTop()
     },
-    onSearch: () => {
-      if (isSearchModalOpen()) {
+    onSearch: async () => {
+      if (document.getElementById('search-modal')) {
+        const { closeSearchModal } = await import('./search')
         closeSearchModal()
       } else {
+        const { showSearchModal } = await import('./search')
         showSearchModal()
       }
     },

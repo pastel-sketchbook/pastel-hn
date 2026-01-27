@@ -320,7 +320,7 @@
 - [x] Connection pooling in Rust HTTP client
 - [x] Concurrent request fetching with Tokio
 - [x] Lazy comment loading (fetch on expand with depth=1)
-- [ ] Bundle size optimization (<100KB JS)
+- [x] Bundle size optimization (128KB → 106KB main bundle, 17% reduction)
 - [ ] First contentful paint <500ms
 - [ ] **Image/favicon lazy loading for story domains**
 - [ ] **Request deduplication for concurrent fetches**
