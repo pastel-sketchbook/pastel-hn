@@ -6,6 +6,7 @@ mod copilot;
 mod types;
 
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager,
@@ -85,9 +86,12 @@ fn main() {
                 ],
             )?;
 
-            // Build the tray icon
+            // Build the tray icon - use include_bytes for reliable icon loading on macOS
+            let icon_bytes = include_bytes!("../icons/32x32.png");
+            let tray_icon = Image::from_bytes(icon_bytes)
+                .unwrap_or_else(|_| app.default_window_icon().unwrap().clone());
             let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .tooltip("pastel-hn")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
