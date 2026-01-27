@@ -1930,6 +1930,32 @@ main {
   background: rgba(200, 0, 134, 0.12);
 }
 
+/* Follow button - special state when following */
+.story-action-btn.followed {
+  background: rgba(0, 217, 255, 0.1);
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+
+.story-action-btn.followed:hover {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: var(--cyan);
+}
+
+.story-action-btn.followed svg {
+  fill: currentColor;
+}
+
+[data-theme="light"] .story-action-btn.followed {
+  background: rgba(0, 160, 190, 0.08);
+  border-color: var(--cyan-dim);
+  color: var(--cyan);
+}
+
+[data-theme="light"] .story-action-btn.followed:hover {
+  background: rgba(0, 160, 190, 0.12);
+}
+
 .story-detail-text {
   font-size: 1.05rem;
   line-height: 1.7;

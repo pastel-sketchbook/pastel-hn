@@ -27,6 +27,7 @@ import { renderCommentSkeletons } from './skeletons'
 import {
   getBookmarkedStoryById,
   isStoryBookmarked,
+  isStoryFollowed,
   markStoryAsRead,
   saveStoryCommentCount,
 } from './storage'
@@ -509,6 +510,10 @@ export async function renderStoryDetail(
             <button class="story-action-btn${isStoryBookmarked(story.id) ? ' bookmarked' : ''}" data-action="toggle-bookmark" data-id="${story.id}" title="${isStoryBookmarked(story.id) ? 'Remove bookmark' : 'Bookmark story'}">
               ${isStoryBookmarked(story.id) ? icons.bookmarkFilled : icons.bookmark}
               <span>${isStoryBookmarked(story.id) ? 'Bookmarked' : 'Bookmark'}</span>
+            </button>
+            <button class="story-action-btn${isStoryFollowed(story.id) ? ' followed' : ''}" data-action="toggle-follow" data-id="${story.id}" title="${isStoryFollowed(story.id) ? 'Unfollow story' : 'Get notified of new comments'}">
+              ${isStoryFollowed(story.id) ? icons.bellFilled : icons.bell}
+              <span>${isStoryFollowed(story.id) ? 'Following' : 'Follow'}</span>
             </button>
             <button class="story-action-btn" data-action="copy-hn-link" data-id="${story.id}" title="Copy HN link">
               ${icons.copy}
