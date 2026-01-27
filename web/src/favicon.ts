@@ -32,13 +32,15 @@ export function createFaviconElement(domain: string): string {
   if (!domain) {
     return ''
   }
-  // Use data-domain for lazy loading, src will be set when visible
-  // Include onerror handler to hide broken favicons
+  // Use data-domain for lazy loading - src is set by loadFavicon() when visible.
+  // Inline onerror provides a defensive fallback if JS error handling fails.
+  // The loadFavicon() function also sets handleFaviconError() programmatically.
   return `<img class="favicon" data-domain="${escapeHtml(domain)}" loading="lazy" width="16" height="16" alt="" aria-hidden="true" onerror="this.style.display='none';this.onerror=null;">`
 }
 
 /**
  * Handle favicon loading errors by hiding the image
+ * This is the centralized error handler for all favicon load failures.
  * @param img - The img element that failed to load
  */
 export function handleFaviconError(img: HTMLImageElement): void {
@@ -52,18 +54,40 @@ export function handleFaviconError(img: HTMLImageElement): void {
  */
 function loadFavicon(img: HTMLImageElement): void {
   const domain = img.dataset.domain
-  if (domain && !img.src) {
+  // Use getAttribute to avoid browser URL resolution on empty src
+  if (domain && !img.getAttribute('src')) {
+    // Set up error handler before setting src
+    img.onerror = () => handleFaviconError(img)
     img.src = getFaviconUrl(domain)
   }
 }
 
 /**
+ * Load all favicon elements immediately (fallback when IntersectionObserver unavailable)
+ */
+function loadAllFaviconsImmediately(): void {
+  const favicons = document.querySelectorAll<HTMLImageElement>(
+    '.favicon[data-domain]:not([src])',
+  )
+  for (const img of favicons) {
+    loadFavicon(img)
+  }
+}
+
+/**
  * Initialize favicon lazy loading with IntersectionObserver
- * Call this once when the app starts
+ * Call this once when the app starts.
+ * Falls back to loading all favicons immediately if IntersectionObserver is unavailable.
  */
 export function initFaviconLazyLoading(): void {
   // Clean up any existing observer
   destroyFaviconLazyLoading()
+
+  // Fallback for older browsers without IntersectionObserver
+  if (typeof IntersectionObserver === 'undefined') {
+    loadAllFaviconsImmediately()
+    return
+  }
 
   // Create observer with generous rootMargin for preloading
   faviconObserver = new IntersectionObserver(
