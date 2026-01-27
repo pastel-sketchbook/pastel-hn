@@ -13,6 +13,9 @@
 //! - **AI Assistant** ([`copilot`]) - Optional GitHub Copilot integration for
 //!   summarizing articles, analyzing discussions, and drafting replies.
 //!
+//! - **Text-to-Speech** ([`tts`]) - Native OS speech synthesis for reading
+//!   articles aloud (free, works offline).
+//!
 //! - **Type Definitions** ([`types`]) - Shared types for API responses, errors,
 //!   and configuration.
 //!
@@ -49,6 +52,7 @@
 mod client;
 mod commands;
 mod copilot;
+mod tts;
 mod types;
 
 use tauri::{
@@ -324,6 +328,14 @@ fn main() {
             commands::copilot_draft_reply,
             commands::copilot_ask,
             commands::copilot_shutdown,
+            // TTS (Text-to-Speech)
+            commands::tts_init,
+            commands::tts_status,
+            commands::tts_speak,
+            commands::tts_stop,
+            commands::tts_get_voices,
+            commands::tts_set_voice,
+            commands::tts_set_rate,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -70,6 +70,7 @@ import {
 import { toggleTheme } from './theme'
 import { toastError, toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
+import { initTtsUi } from './tts-ui'
 import type { StoryFeed } from './types'
 import {
   getCurrentUserId,
@@ -449,6 +450,9 @@ async function main(): Promise<void> {
 
     // Initialize AI assistant
     initAssistant()
+
+    // Initialize TTS (text-to-speech)
+    initTtsUi()
 
     // Initialize offline detection
     initOfflineDetection()

@@ -40,6 +40,18 @@
 //! | [`copilot_ask`] | General question |
 //! | [`copilot_shutdown`] | Shutdown Copilot service |
 //!
+//! # TTS (Text-to-Speech) Commands
+//!
+//! | Command | Description |
+//! |---------|-------------|
+//! | [`tts_init`] | Initialize the TTS engine |
+//! | [`tts_status`] | Get TTS status and capabilities |
+//! | [`tts_speak`] | Speak text aloud |
+//! | [`tts_stop`] | Stop current speech |
+//! | [`tts_get_voices`] | List available voices |
+//! | [`tts_set_voice`] | Set the active voice |
+//! | [`tts_set_rate`] | Set speech rate |
+//!
 //! # Utility Commands
 //!
 //! | Command | Description |
@@ -53,6 +65,7 @@ use crate::client::SharedHnClient;
 use crate::copilot::{
     self, AssistantResponse, CopilotStatus, DiscussionContext, ReplyContext, StoryContext,
 };
+use crate::tts::{self, TtsStatus, VoiceInfo};
 use crate::types::{
     ApiError, ArticleContent, CacheStats, CommentWithChildren, HNItem, HNUser, SearchFilter,
     SearchResponse, SearchSort, StoriesResponse, StoryFeed, StoryWithComments, SubmissionFilter,
@@ -360,4 +373,70 @@ pub async fn copilot_ask(prompt: String) -> Result<AssistantResponse, String> {
 #[tauri::command]
 pub async fn copilot_shutdown() -> Result<(), String> {
     copilot::shutdown().await.map_err(|e| e.to_string())
+}
+
+// ============================================================================
+// TTS (Text-to-Speech) Commands
+//
+// These commands provide native text-to-speech functionality using the
+// operating system's built-in speech synthesis (free, works offline).
+// ============================================================================
+
+/// Initialize the TTS engine.
+///
+/// Must be called before using other TTS commands.
+#[tauri::command]
+pub fn tts_init() -> Result<(), String> {
+    tts::init()
+}
+
+/// Get TTS status and capabilities.
+///
+/// Returns availability, current state, and supported features.
+#[tauri::command]
+pub fn tts_status() -> TtsStatus {
+    tts::get_status()
+}
+
+/// Speak the given text aloud.
+///
+/// # Arguments
+///
+/// * `text` - Text to speak
+/// * `interrupt` - If true, stops any current speech first
+#[tauri::command]
+pub fn tts_speak(text: String, interrupt: bool) -> Result<(), String> {
+    tts::speak(&text, interrupt)?;
+    Ok(())
+}
+
+/// Stop any current speech.
+#[tauri::command]
+pub fn tts_stop() -> Result<(), String> {
+    tts::stop()
+}
+
+/// Get list of available voices.
+///
+/// Returns voice information including ID, name, and language.
+#[tauri::command]
+pub fn tts_get_voices() -> Result<Vec<VoiceInfo>, String> {
+    tts::get_voices()
+}
+
+/// Set the active voice by ID.
+///
+/// Voice IDs can be obtained from [`tts_get_voices`].
+#[tauri::command]
+pub fn tts_set_voice(voice_id: String) -> Result<(), String> {
+    tts::set_voice(&voice_id)
+}
+
+/// Set the speech rate.
+///
+/// Rate is normalized to 0.0-1.0 where 0.5 is normal speed.
+/// Lower values are slower, higher values are faster.
+#[tauri::command]
+pub fn tts_set_rate(rate: f32) -> Result<(), String> {
+    tts::set_rate(rate)
 }

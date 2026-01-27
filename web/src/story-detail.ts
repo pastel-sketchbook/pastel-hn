@@ -32,6 +32,7 @@ import {
   saveStoryCommentCount,
 } from './storage'
 import { toastInfo } from './toast'
+import { createTtsButton, isTtsAvailable, setupTtsListeners } from './tts-ui'
 import { type HNItem, ItemType } from './types'
 import {
   calculateReadingTime,
@@ -531,6 +532,7 @@ export async function renderStoryDetail(
               ${icons.share}
               <span>Share</span>
             </button>
+            ${createTtsButton()}
           </div>
         </article>
         
@@ -593,6 +595,7 @@ export async function renderStoryDetail(
 
     setupStoryTabs(container)
     setupCommentCollapse(container)
+    setupTtsListeners(container)
 
     const commentsList = container.querySelector('.comments-list')
     if (commentsList) {
