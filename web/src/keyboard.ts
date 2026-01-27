@@ -2,7 +2,10 @@
  * Keyboard navigation module for pastel-hn
  *
  * Provides keyboard shortcuts for:
- * - j/k: Navigate up/down in lists
+ * - j/k: Navigate up/down in lists, scroll in detail view
+ * - h/l: Scroll left/right
+ * - G/gg: Jump to last/first item, or scroll to end/start in detail view
+ * - Space/Shift+Space: Page down/up in detail view
  * - Enter/o: Open/select items
  * - Escape: Go back/close modals
  * - 1-7: Switch between feeds
@@ -13,6 +16,7 @@
  * - d: Toggle dark/light theme
  * - z: Toggle zen mode
  * - c: Focus comments section
+ * - yy: Copy link (HN link in list, article URL option in detail)
  * - Cmd/Ctrl+Q: Quit app
  */
 
@@ -63,6 +67,16 @@ type KeyboardCallback = {
   onQuit?: () => void
   /** Called when pressing yy to copy */
   onCopy?: () => void
+  /** Called when pressing j/k in detail view for vertical scrolling */
+  onScrollVertical?: (direction: 'up' | 'down') => void
+  /** Called when pressing Space/Shift+Space for page scrolling */
+  onPageScroll?: (direction: 'up' | 'down') => void
+  /** Called when pressing G/gg in detail view for scroll to end/start */
+  onScrollToEnd?: () => void
+  /** Called when pressing gg in detail view for scroll to start */
+  onScrollToStart?: () => void
+  /** Returns true if currently in detail/article view */
+  isDetailView?: () => boolean
 }
 
 let callbacks: KeyboardCallback = {}
@@ -264,6 +278,9 @@ function handleKeydown(e: KeyboardEvent): void {
       e.preventDefault()
       if (numericPrefix) {
         navigateToIndex(Number.parseInt(numericPrefix, 10))
+      } else if (callbacks.isDetailView?.()) {
+        // In detail view, scroll to start
+        callbacks.onScrollToStart?.()
       } else {
         navigateToFirst()
       }
@@ -298,10 +315,14 @@ function handleKeydown(e: KeyboardEvent): void {
     return
   }
 
-  // Handle 'G' (shift+g) - jump to last item
+  // Handle 'G' (shift+g) - jump to last item or scroll to end in detail view
   if (key === 'G') {
     e.preventDefault()
-    navigateToLast()
+    if (callbacks.isDetailView?.()) {
+      callbacks.onScrollToEnd?.()
+    } else {
+      navigateToLast()
+    }
     clearPendingState()
     return
   }
@@ -321,13 +342,21 @@ function handleKeydown(e: KeyboardEvent): void {
     case 'j':
     case 'arrowdown':
       e.preventDefault()
-      navigateDown()
+      if (callbacks.isDetailView?.()) {
+        callbacks.onScrollVertical?.('down')
+      } else {
+        navigateDown()
+      }
       break
 
     case 'k':
     case 'arrowup':
       e.preventDefault()
-      navigateUp()
+      if (callbacks.isDetailView?.()) {
+        callbacks.onScrollVertical?.('up')
+      } else {
+        navigateUp()
+      }
       break
 
     case 'h':
@@ -340,6 +369,15 @@ function handleKeydown(e: KeyboardEvent): void {
     case 'arrowright':
       e.preventDefault()
       scrollHorizontal('right')
+      break
+
+    case ' ':
+      e.preventDefault()
+      if (e.shiftKey) {
+        callbacks.onPageScroll?.('up')
+      } else {
+        callbacks.onPageScroll?.('down')
+      }
       break
 
     case 'enter':
@@ -415,11 +453,13 @@ export function disableKeyboard(): void {
 
 // Keyboard shortcut help text
 export const KEYBOARD_SHORTCUTS = [
-  { key: 'j / ↓', description: 'Next item' },
-  { key: 'k / ↑', description: 'Previous item' },
+  { key: 'j / ↓', description: 'Next item / scroll down' },
+  { key: 'k / ↑', description: 'Previous item / scroll up' },
   { key: 'h / l', description: 'Scroll left / right' },
-  { key: 'G', description: 'Jump to last item' },
-  { key: 'gg', description: 'Jump to first item' },
+  { key: 'Space', description: 'Page down' },
+  { key: 'Shift+Space', description: 'Page up' },
+  { key: 'G', description: 'Last item / end of article' },
+  { key: 'gg', description: 'First item / top of article' },
   { key: 'g<n>g', description: 'Jump to nth item (e.g., g5g)' },
   { key: 'Enter', description: 'Open story / expand' },
   { key: 'o', description: 'Open link in browser' },

@@ -322,6 +322,37 @@ function setupKeyboardNavigation(): void {
         }
       }
     },
+    isDetailView: () => currentView === 'detail',
+    onScrollVertical: (direction) => {
+      const container = document.getElementById('stories')
+      if (!container) return
+      const scrollAmount = 100
+      if (direction === 'down') {
+        container.scrollTop += scrollAmount
+      } else {
+        container.scrollTop -= scrollAmount
+      }
+    },
+    onPageScroll: (direction) => {
+      const container = document.getElementById('stories')
+      if (!container) return
+      const pageAmount = container.clientHeight * 0.8
+      if (direction === 'down') {
+        container.scrollTop += pageAmount
+      } else {
+        container.scrollTop -= pageAmount
+      }
+    },
+    onScrollToEnd: () => {
+      const container = document.getElementById('stories')
+      if (!container) return
+      container.scrollTop = container.scrollHeight
+    },
+    onScrollToStart: () => {
+      const container = document.getElementById('stories')
+      if (!container) return
+      container.scrollTop = 0
+    },
   })
 
   initKeyboard()

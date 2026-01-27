@@ -581,4 +581,113 @@ describe('keyboard', () => {
       expect(onCopy).not.toHaveBeenCalled()
     })
   })
+
+  describe('detail view scrolling', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <div class="story" data-id="1"></div>
+        <div class="story" data-id="2"></div>
+      `
+      initKeyboard()
+    })
+
+    it('j calls onScrollVertical down in detail view', () => {
+      const onScrollVertical = vi.fn()
+      const isDetailView = vi.fn(() => true)
+      setKeyboardCallbacks({ onScrollVertical, isDetailView })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j' }))
+
+      expect(onScrollVertical).toHaveBeenCalledWith('down')
+    })
+
+    it('k calls onScrollVertical up in detail view', () => {
+      const onScrollVertical = vi.fn()
+      const isDetailView = vi.fn(() => true)
+      setKeyboardCallbacks({ onScrollVertical, isDetailView })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k' }))
+
+      expect(onScrollVertical).toHaveBeenCalledWith('up')
+    })
+
+    it('j navigates down in list view', () => {
+      const onNavigate = vi.fn()
+      const isDetailView = vi.fn(() => false)
+      setKeyboardCallbacks({ onNavigate, isDetailView })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j' }))
+
+      expect(onNavigate).toHaveBeenCalled()
+    })
+
+    it('Space calls onPageScroll down', () => {
+      const onPageScroll = vi.fn()
+      setKeyboardCallbacks({ onPageScroll })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
+
+      expect(onPageScroll).toHaveBeenCalledWith('down')
+    })
+
+    it('Shift+Space calls onPageScroll up', () => {
+      const onPageScroll = vi.fn()
+      setKeyboardCallbacks({ onPageScroll })
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: ' ', shiftKey: true }),
+      )
+
+      expect(onPageScroll).toHaveBeenCalledWith('up')
+    })
+
+    it('G calls onScrollToEnd in detail view', () => {
+      const onScrollToEnd = vi.fn()
+      const isDetailView = vi.fn(() => true)
+      setKeyboardCallbacks({ onScrollToEnd, isDetailView })
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'G', shiftKey: true }),
+      )
+
+      expect(onScrollToEnd).toHaveBeenCalledTimes(1)
+    })
+
+    it('G navigates to last item in list view', () => {
+      const onNavigate = vi.fn()
+      const isDetailView = vi.fn(() => false)
+      setKeyboardCallbacks({ onNavigate, isDetailView })
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'G', shiftKey: true }),
+      )
+
+      expect(onNavigate).toHaveBeenCalled()
+      expect(getSelectedIndex()).toBe(1) // Last item
+    })
+
+    it('gg calls onScrollToStart in detail view', () => {
+      const onScrollToStart = vi.fn()
+      const isDetailView = vi.fn(() => true)
+      setKeyboardCallbacks({ onScrollToStart, isDetailView })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+
+      expect(onScrollToStart).toHaveBeenCalledTimes(1)
+    })
+
+    it('gg navigates to first item in list view', () => {
+      const onNavigate = vi.fn()
+      const isDetailView = vi.fn(() => false)
+      setKeyboardCallbacks({ onNavigate, isDetailView })
+      setSelectedIndex(1)
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+
+      expect(onNavigate).toHaveBeenCalled()
+      expect(getSelectedIndex()).toBe(0) // First item
+    })
+  })
 })
