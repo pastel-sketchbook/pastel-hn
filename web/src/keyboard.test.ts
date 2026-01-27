@@ -230,7 +230,7 @@ describe('keyboard', () => {
       initKeyboard()
     })
 
-    it('1-6 keys call onFeedChange with correct feed', () => {
+    it('1-7 keys call onFeedChange with correct feed', () => {
       const onFeedChange = vi.fn()
       setKeyboardCallbacks({ onFeedChange })
 
@@ -241,6 +241,7 @@ describe('keyboard', () => {
         '4': 'ask',
         '5': 'show',
         '6': 'jobs',
+        '7': 'saved',
       }
 
       for (const [key, feed] of Object.entries(feedMap)) {

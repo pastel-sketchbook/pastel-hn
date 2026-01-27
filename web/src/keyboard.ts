@@ -283,8 +283,8 @@ function handleKeydown(e: KeyboardEvent): void {
     clearPendingState()
   }
 
-  // Handle number keys for feed switching (1-6)
-  if (/^[1-6]$/.test(key) && !e.ctrlKey && !e.metaKey && !e.altKey && FEED_KEYS[key]) {
+  // Handle number keys for feed switching (1-7, includes Saved)
+  if (/^[1-7]$/.test(key) && !e.ctrlKey && !e.metaKey && !e.altKey && FEED_KEYS[key]) {
     e.preventDefault()
     callbacks.onFeedChange?.(FEED_KEYS[key])
     return
