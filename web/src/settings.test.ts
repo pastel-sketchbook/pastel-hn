@@ -504,7 +504,7 @@ describe('settings', () => {
       // Mock URL static methods while preserving the URL constructor
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
-      const OriginalURL = globalThis.URL
+      const _OriginalURL = globalThis.URL
       const originalCreateObjectURL = URL.createObjectURL
       const originalRevokeObjectURL = URL.revokeObjectURL
       URL.createObjectURL = mockCreateObjectURL
