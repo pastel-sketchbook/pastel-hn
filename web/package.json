@@ -23,6 +23,7 @@
     "@fontsource/rajdhani": "^5.2.7",
     "@fontsource/share-tech-mono": "^5.2.7",
     "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-deep-link": "^2.4.6",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",

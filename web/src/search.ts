@@ -35,13 +35,14 @@ export function isSearchModalOpen(): boolean {
 
 /**
  * Show the search modal
+ * @param initialQuery Optional query to pre-fill and execute
  */
-export function showSearchModal(): void {
+export function showSearchModal(initialQuery?: string): void {
   if (searchModalOpen) return
   searchModalOpen = true
 
   // Reset search state
-  searchQuery = ''
+  searchQuery = initialQuery || ''
   searchResults = []
   searchSort = 'relevance'
   searchFilter = 'all'
@@ -99,6 +100,13 @@ export function showSearchModal(): void {
   const input = modal.querySelector('.search-input') as HTMLInputElement
   if (input) {
     input.focus()
+
+    // Pre-fill and execute initial query if provided
+    if (initialQuery) {
+      input.value = initialQuery
+      searchPage = 0
+      performSearch()
+    }
 
     // Handle input with debounce
     input.addEventListener('input', () => {

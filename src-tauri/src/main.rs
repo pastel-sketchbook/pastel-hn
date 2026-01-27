@@ -11,6 +11,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager,
 };
+use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_window_state::StateFlags;
 use tracing::info;
@@ -35,6 +36,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
@@ -210,6 +212,38 @@ fn main() {
             } else {
                 info!("Registered global shortcut: Cmd+Shift+R (refresh)");
             }
+
+            // Register deep link schemes for development (on Linux/Windows)
+            // On macOS, deep links only work with the bundled app in /Applications
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            {
+                if let Err(e) = app.deep_link().register_all() {
+                    info!("Failed to register deep link schemes: {}", e);
+                } else {
+                    info!("Registered deep link scheme: pastelhn://");
+                }
+            }
+
+            // Set up deep link handler
+            app.deep_link().on_open_url(|event| {
+                let urls = event.urls();
+                for url in urls {
+                    info!("Deep link received: {}", url);
+                }
+            });
+
+            // Check if app was opened via deep link
+            if let Ok(Some(urls)) = app.deep_link().get_current() {
+                for url in urls {
+                    info!("App opened via deep link: {}", url);
+                    // Emit event to frontend to handle the URL
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.emit("deep-link", url.to_string());
+                    }
+                }
+            }
+
+            info!("Deep link handler initialized");
 
             Ok(())
         })

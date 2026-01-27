@@ -65,6 +65,7 @@ import { toggleTheme } from './theme'
 import { toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
 import { configureGlobalShortcuts } from './global-shortcuts'
+import { configureDeepLinks, initDeepLinks } from './deep-link'
 import type { StoryFeed } from './types'
 import {
   getCurrentUserId,
@@ -472,6 +473,35 @@ async function main(): Promise<void> {
         }
       },
     })
+
+    // Configure deep links (pastelhn://item/123, pastelhn://user/dang, etc.)
+    configureDeepLinks({
+      onItem: (id) => {
+        renderStoryDetail(id)
+        toastInfo(`Opening story #${id}`)
+      },
+      onUser: (username) => {
+        renderUserProfile(username)
+        toastInfo(`Opening profile: ${username}`)
+      },
+      onFeed: (feed) => {
+        if (currentView !== 'list') {
+          navigateBackToList().then(() => {
+            currentFeed = feed as StoryFeed
+            renderStories(currentFeed)
+          })
+        } else {
+          currentFeed = feed as StoryFeed
+          renderStories(currentFeed)
+        }
+        toastInfo(`Switched to ${getFeedDisplayName(feed as StoryFeed)}`)
+      },
+      onSearch: async (query) => {
+        const { showSearchModal } = await import('./search')
+        showSearchModal(query)
+      },
+    })
+    initDeepLinks()
 
     // Set up zen mode callback
     setZenModeChangeCallback((isActive) => {

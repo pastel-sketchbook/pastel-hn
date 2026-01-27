@@ -254,7 +254,7 @@
   - **Known Issue:** Tray icon not visible on macOS due to Tauri v2.6+ bug ([#13770](https://github.com/tauri-apps/tauri/issues/13770)). Code is implemented and working; awaiting upstream fix.
 - [x] Native notifications for followed stories
 - [x] Global keyboard shortcuts (Cmd+Shift+H show, Cmd+Shift+R refresh)
-- [ ] Deep linking (hn://item/12345)
+- [x] Deep linking (pastelhn://item/123, pastelhn://user/dang, pastelhn://feed/best)
 
 ### 5.4 Build & Distribution
 - [ ] macOS: `.app` bundle with code signing
