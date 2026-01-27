@@ -23,7 +23,11 @@ import { initErrorBoundary } from './error-boundary'
 import { initFaviconLazyLoading } from './favicon'
 import { startFollowedStoriesPolling } from './follow-polling'
 import { configureGlobalShortcuts } from './global-shortcuts'
-import { getSelectedIndex, initKeyboard, setKeyboardCallbacks } from './keyboard'
+import {
+  getSelectedIndex,
+  initKeyboard,
+  setKeyboardCallbacks,
+} from './keyboard'
 import {
   configureNavigation,
   handleHashChange,
@@ -67,11 +71,11 @@ import { toggleTheme } from './theme'
 import { toastError, toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
 import type { StoryFeed } from './types'
-import { getHNItemUrl } from './utils'
 import {
   getCurrentUserId,
   renderUserProfile as renderUserProfileModule,
 } from './user-profile'
+import { getHNItemUrl } from './utils'
 import {
   exitZenMode,
   isZenModeActive,

@@ -301,7 +301,13 @@ function handleKeydown(e: KeyboardEvent): void {
   }
 
   // Handle number keys for feed switching (1-7, includes Saved)
-  if (/^[1-7]$/.test(key) && !e.ctrlKey && !e.metaKey && !e.altKey && FEED_KEYS[key]) {
+  if (
+    /^[1-7]$/.test(key) &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey &&
+    FEED_KEYS[key]
+  ) {
     e.preventDefault()
     callbacks.onFeedChange?.(FEED_KEYS[key])
     return

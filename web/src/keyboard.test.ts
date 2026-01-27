@@ -437,14 +437,16 @@ describe('keyboard', () => {
     })
 
     it('h scrolls left', () => {
-      const container = document.getElementById('stories')!
+      const container = document.getElementById('stories')
+      expect(container).not.toBeNull()
       container.scrollLeft = 200
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }))
       expect(container.scrollLeft).toBeLessThan(200)
     })
 
     it('l scrolls right', () => {
-      const container = document.getElementById('stories')!
+      const container = document.getElementById('stories')
+      expect(container).not.toBeNull()
       container.scrollLeft = 0
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'l' }))
       expect(container.scrollLeft).toBeGreaterThan(0)

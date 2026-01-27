@@ -213,7 +213,9 @@ describe('utils', () => {
 
   describe('getHNItemUrl', () => {
     it('generates correct Hacker News item URL', () => {
-      expect(getHNItemUrl(12345)).toBe('https://news.ycombinator.com/item?id=12345')
+      expect(getHNItemUrl(12345)).toBe(
+        'https://news.ycombinator.com/item?id=12345',
+      )
     })
   })
 })
