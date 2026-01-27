@@ -23,7 +23,7 @@ import { initErrorBoundary } from './error-boundary'
 import { initFaviconLazyLoading } from './favicon'
 import { startFollowedStoriesPolling } from './follow-polling'
 import { configureGlobalShortcuts } from './global-shortcuts'
-import { initKeyboard, setKeyboardCallbacks } from './keyboard'
+import { getSelectedIndex, initKeyboard, setKeyboardCallbacks } from './keyboard'
 import {
   configureNavigation,
   handleHashChange,
@@ -67,6 +67,7 @@ import { toggleTheme } from './theme'
 import { toastError, toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
 import type { StoryFeed } from './types'
+import { getHNItemUrl } from './utils'
 import {
   getCurrentUserId,
   renderUserProfile as renderUserProfileModule,
@@ -299,30 +300,25 @@ function setupKeyboardNavigation(): void {
       }
     },
     onCopy: async () => {
+      let storyId: number | null = null
+
       if (currentView === 'detail') {
-        const storyId = getCurrentStoryId()
-        if (storyId) {
-          const hnUrl = `https://news.ycombinator.com/item?id=${storyId}`
-          try {
-            await navigator.clipboard.writeText(hnUrl)
-            toastSuccess('HN link copied to clipboard')
-          } catch {
-            toastError('Failed to copy link')
-          }
-        }
+        storyId = getCurrentStoryId()
       } else if (currentView === 'list') {
-        // In list view, copy selected story's HN link
         const stories = getCurrentStories()
-        const { getSelectedIndex } = await import('./keyboard')
         const index = getSelectedIndex()
         if (index >= 0 && stories[index]) {
-          const hnUrl = `https://news.ycombinator.com/item?id=${stories[index].id}`
-          try {
-            await navigator.clipboard.writeText(hnUrl)
-            toastSuccess('HN link copied to clipboard')
-          } catch {
-            toastError('Failed to copy link')
-          }
+          storyId = stories[index].id
+        }
+      }
+
+      if (storyId) {
+        const hnUrl = getHNItemUrl(storyId)
+        try {
+          await navigator.clipboard.writeText(hnUrl)
+          toastSuccess('HN link copied to clipboard')
+        } catch {
+          toastError('Failed to copy link')
         }
       }
     },

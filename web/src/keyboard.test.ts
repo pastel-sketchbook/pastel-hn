@@ -491,6 +491,69 @@ describe('keyboard', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
       expect(getSelectedIndex()).toBe(4) // Last item
     })
+
+    it('g0g jumps to first item (0 clamps to index 0)', () => {
+      setSelectedIndex(3)
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '0' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      expect(getSelectedIndex()).toBe(0) // 0-1=-1 clamped to 0
+    })
+  })
+
+  describe('vim-style pending state timeout', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      document.body.innerHTML = `
+        <div class="story" data-id="1"></div>
+        <div class="story" data-id="2"></div>
+        <div class="story" data-id="3"></div>
+      `
+      initKeyboard()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('clears pending g state after timeout', () => {
+      const onNavigate = vi.fn()
+      setKeyboardCallbacks({ onNavigate })
+
+      // Press 'g' to start pending state
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+
+      // Advance past the 1000ms timeout
+      vi.advanceTimersByTime(1100)
+
+      // Now press 'g' again - should start new pending state, not trigger gg
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'g' }))
+
+      // Should navigate to first item (gg worked after timeout reset)
+      expect(getSelectedIndex()).toBe(0)
+    })
+
+    it('clears pending y state after timeout', () => {
+      const onCopy = vi.fn()
+      setKeyboardCallbacks({ onCopy })
+
+      // Press 'y' to start pending state
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+
+      // Advance past the 1000ms timeout
+      vi.advanceTimersByTime(1100)
+
+      // Now press 'y' again - should start new pending state
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+
+      // Copy should not have been called yet (first y timed out)
+      expect(onCopy).not.toHaveBeenCalled()
+
+      // Complete the yy sequence
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+      expect(onCopy).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('vim-style yy copy', () => {

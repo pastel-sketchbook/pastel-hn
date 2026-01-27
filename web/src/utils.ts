@@ -99,3 +99,10 @@ export function formatAccountAge(created: number): string {
 export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
+
+/**
+ * Generate a Hacker News item URL for a given ID
+ */
+export function getHNItemUrl(id: number): string {
+  return `https://news.ycombinator.com/item?id=${id}`
+}

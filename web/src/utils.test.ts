@@ -4,6 +4,7 @@ import {
   countWords,
   escapeHtml,
   formatAccountAge,
+  getHNItemUrl,
   getScoreHeat,
   getStoryType,
   prefersReducedMotion,
@@ -207,6 +208,12 @@ describe('utils', () => {
     it('returns false by default', () => {
       // jsdom/happy-dom default is no preference
       expect(prefersReducedMotion()).toBe(false)
+    })
+  })
+
+  describe('getHNItemUrl', () => {
+    it('generates correct Hacker News item URL', () => {
+      expect(getHNItemUrl(12345)).toBe('https://news.ycombinator.com/item?id=12345')
     })
   })
 })
