@@ -110,11 +110,6 @@ async function navigateBackToList(): Promise<void> {
   // Save comment count when leaving story detail view
   saveAndResetStoryState(getCommentCountsMapRef())
 
-  // Exit zen mode when going back to list
-  if (isZenModeActive()) {
-    await exitZenMode()
-  }
-
   // Animate detail view exiting
   await animateDetailExit(container)
 

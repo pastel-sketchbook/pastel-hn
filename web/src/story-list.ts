@@ -466,10 +466,20 @@ export async function renderStories(
   isLoading = true
   resetSelection()
 
+  // Fast path: reuse cached stories when returning from detail view to same feed
+  const canReuseCachedStories =
+    animateIn && !refresh && feed === currentFeed && currentStories.length > 0
+
   // Save current scroll position before clearing (for feed switches)
   if (currentFeed !== feed) {
     saveFeedScrollPosition(currentFeed, getScrollTop())
   }
+
+  // Save stories before resetting state (in case we can reuse them)
+  const cachedStories = currentStories
+  const cachedOffset = currentOffset
+  const cachedHasMore = hasMoreStories
+  const cachedDuplicates = currentDuplicates
 
   // Reset pagination state
   currentOffset = 0
@@ -500,6 +510,26 @@ export async function renderStories(
 
   const container = document.getElementById('stories')
   if (!container) {
+    isLoading = false
+    return
+  }
+
+  // Use cached stories instantly when returning from detail view
+  if (canReuseCachedStories) {
+    currentStories = cachedStories
+    currentOffset = cachedOffset
+    hasMoreStories = cachedHasMore
+    currentDuplicates = cachedDuplicates
+
+    if (feed === 'saved') {
+      renderSavedStories(container, cachedStories)
+    } else {
+      renderStoriesStandard(container, cachedStories)
+    }
+
+    container.setAttribute('aria-busy', 'false')
+    await animateListEnter(container)
+    restoreFeedScrollPosition(feed)
     isLoading = false
     return
   }
