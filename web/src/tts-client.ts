@@ -68,7 +68,7 @@ const UNAVAILABLE_STATUS: TtsStatus = {
 
 /** Check if running in Tauri */
 function isTauri(): boolean {
-  return '__TAURI_INTERNALS__' in window
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
 
 /**
