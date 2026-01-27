@@ -1,4 +1,57 @@
-//! HN API client with caching
+//! HN API client with intelligent caching and background refresh.
+//!
+//! This module provides [`HnClient`], the core data layer for pastel-hn. It handles:
+//!
+//! - **Story Feeds**: Fetching top/new/best/ask/show/jobs stories with pagination
+//! - **Items**: Stories, comments, jobs, polls - all cached with configurable TTL
+//! - **Users**: User profiles with submission history
+//! - **Search**: Full-text search via the Algolia HN Search API
+//! - **Article Extraction**: Readability-based content extraction for reader mode
+//!
+//! # Caching Strategy
+//!
+//! The client uses [moka] for high-performance concurrent caching:
+//!
+//! | Cache | TTL | Max Entries | Purpose |
+//! |-------|-----|-------------|---------|
+//! | Items | 5 min | 10,000 | Stories, comments, etc. |
+//! | Story IDs | 2 min | 10 | Feed listings (per feed type) |
+//! | Users | 10 min | 100 | User profiles |
+//!
+//! # Background Refresh (Stale-While-Revalidate)
+//!
+//! When cached data reaches 75% of its TTL, the client returns the cached data
+//! immediately but triggers a background refresh. This ensures:
+//!
+//! - Users always get instant responses (no blocking on network)
+//! - Data stays relatively fresh without manual refresh
+//! - Network requests are batched efficiently
+//!
+//! # Example
+//!
+//! ```ignore
+//! use crate::client::{create_client, StoryFeed};
+//!
+//! let client = create_client();
+//!
+//! // Fetch top stories (cached if available)
+//! let response = client.fetch_stories_paginated(StoryFeed::Top, 0, 30).await?;
+//!
+//! // Fetch a single item
+//! let story = client.fetch_item(12345).await?;
+//!
+//! // Search via Algolia
+//! let results = client.search("rust", 0, 20, SearchSort::Relevance, SearchFilter::Story).await?;
+//! ```
+//!
+//! # Error Handling
+//!
+//! All fallible operations return `Result<T, ApiError>`. The client handles:
+//!
+//! - Network failures (timeouts, connection errors)
+//! - Rate limiting (429 responses with retry-after)
+//! - Missing items (deleted or never existed)
+//! - Invalid responses (parse errors)
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -11,17 +64,31 @@ use tracing::{debug, info, instrument, warn};
 
 use crate::types::*;
 
+/// Base URL for the official HN Firebase API.
 const HN_BASE_URL: &str = "https://hacker-news.firebaseio.com/v0";
+
+/// Base URL for the Algolia HN Search API (faster, full-text search).
 const ALGOLIA_BASE_URL: &str = "https://hn.algolia.com/api/v1";
 
-const ITEM_CACHE_TTL: Duration = Duration::from_secs(5 * 60); // 5 minutes
-const STORY_IDS_CACHE_TTL: Duration = Duration::from_secs(2 * 60); // 2 minutes
-const USER_CACHE_TTL: Duration = Duration::from_secs(10 * 60); // 10 minutes
+/// TTL for individual items (stories, comments, etc.) - 5 minutes.
+const ITEM_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 
-/// Staleness threshold: refresh in background when data is this old (75% of TTL)
+/// TTL for story ID lists (feed listings) - 2 minutes (shorter for fresher feeds).
+const STORY_IDS_CACHE_TTL: Duration = Duration::from_secs(2 * 60);
+
+/// TTL for user profiles - 10 minutes (user data changes less frequently).
+const USER_CACHE_TTL: Duration = Duration::from_secs(10 * 60);
+
+/// Staleness threshold as percentage of TTL.
+///
+/// When cached data is older than this percentage of its TTL, a background
+/// refresh is triggered while returning the cached data immediately.
 const STALE_THRESHOLD_PERCENT: u64 = 75;
 
-/// Check response for rate limiting and other errors
+/// Check HTTP response for rate limiting and other errors.
+///
+/// Returns `Err(ApiError::RateLimited)` if the server returns 429,
+/// extracting the retry-after duration from headers when available.
 fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
     let status = response.status();
 
@@ -41,12 +108,15 @@ fn check_response_status(response: &reqwest::Response) -> Result<(), ApiError> {
     Ok(())
 }
 
-/// Tracks when feeds were last fetched for staleness detection
+/// Tracks staleness and refresh state for background refresh logic.
+///
+/// This struct maintains per-feed timestamps and prevents duplicate
+/// background refresh requests for the same feed.
 #[derive(Debug, Default)]
 struct RefreshTracker {
-    /// Map of feed -> last fetch timestamp
+    /// Timestamp of last successful fetch for each feed.
     last_fetch: HashMap<StoryFeed, Instant>,
-    /// Set of feeds currently being refreshed (to avoid duplicate requests)
+    /// Feeds currently being refreshed (prevents duplicate requests).
     refreshing: std::collections::HashSet<StoryFeed>,
 }
 
@@ -83,7 +153,25 @@ impl RefreshTracker {
     }
 }
 
-/// HN API client with built-in caching and background refresh
+/// HN API client with built-in caching, background refresh, and connection pooling.
+///
+/// This is the main interface for fetching HN data. It handles:
+///
+/// - Transparent caching with configurable TTL
+/// - Stale-while-revalidate pattern for background refresh
+/// - Concurrent item fetching with connection pooling
+/// - Rate limit detection and reporting
+///
+/// # Thread Safety
+///
+/// `HnClient` is safe to share across threads. Wrap it in [`Arc`] for multi-threaded
+/// use (see [`SharedHnClient`] and [`create_client`]).
+///
+/// # Caches
+///
+/// - **item_cache**: Individual HN items (stories, comments, jobs, polls)
+/// - **story_ids_cache**: Story ID lists for each feed type
+/// - **user_cache**: User profiles
 pub struct HnClient {
     http: Client,
     item_cache: Cache<u32, HNItem>,
@@ -93,7 +181,13 @@ pub struct HnClient {
 }
 
 impl HnClient {
-    /// Create a new HN client with default settings
+    /// Create a new HN client with default settings.
+    ///
+    /// Configures:
+    /// - HTTP client with 30s timeout, 10s connect timeout, connection pooling
+    /// - Item cache: 10,000 entries, 5 min TTL
+    /// - Story IDs cache: 10 entries, 2 min TTL
+    /// - User cache: 100 entries, 10 min TTL
     pub fn new() -> Self {
         let http = Client::builder()
             .timeout(Duration::from_secs(30))
@@ -127,8 +221,18 @@ impl HnClient {
         }
     }
 
-    /// Fetch story IDs for a given feed
-    /// Returns (ids, is_stale) where is_stale indicates background refresh was triggered
+    /// Fetch story IDs for a given feed, returning cached data when available.
+    ///
+    /// If cached data exists but is stale (>75% of TTL), this method returns
+    /// the cached data immediately and triggers a background refresh.
+    ///
+    /// # Arguments
+    ///
+    /// * `feed` - The feed type (Top, New, Best, Ask, Show, Jobs)
+    ///
+    /// # Returns
+    ///
+    /// A vector of story IDs, newest first (for New feed) or ranked (for others).
     #[instrument(skip(self))]
     pub async fn fetch_story_ids(&self, feed: StoryFeed) -> Result<Vec<u32>, ApiError> {
         // Check cache first
@@ -153,8 +257,10 @@ impl HnClient {
         self.fetch_story_ids_fresh(feed).await
     }
 
-    /// Fetch story IDs directly from API (bypassing cache check)
-    /// Used for initial fetch and background refresh
+    /// Fetch story IDs directly from the HN API, bypassing cache.
+    ///
+    /// Used for initial fetches and background refresh operations.
+    /// Updates both the cache and the refresh tracker on success.
     #[instrument(skip(self))]
     async fn fetch_story_ids_fresh(&self, feed: StoryFeed) -> Result<Vec<u32>, ApiError> {
         let url = format!("{}/{}.json", HN_BASE_URL, feed.endpoint());
@@ -174,8 +280,15 @@ impl HnClient {
         Ok(ids)
     }
 
-    /// Perform background refresh for a feed
-    /// Returns Some(new_ids) if refresh succeeded and data changed, None otherwise
+    /// Perform a background refresh for a feed.
+    ///
+    /// This is called when cached data is stale. It fetches fresh data and
+    /// compares it with the cached version.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(new_ids)` if the data changed (for UI update notification)
+    /// - `None` if the data is unchanged or the refresh failed
     #[instrument(skip(self))]
     pub async fn background_refresh_feed(&self, feed: StoryFeed) -> Option<Vec<u32>> {
         // Get current cached IDs for comparison
@@ -207,13 +320,23 @@ impl HnClient {
         }
     }
 
-    /// Check if a feed's data is stale and should be refreshed
+    /// Check if a feed's cached data is stale and should be refreshed.
+    ///
+    /// Returns `true` if the data is older than 75% of its TTL and no
+    /// background refresh is currently in progress.
     pub async fn is_feed_stale(&self, feed: &StoryFeed) -> bool {
         let tracker = self.refresh_tracker.read().await;
         tracker.is_stale(feed, STORY_IDS_CACHE_TTL) && !tracker.is_refreshing(feed)
     }
 
-    /// Fetch a single item by ID
+    /// Fetch a single HN item by ID.
+    ///
+    /// Items are cached for 5 minutes. Returns cached data if available.
+    ///
+    /// # Errors
+    ///
+    /// - `ApiError::NotFound` if the item doesn't exist or was deleted
+    /// - `ApiError::Request` on network failure
     #[instrument(skip(self))]
     pub async fn fetch_item(&self, id: u32) -> Result<HNItem, ApiError> {
         // Check cache first
@@ -241,7 +364,12 @@ impl HnClient {
         Ok(item)
     }
 
-    /// Fetch multiple items concurrently
+    /// Fetch multiple items concurrently.
+    ///
+    /// Uses `futures::join_all` to fetch items in parallel, leveraging
+    /// HTTP connection pooling for efficiency.
+    ///
+    /// Missing/deleted items are silently skipped (not included in results).
     #[instrument(skip(self, ids))]
     pub async fn fetch_items(&self, ids: &[u32]) -> Result<Vec<HNItem>, ApiError> {
         let futures: Vec<_> = ids.iter().map(|&id| self.fetch_item(id)).collect();
@@ -263,7 +391,20 @@ impl HnClient {
         Ok(items)
     }
 
-    /// Fetch paginated stories for a feed
+    /// Fetch paginated stories for a feed.
+    ///
+    /// This is the main method for fetching stories to display in the UI.
+    /// It combines feed ID fetching with item fetching and pagination.
+    ///
+    /// # Arguments
+    ///
+    /// * `feed` - The feed type (Top, New, Best, etc.)
+    /// * `offset` - Starting index (0-based)
+    /// * `limit` - Maximum number of stories to return
+    ///
+    /// # Returns
+    ///
+    /// A [`StoriesResponse`] with stories, pagination info, and total count.
     #[instrument(skip(self))]
     pub async fn fetch_stories_paginated(
         &self,
@@ -284,7 +425,13 @@ impl HnClient {
         })
     }
 
-    /// Fetch a user by ID
+    /// Fetch a user profile by username.
+    ///
+    /// User profiles are cached for 10 minutes.
+    ///
+    /// # Errors
+    ///
+    /// - `ApiError::UserNotFound` if the user doesn't exist
     #[instrument(skip(self))]
     pub async fn fetch_user(&self, id: &str) -> Result<HNUser, ApiError> {
         // Check cache first
@@ -312,7 +459,14 @@ impl HnClient {
         Ok(user)
     }
 
-    /// Fetch user submissions with pagination and filtering
+    /// Fetch a user's submissions with pagination and type filtering.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_id` - The username
+    /// * `offset` - Starting index in the user's submission list
+    /// * `limit` - Maximum submissions to return
+    /// * `filter` - Filter by type (All, Stories, Comments)
     #[instrument(skip(self))]
     pub async fn fetch_user_submissions(
         &self,
@@ -357,7 +511,18 @@ impl HnClient {
         })
     }
 
-    /// Fetch comments for an item with depth control
+    /// Fetch comments for an item with depth control.
+    ///
+    /// Recursively fetches nested comments up to the specified depth.
+    ///
+    /// # Arguments
+    ///
+    /// * `item` - The parent item (story or comment)
+    /// * `depth` - Maximum nesting depth (0 = no comments, 1 = direct children only)
+    ///
+    /// # Returns
+    ///
+    /// A tree of comments as [`CommentWithChildren`] structs.
     #[instrument(skip(self))]
     pub async fn fetch_comments(
         &self,
@@ -389,7 +554,9 @@ impl HnClient {
         Ok(comments)
     }
 
-    /// Fetch comment children (for "load more" in deep threads)
+    /// Fetch children of a specific comment (for "load more" functionality).
+    ///
+    /// Used when a comment thread is collapsed and the user wants to expand it.
     #[instrument(skip(self))]
     pub async fn fetch_comment_children(
         &self,
@@ -400,7 +567,9 @@ impl HnClient {
         self.fetch_comments(&comment, depth).await
     }
 
-    /// Fetch a story with its comments
+    /// Fetch a story with all its comments in one call.
+    ///
+    /// Convenience method that combines [`fetch_item`] and [`fetch_comments`].
     #[instrument(skip(self))]
     pub async fn fetch_story_with_comments(
         &self,
@@ -413,7 +582,17 @@ impl HnClient {
         Ok(StoryWithComments { story, comments })
     }
 
-    /// Search HN using Algolia API
+    /// Search HN using the Algolia Search API.
+    ///
+    /// Algolia provides faster, full-text search compared to the Firebase API.
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - Search query string
+    /// * `page` - Page number (0-indexed)
+    /// * `hits_per_page` - Results per page (max ~1000)
+    /// * `sort` - Sort by relevance or date
+    /// * `filter` - Filter to stories, comments, or all
     #[instrument(skip(self))]
     pub async fn search(
         &self,
@@ -461,7 +640,10 @@ impl HnClient {
         })
     }
 
-    /// Clear all caches
+    /// Clear all caches immediately.
+    ///
+    /// Use this to force fresh data on the next request, for example
+    /// when the user explicitly requests a refresh.
     pub fn clear_cache(&self) {
         self.item_cache.invalidate_all();
         self.story_ids_cache.invalidate_all();
@@ -469,7 +651,11 @@ impl HnClient {
         info!("All caches cleared");
     }
 
-    /// Clear story IDs cache for a specific feed or all feeds
+    /// Clear story IDs cache for a specific feed or all feeds.
+    ///
+    /// # Arguments
+    ///
+    /// * `feed` - Specific feed to clear, or `None` to clear all feeds
     pub async fn clear_story_ids_cache(&self, feed: Option<StoryFeed>) {
         if let Some(feed) = feed {
             self.story_ids_cache.invalidate(&feed).await;
@@ -480,7 +666,7 @@ impl HnClient {
         }
     }
 
-    /// Get cache statistics
+    /// Get current cache statistics for display in settings/debug UI.
     pub fn get_cache_stats(&self) -> CacheStats {
         CacheStats {
             item_count: self.item_cache.entry_count(),
@@ -492,7 +678,23 @@ impl HnClient {
         }
     }
 
-    /// Fetch and extract article content from an external URL
+    /// Fetch and extract readable content from an external article URL.
+    ///
+    /// Uses the [readability] crate to extract the main content from HTML,
+    /// removing navigation, ads, and other non-content elements.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The article URL to fetch and extract
+    ///
+    /// # Returns
+    ///
+    /// [`ArticleContent`] with extracted title, HTML content, plain text, and word count.
+    ///
+    /// # Errors
+    ///
+    /// - `ApiError::ArticleExtraction` if content extraction fails
+    /// - `ApiError::Request` on network failure
     #[instrument(skip(self))]
     pub async fn fetch_article_content(&self, url: &str) -> Result<ArticleContent, ApiError> {
         info!(url = %url, "Fetching article content");
@@ -544,9 +746,15 @@ impl Default for HnClient {
     }
 }
 
-/// Global client instance for Tauri commands
+/// Thread-safe shared reference to an [`HnClient`].
+///
+/// Use [`create_client`] to create an instance.
 pub type SharedHnClient = Arc<HnClient>;
 
+/// Create a new shared HN client instance.
+///
+/// This is the primary way to create a client for use with Tauri commands.
+/// The returned `Arc<HnClient>` can be cloned and shared across threads.
 pub fn create_client() -> SharedHnClient {
     Arc::new(HnClient::new())
 }

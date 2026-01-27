@@ -1,36 +1,97 @@
-//! HN API types and error definitions
+//! HN API types, response structures, and error definitions.
+//!
+//! This module defines all the data types used throughout pastel-hn:
+//!
+//! # HN Item Types
+//!
+//! - [`HNItem`] - The main item type (stories, comments, jobs, polls)
+//! - [`RawHNItem`] - Raw API response before transformation
+//! - [`ItemType`] - Enum for item type classification
+//! - [`CommentWithChildren`] - Comment with nested replies
+//! - [`StoryWithComments`] - Story bundled with comment tree
+//!
+//! # Feed & User Types
+//!
+//! - [`StoryFeed`] - Feed type enum (top, new, best, ask, show, jobs)
+//! - [`HNUser`] / [`RawHNUser`] - User profile data
+//! - [`SubmissionFilter`] - Filter for user submissions
+//!
+//! # Search Types (Algolia)
+//!
+//! - [`SearchResult`] - Individual search hit
+//! - [`SearchResponse`] - Paginated search results
+//! - [`SearchSort`] / [`SearchFilter`] - Search options
+//!
+//! # Response Types
+//!
+//! - [`StoriesResponse`] - Paginated stories
+//! - [`SubmissionsResponse`] - Paginated user submissions
+//! - [`ArticleContent`] - Extracted article content
+//! - [`CacheStats`] - Cache statistics for UI display
+//!
+//! # Errors
+//!
+//! - [`ApiError`] - All possible API errors
+//!
+//! # JSON Serialization
+//!
+//! All types use `camelCase` serialization for TypeScript compatibility.
+//! The `#[serde(rename_all = "camelCase")]` attribute is applied throughout.
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-/// Item types from HN API
+/// HN item types as returned by the Firebase API.
+///
+/// Used for type-safe deserialization. Unknown types default to `Unknown`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[allow(dead_code)]
 pub enum ItemType {
+    /// A story submission (link or text)
     Story,
+    /// A comment on a story or another comment
     Comment,
+    /// A job posting
     Job,
+    /// A poll (rarely used)
     Poll,
+    /// A poll option
     Pollopt,
+    /// Unknown or new type (future-proofing)
     #[serde(other)]
     #[default]
     Unknown,
 }
 
-/// Story feed types
+/// Story feed types available on HN.
+///
+/// Each variant maps to a specific Firebase API endpoint.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum StoryFeed {
+    /// Top-ranked stories (default view)
     Top,
+    /// Newest submissions
     New,
+    /// Best stories (by score over time)
     Best,
+    /// Ask HN posts
     Ask,
+    /// Show HN posts
     Show,
+    /// Job postings
     Jobs,
 }
 
 impl StoryFeed {
+    /// Get the Firebase API endpoint name for this feed.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// assert_eq!(StoryFeed::Top.endpoint(), "topstories");
+    /// ```
     pub fn endpoint(&self) -> &'static str {
         match self {
             Self::Top => "topstories",
@@ -43,7 +104,10 @@ impl StoryFeed {
     }
 }
 
-/// Raw item from HN Firebase API
+/// Raw HN item as returned by the Firebase API.
+///
+/// This struct matches the exact JSON structure. Use [`HNItem`] for the
+/// processed version with better typing and camelCase serialization.
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawHNItem {
     pub id: u32,
@@ -67,23 +131,41 @@ pub struct RawHNItem {
     pub deleted: bool,
 }
 
-/// Processed HN item for frontend
+/// Processed HN item for TypeScript frontend.
+///
+/// Key differences from [`RawHNItem`]:
+/// - `item_type` is a u8 enum (0=story, 1=comment, 2=job, 3=poll, 4=pollopt, 5=unknown)
+/// - Uses `camelCase` serialization for JavaScript compatibility
+/// - All fields have explicit defaults
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HNItem {
+    /// Unique item ID
     pub id: u32,
+    /// Item type as numeric enum (0=story, 1=comment, 2=job, 3=poll, 4=pollopt, 5=unknown)
     #[serde(rename = "type")]
-    pub item_type: u8, // 0=story, 1=comment, 2=job, 3=poll, 4=pollopt, 5=unknown
+    pub item_type: u8,
+    /// Author username (None for deleted items)
     pub by: Option<String>,
+    /// Unix timestamp of creation
     pub time: u64,
+    /// HTML content (for comments, Ask HN, jobs)
     pub text: Option<String>,
+    /// External URL (for link stories)
     pub url: Option<String>,
+    /// Points/score
     pub score: i32,
+    /// Title (for stories, jobs, polls)
     pub title: Option<String>,
+    /// Total comment count (for stories)
     pub descendants: u32,
+    /// Child comment IDs
     pub kids: Option<Vec<u32>>,
+    /// Parent item ID (for comments)
     pub parent: Option<u32>,
+    /// Whether item was killed by moderators
     pub dead: bool,
+    /// Whether item was deleted by author
     pub deleted: bool,
 }
 
@@ -116,50 +198,73 @@ impl From<RawHNItem> for HNItem {
     }
 }
 
-/// Comment with nested children
+/// A comment with its nested child comments.
+///
+/// Used for building the comment tree in story detail views.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommentWithChildren {
+    /// The comment item (flattened into the struct)
     #[serde(flatten)]
     pub item: HNItem,
+    /// Nested child comments
     pub children: Vec<CommentWithChildren>,
 }
 
-/// Story with comments response
+/// A story with its full comment tree.
+///
+/// Returned by `fetch_story_with_comments` for the detail view.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoryWithComments {
+    /// The story item
     pub story: HNItem,
+    /// Top-level comments with nested children
     pub comments: Vec<CommentWithChildren>,
 }
 
-/// Paginated stories response
+/// Paginated stories response.
+///
+/// Returned by `fetch_stories` for feed views.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoriesResponse {
+    /// Stories for this page
     pub stories: Vec<HNItem>,
+    /// Whether more stories are available
     pub has_more: bool,
+    /// Total stories in the feed
     pub total: usize,
 }
 
-/// Raw user from HN Firebase API
+/// Raw HN user as returned by the Firebase API.
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawHNUser {
+    /// Username
     pub id: String,
+    /// Account creation Unix timestamp
     pub created: u64,
+    /// Karma points
     pub karma: i32,
+    /// User bio (HTML)
     pub about: Option<String>,
+    /// IDs of all user submissions (stories and comments)
     pub submitted: Option<Vec<u32>>,
 }
 
-/// Processed HN user for frontend
+/// Processed HN user for TypeScript frontend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HNUser {
+    /// Username
     pub id: String,
+    /// Account creation Unix timestamp
     pub created: u64,
+    /// Karma points
     pub karma: i32,
+    /// User bio (HTML)
     pub about: Option<String>,
+    /// IDs of all user submissions
     pub submitted: Option<Vec<u32>>,
 }
 
@@ -175,74 +280,107 @@ impl From<RawHNUser> for HNUser {
     }
 }
 
-/// User submissions filter
+/// Filter for user submission queries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SubmissionFilter {
+    /// All submissions (stories and comments)
     All,
+    /// Only stories (includes jobs)
     Stories,
+    /// Only comments
     Comments,
 }
 
-/// Paginated submissions response
+/// Paginated user submissions response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubmissionsResponse {
+    /// Submissions for this page
     pub items: Vec<HNItem>,
+    /// Whether more submissions are available
     pub has_more: bool,
+    /// Total submissions (before filtering)
     pub total: usize,
 }
 
 // ===== Search Types (Algolia) =====
+//
+// The Algolia HN Search API provides faster full-text search than Firebase.
+// See: https://hn.algolia.com/api
 
-/// Search sort options
+/// Search result sort options.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchSort {
+    /// Sort by relevance to query
     Relevance,
+    /// Sort by date (newest first)
     Date,
 }
 
-/// Search filter options
+/// Search result type filter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchFilter {
+    /// Search stories and comments
     All,
+    /// Search only stories
     Story,
+    /// Search only comments
     Comment,
 }
 
-/// Search result item
+/// Individual search result from Algolia.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResult {
+    /// HN item ID
     pub id: u32,
+    /// Story title (for stories)
     pub title: Option<String>,
+    /// External URL (for link stories)
     pub url: Option<String>,
+    /// Author username
     pub author: Option<String>,
+    /// Points/score
     pub points: i32,
+    /// Comment count (for stories)
     pub num_comments: u32,
+    /// Creation Unix timestamp
     pub created_at: u64,
+    /// Result type: "story" or "comment"
     #[serde(rename = "type")]
-    pub result_type: String, // "story" or "comment"
+    pub result_type: String,
+    /// Parent story ID (for comments)
     pub story_id: Option<u32>,
+    /// Parent story title (for comments)
     pub story_title: Option<String>,
+    /// Comment text (for comments)
     pub text: Option<String>,
 }
 
-/// Search response
+/// Paginated search response from Algolia.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResponse {
+    /// Search results for this page
     pub hits: Vec<SearchResult>,
+    /// Total matching results
     pub nb_hits: u32,
+    /// Current page (0-indexed)
     pub page: u32,
+    /// Total pages available
     pub nb_pages: u32,
+    /// Results per page
     pub hits_per_page: u32,
+    /// The search query
     pub query: String,
 }
 
-/// Raw Algolia hit
+/// Raw Algolia search hit (internal use).
+///
+/// Transformed to [`SearchResult`] for frontend consumption.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AlgoliaHit {
     #[serde(rename = "objectID")]
@@ -279,7 +417,7 @@ impl From<AlgoliaHit> for SearchResult {
     }
 }
 
-/// Raw Algolia response
+/// Raw Algolia response (internal use).
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlgoliaResponse {
@@ -291,9 +429,11 @@ pub struct AlgoliaResponse {
     pub query: String,
 }
 
-// ===== Error Types =====
+// ===== Article & Cache Types =====
 
-/// Extracted article content from external URL
+/// Extracted article content for reader mode.
+///
+/// Generated by the [readability] algorithm from raw HTML.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArticleContent {
@@ -315,7 +455,7 @@ pub struct ArticleContent {
     pub word_count: usize,
 }
 
-/// Cache statistics for display in settings
+/// Cache statistics for settings/debug UI.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CacheStats {
@@ -333,27 +473,40 @@ pub struct CacheStats {
     pub user_ttl_secs: u64,
 }
 
+// ===== Error Types =====
+
+/// All possible errors from the HN API client.
+///
+/// These errors are serialized to strings when returned from Tauri commands,
+/// making them easy to display in the frontend.
 #[derive(Debug, Error)]
 #[allow(dead_code)]
 pub enum ApiError {
+    /// Network or HTTP error
     #[error("HTTP request failed: {0}")]
     Request(#[from] reqwest::Error),
 
+    /// JSON parsing error
     #[error("Failed to parse JSON: {0}")]
     Parse(#[from] serde_json::Error),
 
+    /// Item (story/comment) not found
     #[error("Item not found: {0}")]
     NotFound(u32),
 
+    /// User not found
     #[error("User not found: {0}")]
     UserNotFound(String),
 
+    /// Rate limited by API (429 response)
     #[error("Rate limited, retry after {0} seconds")]
     RateLimited(u32),
 
+    /// Generic API error
     #[error("API error: {0}")]
     Api(String),
 
+    /// Article content extraction failed
     #[error("Failed to extract article content: {0}")]
     ArticleExtraction(String),
 }

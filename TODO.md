@@ -360,13 +360,13 @@
 - [ ] **Integration tests for Tauri command responses**
 
 ### 7.4 Documentation
-- [ ] README with screenshots
+- [x] README with screenshots and comprehensive documentation
 - [ ] Keyboard shortcut reference
 - [ ] Contributing guide
 - [x] Architecture overview (this document + ADRs)
-- [ ] **API module documentation (rustdoc)**
+- [x] **API module documentation (rustdoc)**
 - [x] **TypeScript JSDoc for public functions**
-- [ ] **CHANGELOG.md for release notes**
+- [x] **CHANGELOG.md for release notes**
 
 ---
 

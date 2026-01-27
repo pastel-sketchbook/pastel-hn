@@ -5,7 +5,182 @@ All notable changes to pastel-hn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.6] - 2026-01-27
+
+### Added
+- Comprehensive test coverage for UI components (navigation, story-detail, user-profile - 119 tests)
+- Visual regression tests with Playwright (21 tests for themes, modals, zen mode, responsive layouts)
+- Performance benchmarks measuring FCP, TTFS, and interaction timing
+- Accessibility audit tests using axe-core for WCAG 2.1 AA compliance (16 tests)
+
+### Changed
+- Excluded color-contrast from accessibility modal tests (Cyberpunk Pastel aesthetic trade-off)
+
+## [0.14.5] - 2026-01-27
+
+### Added
+- `test:rust` and `test:all` tasks in Taskfile
+- E2E tests included in `check:all` task
+
+### Fixed
+- Help modal Escape key handler (added id attribute)
+
+## [0.14.4] - 2026-01-26
+
+### Changed
+- Clarified test scripts in package.json
+
+### Fixed
+- Context menu hiding when clicking its buttons
+
+## [0.14.3] - 2026-01-26
+
+### Added
+- Background refresh for stale cache data with "new stories available" banner
+- Vim-style keyboard navigation in article/detail view (`j`/`k` scrolling, `g`/`G` jump)
+
+### Fixed
+- Correct scroll container for keyboard navigation
+- Key `7` now works for Saved feed navigation
+
+## [0.14.2] - 2026-01-26
+
+### Added
+- Vim-style keyboard navigation for story list
+
+### Fixed
+- Preserve zen mode when navigating back to list
+- Skip re-fetch when returning to cached list
+
+## [0.14.1] - 2026-01-25
+
+### Added
+- Deep linking support (`pastelhn://` protocol for items, users, feeds)
+- Global keyboard shortcuts (`Cmd+Shift+H` show, `Cmd+Shift+R` refresh)
+
+### Fixed
+- System tray icon loading on macOS
+
+## [0.14.0] - 2026-01-25
+
+### Added
+- System tray with quick actions (feeds, refresh, search)
+- Native notifications for followed stories
+- Follow button on story detail view
+- Background polling for followed story updates
+- Followed stories storage API
+
+### Known Issues
+- Tray icon not visible on macOS due to Tauri v2.6+ bug (#13770)
+
+## [0.13.7] - 2026-01-25
+
+### Added
+- Screen reader navigation improvements (focus-visible, ARIA dialog/tablist patterns)
+
+## [0.13.6] - 2026-01-25
+
+### Added
+- Proper heading hierarchy for accessibility
+
+## [0.13.5] - 2026-01-24
+
+### Added
+- High contrast mode for accessibility (WCAG AAA compliant)
+
+## [0.13.4] - 2026-01-24
+
+### Added
+- Request deduplication to prevent concurrent duplicate API calls
+
+## [0.13.3] - 2026-01-24
+
+### Added
+- Favicon lazy loading for story domains
+- JSDoc documentation for TypeScript modules
+
+### Fixed
+- Favicon lazy loading robustness
+
+## [0.13.2] - 2026-01-24
+
+### Changed
+- Optimized bundle size (128KB → 106KB, 17% reduction)
+
+## [0.13.1] - 2026-01-24
+
+### Changed
+- Split main.ts into focused modules for better maintainability
+
+## [0.13.0] - 2026-01-23
+
+### Added
+- Duplicate story detection across feeds
+
+## [0.12.1] - 2026-01-23
+
+### Added
+- Error boundary to catch uncaught errors and prevent full app crashes
+
+## [0.12.0] - 2026-01-23
+
+### Added
+- Settings export/import functionality
+- Cache management in settings panel (view size, clear)
+- Export bookmarks as JSON
+- Tauri native file dialog for exports
+
+### Fixed
+- Export download reliability with SaveResult type
+
+## [0.11.2] - 2026-01-22
+
+### Added
+- Export bookmarks feature in settings
+
+## [0.11.1] - 2026-01-22
+
+### Added
+- Offline indicator in header
+- Graceful degradation for bookmarks when offline
+
+## [0.11.0] - 2026-01-22
+
+### Added
+- Bookmark stories locally with dedicated Saved feed (`7` key)
+- Story score trending indicators (rising/hot badges)
+- New comments indicator badge on story list
+
+## [0.10.5] - 2026-01-21
+
+### Changed
+- Modularized codebase (extracted zen-mode, help-modal, search, pull-refresh, animations, etc.)
+
+## [0.10.4] - 2026-01-21
+
+### Fixed
+- E2E test selectors and zen mode transition timing
+
+## [0.10.3] - 2026-01-21
+
+### Added
+- E2E tests for user profile, settings, search, share/copy, accessibility
+
+### Fixed
+- Heading hierarchy for accessibility
+
+## [0.10.2] - 2026-01-21
+
+### Fixed
+- Exit zen mode when navigating back to list
+- Fullscreen exit delay for macOS reliability
+
+## [0.10.1] - 2026-01-20
+
+### Fixed
+- Non-null assertion in share-copy test
+
+## [0.10.0] - 2026-01-20
 
 ### Added
 - Share/copy link buttons in story detail view (HN link, article link, share)
@@ -13,11 +188,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip-to-content link for keyboard accessibility
 - ARIA live region for screen reader announcements
 - Screen reader announcements for story/user profile loading and errors
+- Unit tests for copilot-client.ts and client.rs
 
-### Changed
-- Updated TODO.md with completed accessibility items
-
-## [0.9.1] - 2025-01-25
+## [0.9.1] - 2026-01-19
 
 ### Changed
 - AI assistant is now restricted to zen mode only for a more focused experience
@@ -26,7 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for copilot-client.ts (32 tests)
 - Unit tests for Rust HnClient (16 tests)
 
-## [0.9.0] - 2025-01-24
+## [0.9.0] - 2026-01-19
 
 ### Added
 - **GitHub Copilot AI Assistant** for reading enhancement
@@ -240,7 +413,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reading position memory
 - Native Tauri desktop app for macOS/Windows/Linux
 
-[Unreleased]: https://github.com/anomalyco/pastel-hn/compare/v0.9.1...HEAD
+[0.14.6]: https://github.com/anomalyco/pastel-hn/compare/v0.14.5...v0.14.6
+[0.14.5]: https://github.com/anomalyco/pastel-hn/compare/v0.14.4...v0.14.5
+[0.14.4]: https://github.com/anomalyco/pastel-hn/compare/v0.14.3...v0.14.4
+[0.14.3]: https://github.com/anomalyco/pastel-hn/compare/v0.14.2...v0.14.3
+[0.14.2]: https://github.com/anomalyco/pastel-hn/compare/v0.14.1...v0.14.2
+[0.14.1]: https://github.com/anomalyco/pastel-hn/compare/v0.14.0...v0.14.1
+[0.14.0]: https://github.com/anomalyco/pastel-hn/compare/v0.13.7...v0.14.0
+[0.13.7]: https://github.com/anomalyco/pastel-hn/compare/v0.13.6...v0.13.7
+[0.13.6]: https://github.com/anomalyco/pastel-hn/compare/v0.13.5...v0.13.6
+[0.13.5]: https://github.com/anomalyco/pastel-hn/compare/v0.13.4...v0.13.5
+[0.13.4]: https://github.com/anomalyco/pastel-hn/compare/v0.13.3...v0.13.4
+[0.13.3]: https://github.com/anomalyco/pastel-hn/compare/v0.13.2...v0.13.3
+[0.13.2]: https://github.com/anomalyco/pastel-hn/compare/v0.13.1...v0.13.2
+[0.13.1]: https://github.com/anomalyco/pastel-hn/compare/v0.13.0...v0.13.1
+[0.13.0]: https://github.com/anomalyco/pastel-hn/compare/v0.12.1...v0.13.0
+[0.12.1]: https://github.com/anomalyco/pastel-hn/compare/v0.12.0...v0.12.1
+[0.12.0]: https://github.com/anomalyco/pastel-hn/compare/v0.11.2...v0.12.0
+[0.11.2]: https://github.com/anomalyco/pastel-hn/compare/v0.11.1...v0.11.2
+[0.11.1]: https://github.com/anomalyco/pastel-hn/compare/v0.11.0...v0.11.1
+[0.11.0]: https://github.com/anomalyco/pastel-hn/compare/v0.10.5...v0.11.0
+[0.10.5]: https://github.com/anomalyco/pastel-hn/compare/v0.10.4...v0.10.5
+[0.10.4]: https://github.com/anomalyco/pastel-hn/compare/v0.10.3...v0.10.4
+[0.10.3]: https://github.com/anomalyco/pastel-hn/compare/v0.10.2...v0.10.3
+[0.10.2]: https://github.com/anomalyco/pastel-hn/compare/v0.10.1...v0.10.2
+[0.10.1]: https://github.com/anomalyco/pastel-hn/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/anomalyco/pastel-hn/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/anomalyco/pastel-hn/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/anomalyco/pastel-hn/compare/v0.8.7...v0.9.0
 [0.8.7]: https://github.com/anomalyco/pastel-hn/compare/v0.8.6...v0.8.7

@@ -1,3 +1,49 @@
+//! # pastel-hn
+//!
+//! A cross-platform Hacker News desktop client with a Cyberpunk Pastel aesthetic.
+//!
+//! This is the Tauri backend that provides:
+//!
+//! - **HN API Client** ([`client`]) - Fetches stories, comments, and users from the
+//!   HN Firebase API and Algolia search, with intelligent caching via moka.
+//!
+//! - **Tauri Commands** ([`commands`]) - IPC handlers that expose the API to the
+//!   TypeScript frontend.
+//!
+//! - **AI Assistant** ([`copilot`]) - Optional GitHub Copilot integration for
+//!   summarizing articles, analyzing discussions, and drafting replies.
+//!
+//! - **Type Definitions** ([`types`]) - Shared types for API responses, errors,
+//!   and configuration.
+//!
+//! ## Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────┐
+//! │  TypeScript (UI Layer)                      │
+//! │  - Vite + vanilla TypeScript                │
+//! │  - Virtual scrolling for performance        │
+//! │  - CSS with Cyberpunk Pastel design system  │
+//! └─────────────────┬───────────────────────────┘
+//!                   │ Tauri IPC (invoke)
+//! ┌─────────────────▼───────────────────────────┐
+//! │  Rust (Data Layer) - This crate             │
+//! │  - Tauri 2.x for native desktop shell       │
+//! │  - reqwest for HTTP with connection pooling │
+//! │  - moka for in-memory caching               │
+//! │  - tokio for async concurrent fetching      │
+//! │  - tracing for structured logging           │
+//! └─────────────────────────────────────────────┘
+//! ```
+//!
+//! ## Caching Strategy
+//!
+//! | Cache | TTL | Max Size | Notes |
+//! |-------|-----|----------|-------|
+//! | Items (stories/comments) | 5 min | 10,000 | Stale-while-revalidate |
+//! | Story IDs per feed | 2 min | 10 | Background refresh at 75% TTL |
+//! | User profiles | 10 min | 100 | - |
+
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod client;
