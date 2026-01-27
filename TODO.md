@@ -246,12 +246,12 @@
 - [x] `open_external(url)` - system browser
 - [x] `get_app_version()` - version info
 - [ ] `check_for_updates()` - update checker
-- [ ] `show_notification(title, body)` - native notifications
+- [x] `show_notification(title, body)` - native notifications
 
 ### 5.3 System Integration
 - [x] Custom app icon (Cyberpunk Y logo)
-- [ ] System tray with quick actions
-- [ ] Native notifications for followed stories
+- [x] System tray with quick actions (feeds, refresh, search)
+- [x] Native notifications for followed stories
 - [ ] Global keyboard shortcuts
 - [ ] Deep linking (hn://item/12345)
 
