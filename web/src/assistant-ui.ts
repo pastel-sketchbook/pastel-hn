@@ -351,11 +351,7 @@ function updateQuickActions(): void {
     container.appendChild(analyzeBtn)
   }
 
-  const askBtn = createQuickActionButton('❓ Ask About This', () => {
-    const input = document.getElementById('assistant-input') as HTMLInputElement
-    input?.focus()
-  })
-  container.appendChild(askBtn)
+
 }
 
 /**
