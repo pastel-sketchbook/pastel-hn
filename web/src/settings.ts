@@ -1,5 +1,14 @@
 /**
  * Settings panel for user preferences
+ *
+ * This module provides:
+ * - Settings management (load, save, apply)
+ * - Settings modal UI with theme, font size, density, and feed options
+ * - Reading history and bookmarks management
+ * - Cache management
+ * - Settings import/export functionality
+ *
+ * @module settings
  */
 
 import { clearCache, getCacheStats } from './api'
@@ -15,19 +24,47 @@ import { setTheme, type Theme } from './theme'
 import type { CacheStats } from './types'
 import { escapeHtml } from './utils'
 
+/**
+ * Font size preference options
+ * - `compact`: Smaller text for information density
+ * - `normal`: Default balanced size
+ * - `comfortable`: Larger text for easier reading
+ */
 type FontSize = 'compact' | 'normal' | 'comfortable'
+
+/**
+ * UI density preference options
+ * Controls spacing between elements
+ * - `compact`: Minimal spacing, more content visible
+ * - `normal`: Balanced spacing
+ * - `comfortable`: More spacing for relaxed browsing
+ */
 type Density = 'compact' | 'normal' | 'comfortable'
+
+/**
+ * Default feed to show on app launch
+ */
 type DefaultFeed = 'top' | 'new' | 'best' | 'ask' | 'show' | 'jobs'
 
+/**
+ * User settings configuration
+ * Persisted to localStorage under 'hn-settings' key
+ */
 export interface Settings {
+  /** Color theme preference (light, dark, or follow system) */
   theme: Theme | 'system'
+  /** Font size preference */
   fontSize: FontSize
+  /** UI density preference */
   density: Density
+  /** Default feed shown on app launch */
   defaultFeed: DefaultFeed
 }
 
+/** localStorage key for persisting settings */
 const STORAGE_KEY = 'hn-settings'
 
+/** Default settings applied on first run or when storage is unavailable */
 const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   fontSize: 'normal',
@@ -35,9 +72,16 @@ const DEFAULT_SETTINGS: Settings = {
   defaultFeed: 'top',
 }
 
+/** Current in-memory settings state */
 let currentSettings: Settings = { ...DEFAULT_SETTINGS }
+
+/** Whether the settings modal is currently open */
 let settingsModalOpen = false
+
+/** Active focus trap instance for modal accessibility */
 let focusTrap: FocusTrapInstance | null = null
+
+/** Keyboard handler for Escape key to close modal */
 let escapeHandler: ((e: KeyboardEvent) => void) | null = null
 
 // SVG icons for settings
@@ -572,6 +616,9 @@ function downloadSettingsExport(): void {
 
 /**
  * Result of attempting to save via Tauri dialog
+ * - `success`: File was saved successfully
+ * - `cancelled`: User cancelled the save dialog
+ * - `unavailable`: Tauri APIs not available (web browser context)
  */
 type SaveResult = 'success' | 'cancelled' | 'unavailable'
 
@@ -667,6 +714,12 @@ let exportDialogKeydownHandler: ((e: KeyboardEvent) => void) | null = null
 
 /**
  * Show export dialog with JSON content for manual copy
+ * This dialog appears as a fallback when automatic download fails
+ * or in web browser context where Tauri APIs are unavailable.
+ *
+ * @param content - JSON string content to display
+ * @param filename - Suggested filename for manual save
+ * @param title - Display title for the dialog (e.g., "Bookmarks", "Settings")
  */
 export function showExportDialog(
   content: string,
@@ -778,6 +831,10 @@ function closeExportDialog(): void {
 
 /**
  * Validate imported settings object
+ * Ensures all required fields are present and have valid values.
+ *
+ * @param data - Unknown data to validate (typically parsed JSON)
+ * @returns Validated Settings object if valid, null otherwise
  */
 export function validateSettings(data: unknown): Settings | null {
   if (!data || typeof data !== 'object') {

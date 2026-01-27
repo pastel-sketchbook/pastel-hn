@@ -2,7 +2,19 @@
  * AI Assistant UI component
  *
  * A collapsible frost-blur panel that provides AI-powered reading assistance.
- * See docs/rationale/0006_copilot_ai_assistant.md
+ * Features include:
+ * - Story summarization
+ * - Discussion analysis
+ * - Term/concept explanation via text selection
+ * - Reply drafting assistance
+ *
+ * The assistant is only available when:
+ * 1. Running in Tauri desktop app
+ * 2. GitHub Copilot CLI is installed and authenticated
+ * 3. User is in Zen mode viewing story details
+ *
+ * @see docs/rationale/0006_copilot_ai_assistant.md
+ * @module assistant-ui
  */
 
 import { extractDomain } from './api'
@@ -16,22 +28,35 @@ import {
 import type { CommentWithChildren, HNItem } from './types'
 import { escapeHtml } from './utils'
 
-/** Message in the assistant conversation */
+/**
+ * A single message in the assistant conversation
+ */
 interface Message {
+  /** Message sender: 'user' for user messages, 'assistant' for AI responses */
   role: 'user' | 'assistant'
+  /** Message content (plain text for user, may contain markdown for assistant) */
   content: string
+  /** Unix timestamp when message was created */
   timestamp: number
 }
 
-/** Assistant panel state */
+/**
+ * Internal state of the assistant panel
+ */
 interface AssistantState {
+  /** Whether the assistant panel is currently open */
   isOpen: boolean
+  /** Whether an AI request is in progress */
   isLoading: boolean
+  /** Conversation history */
   messages: Message[]
+  /** Current story being viewed (for context) */
   currentStory: HNItem | null
+  /** Comments on the current story (for discussion analysis) */
   currentComments: CommentWithChildren[]
 }
 
+/** Module-level state singleton */
 const state: AssistantState = {
   isOpen: false,
   isLoading: false,
@@ -116,6 +141,10 @@ export function closeAssistant(): void {
 
 /**
  * Update assistant visibility based on Zen mode state and current view
+ * The assistant FAB is only visible when in Zen mode AND viewing story details.
+ *
+ * @param isZen - Whether Zen mode is currently active
+ * @param view - Current view identifier ('detail', 'list', etc.)
  */
 export function updateAssistantZenMode(isZen: boolean, view: string): void {
   const toggleBtn = document.getElementById('assistant-toggle')
@@ -146,9 +175,13 @@ export function isAssistantOpen(): boolean {
 }
 
 // ============================================================================
-// Private Functions
+// Private Functions - Panel Rendering and State Management
 // ============================================================================
 
+/**
+ * Initialize Copilot client if not already done
+ * Called lazily when the assistant panel is first opened
+ */
 async function initializeCopilotIfNeeded(): Promise<void> {
   const client = getCopilotClient()
   if (!client.isInitialized()) {
@@ -156,6 +189,10 @@ async function initializeCopilotIfNeeded(): Promise<void> {
   }
 }
 
+/**
+ * Render the floating action button (FAB) for toggling the assistant
+ * Only creates the button if it doesn't already exist
+ */
 function renderToggleButton(): void {
   const existing = document.getElementById('assistant-toggle')
   if (existing) return
@@ -182,6 +219,10 @@ function renderToggleButton(): void {
   button.style.display = isZen ? 'flex' : 'none'
 }
 
+/**
+ * Render the main assistant panel with header, messages, and input
+ * Sets up all event listeners for panel interactions
+ */
 function renderPanel(): void {
   const existing = document.getElementById('assistant-panel')
   if (existing) return
@@ -274,6 +315,10 @@ function renderPanel(): void {
   updateQuickActions()
 }
 
+/**
+ * Update the quick action buttons based on current story context
+ * Shows different actions depending on whether a story/comments are available
+ */
 function updateQuickActions(): void {
   const container = document.getElementById('assistant-quick-actions')
   if (!container) return
@@ -313,6 +358,12 @@ function updateQuickActions(): void {
   container.appendChild(askBtn)
 }
 
+/**
+ * Create a quick action button element
+ * @param label - Button label text (may include emoji)
+ * @param onClick - Click handler function
+ * @returns Configured button element
+ */
 function createQuickActionButton(
   label: string,
   onClick: () => void,
@@ -324,6 +375,10 @@ function createQuickActionButton(
   return button
 }
 
+/**
+ * Handle sending a user message from the input field
+ * Retrieves input value, adds to conversation, and sends to AI
+ */
 async function handleSendMessage(): Promise<void> {
   const input = document.getElementById('assistant-input') as HTMLInputElement
   const message = input?.value.trim()
@@ -335,6 +390,10 @@ async function handleSendMessage(): Promise<void> {
   await sendToAssistant(message)
 }
 
+/**
+ * Handle the "Summarize" quick action
+ * Requests an AI summary of the current story's article
+ */
 async function handleSummarize(): Promise<void> {
   if (!state.currentStory || state.isLoading) return
 
@@ -363,6 +422,10 @@ async function handleSummarize(): Promise<void> {
   }
 }
 
+/**
+ * Handle the "Analyze Discussion" quick action
+ * Requests an AI analysis of the top comments on the current story
+ */
 async function handleAnalyzeDiscussion(): Promise<void> {
   if (!state.currentStory || state.isLoading) return
 
@@ -395,6 +458,11 @@ async function handleAnalyzeDiscussion(): Promise<void> {
   }
 }
 
+/**
+ * Send a free-form message to the AI assistant
+ * Includes current story context in the prompt if available
+ * @param message - User's question or request
+ */
 async function sendToAssistant(message: string): Promise<void> {
   setLoading(true)
 
@@ -416,11 +484,20 @@ async function sendToAssistant(message: string): Promise<void> {
   }
 }
 
+/**
+ * Add a message to the conversation history and re-render
+ * @param role - Message sender ('user' or 'assistant')
+ * @param content - Message content
+ */
 function addMessage(role: 'user' | 'assistant', content: string): void {
   state.messages.push({ role, content, timestamp: Date.now() })
   renderMessages()
 }
 
+/**
+ * Render all messages in the conversation
+ * Also shows loading indicator when a request is in progress
+ */
 function renderMessages(): void {
   const container = document.getElementById('assistant-messages')
   if (!container) return
@@ -459,6 +536,11 @@ function renderMessages(): void {
   container.scrollTop = container.scrollHeight
 }
 
+/**
+ * Set loading state and update UI accordingly
+ * Disables input and shows loading animation when true
+ * @param loading - Whether a request is in progress
+ */
 function setLoading(loading: boolean): void {
   state.isLoading = loading
   renderMessages()
@@ -470,6 +552,10 @@ function setLoading(loading: boolean): void {
   if (sendBtn) sendBtn.disabled = loading
 }
 
+/**
+ * Set up the 'a' keyboard shortcut for toggling the assistant
+ * Only active when in Zen mode and not focused on an input
+ */
 function setupKeyboardShortcut(): void {
   document.addEventListener('keydown', (e) => {
     // 'a' to toggle assistant (when not in input)
@@ -491,15 +577,26 @@ function setupKeyboardShortcut(): void {
 }
 
 // ============================================================================
-// Utility Functions
+// Utility Functions - Text Processing
 // ============================================================================
 
+/**
+ * Strip HTML tags from a string, returning plain text
+ * @param html - HTML string to strip
+ * @returns Plain text content
+ */
 function stripHtml(html: string): string {
   const div = document.createElement('div')
   div.innerHTML = html
   return div.textContent ?? ''
 }
 
+/**
+ * Parse basic markdown syntax into HTML for assistant responses
+ * Supports: code blocks, inline code, headers, bold, italic, lists
+ * @param text - Markdown text to parse
+ * @returns HTML string
+ */
 function parseMarkdown(text: string): string {
   let html = escapeHtml(text)
 

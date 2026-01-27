@@ -1,28 +1,65 @@
+/**
+ * Keyboard navigation module for pastel-hn
+ *
+ * Provides keyboard shortcuts for:
+ * - j/k: Navigate up/down in lists
+ * - Enter/o: Open/select items
+ * - Escape: Go back/close modals
+ * - 1-7: Switch between feeds
+ * - ?: Show help modal
+ * - /: Open search
+ * - r: Refresh current view
+ * - t: Scroll to top
+ * - d: Toggle dark/light theme
+ * - z: Toggle zen mode
+ * - c: Focus comments section
+ * - Cmd/Ctrl+Q: Quit app
+ */
+
 import type { StoryFeed } from './types'
 
 // Keyboard navigation state
 let selectedIndex = -1
 let isEnabled = true
 
+/**
+ * Callback functions for keyboard actions
+ * Set via setKeyboardCallbacks()
+ */
 type KeyboardCallback = {
+  /** Called when navigating to a new index */
   onNavigate?: (index: number) => void
+  /** Called when selecting/opening an item */
   onSelect?: (index: number) => void
+  /** Called when pressing Escape */
   onBack?: () => void
+  /** Called to navigate back to list view */
   onBackToList?: () => void
+  /** Called when pressing 'r' to refresh */
   onRefresh?: () => void
+  /** Called when pressing 'o' to open external link */
   onOpenExternal?: (index: number) => void
+  /** Called when pressing 1-7 to change feed */
   onFeedChange?: (feed: StoryFeed) => void
+  /** Called when pressing '?' to show help */
   onHelp?: () => void
+  /** Called when pressing 't' to scroll to top */
   onScrollToTop?: () => void
+  /** Called when pressing '/' to open search */
   onSearch?: () => void
+  /** Called when pressing 'c' to focus comments */
   onFocusComments?: () => void
+  /** Called when pressing 'z' to toggle zen mode */
   onZenMode?: () => void
+  /** Called when pressing 'd' to toggle theme */
   onToggleTheme?: () => void
+  /** Called when pressing Cmd/Ctrl+Q to quit */
   onQuit?: () => void
 }
 
 let callbacks: KeyboardCallback = {}
 
+/** Map of number keys to feed names */
 const FEED_KEYS: Record<string, StoryFeed> = {
   '1': 'top',
   '2': 'new',
@@ -33,19 +70,34 @@ const FEED_KEYS: Record<string, StoryFeed> = {
   '7': 'saved',
 }
 
+/**
+ * Set keyboard callback functions
+ * @param cb - Object containing callback functions for keyboard events
+ */
 export function setKeyboardCallbacks(cb: KeyboardCallback): void {
   callbacks = cb
 }
 
+/**
+ * Get the currently selected item index
+ * @returns Current selection index (-1 if nothing selected)
+ */
 export function getSelectedIndex(): number {
   return selectedIndex
 }
 
+/**
+ * Set the selected item index and update visual selection
+ * @param index - New selection index
+ */
 export function setSelectedIndex(index: number): void {
   selectedIndex = index
   updateSelection()
 }
 
+/**
+ * Reset selection to initial state (nothing selected)
+ */
 export function resetSelection(): void {
   selectedIndex = -1
   clearSelection()
