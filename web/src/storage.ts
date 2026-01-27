@@ -15,6 +15,7 @@ const READ_STORIES_KEY = `${STORAGE_PREFIX}-read-stories`
 const COMMENT_COUNTS_KEY = `${STORAGE_PREFIX}-comment-counts`
 const STORY_SCORES_KEY = `${STORAGE_PREFIX}-story-scores`
 const BOOKMARKS_KEY = `${STORAGE_PREFIX}-bookmarks`
+const FOLLOWED_STORIES_KEY = `${STORAGE_PREFIX}-followed-stories`
 
 // Max number of read stories to track (prevents localStorage bloat)
 const MAX_READ_STORIES = 500
@@ -599,4 +600,145 @@ export function exportBookmarksAsJson(): string {
     bookmarks,
   }
   return JSON.stringify(exportData, null, 2)
+}
+
+// ============================================================================
+// Followed Stories (for new comment notifications)
+// ============================================================================
+
+interface FollowedStoryEntry {
+  story: HNItem
+  followedAt: number
+  lastCommentCount: number // The comment count when followed or last checked
+  lastCheckedAt: number
+}
+
+// Max followed stories (prevent localStorage bloat)
+const MAX_FOLLOWED_STORIES = 50
+
+/**
+ * Follow a story to receive notifications about new comments
+ */
+export function followStory(story: HNItem): void {
+  try {
+    const followed = getFollowedStoriesData()
+
+    // Check if already followed
+    if (followed.some((f) => f.story.id === story.id)) {
+      return
+    }
+
+    // Add new followed story at the beginning
+    followed.unshift({
+      story,
+      followedAt: Date.now(),
+      lastCommentCount: story.descendants ?? 0,
+      lastCheckedAt: Date.now(),
+    })
+
+    // Prune if over limit (remove oldest)
+    if (followed.length > MAX_FOLLOWED_STORIES) {
+      followed.length = MAX_FOLLOWED_STORIES
+    }
+
+    localStorage.setItem(FOLLOWED_STORIES_KEY, JSON.stringify(followed))
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Unfollow a story
+ */
+export function unfollowStory(storyId: number): void {
+  try {
+    const followed = getFollowedStoriesData()
+    const filtered = followed.filter((f) => f.story.id !== storyId)
+    localStorage.setItem(FOLLOWED_STORIES_KEY, JSON.stringify(filtered))
+  } catch {
+    // Ignore
+  }
+}
+
+/**
+ * Check if a story is being followed
+ */
+export function isStoryFollowed(storyId: number): boolean {
+  const followed = getFollowedStoriesData()
+  return followed.some((f) => f.story.id === storyId)
+}
+
+/**
+ * Get all followed stories
+ */
+export function getFollowedStories(): FollowedStoryEntry[] {
+  return getFollowedStoriesData()
+}
+
+/**
+ * Get all followed story IDs for efficient lookup
+ */
+export function getFollowedStoryIds(): Set<number> {
+  const followed = getFollowedStoriesData()
+  return new Set(followed.map((f) => f.story.id))
+}
+
+/**
+ * Update the last known comment count for a followed story
+ * Returns the number of new comments since last check
+ */
+export function updateFollowedStoryCommentCount(
+  storyId: number,
+  newCommentCount: number,
+): number {
+  try {
+    const followed = getFollowedStoriesData()
+    const entry = followed.find((f) => f.story.id === storyId)
+
+    if (!entry) {
+      return 0
+    }
+
+    const newComments = Math.max(0, newCommentCount - entry.lastCommentCount)
+
+    // Update the entry
+    entry.lastCommentCount = newCommentCount
+    entry.lastCheckedAt = Date.now()
+
+    localStorage.setItem(FOLLOWED_STORIES_KEY, JSON.stringify(followed))
+
+    return newComments
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Get count of followed stories
+ */
+export function getFollowedStoriesCount(): number {
+  return getFollowedStoriesData().length
+}
+
+function getFollowedStoriesData(): FollowedStoryEntry[] {
+  try {
+    const stored = localStorage.getItem(FOLLOWED_STORIES_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return []
+}
+
+/**
+ * Clear all followed stories
+ */
+export function clearFollowedStories(): void {
+  try {
+    localStorage.removeItem(FOLLOWED_STORIES_KEY)
+  } catch {
+    // Ignore
+  }
 }

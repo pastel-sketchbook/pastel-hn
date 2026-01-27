@@ -5,9 +5,11 @@ import {
   clearBookmarks,
   clearCommentCounts,
   clearFeedScrollPosition,
+  clearFollowedStories,
   clearStoryScores,
   clearStoryScrollPosition,
   exportBookmarksAsJson,
+  followStory,
   getBookmarkedStories,
   getBookmarkedStoryById,
   getBookmarkedStoryIds,
@@ -15,6 +17,9 @@ import {
   getBookmarksWithTimestamps,
   getCommentCountsMap,
   getFeedScrollPosition,
+  getFollowedStories,
+  getFollowedStoriesCount,
+  getFollowedStoryIds,
   getNewCommentsCount,
   getReadStoryIds,
   getScoreGain,
@@ -24,6 +29,7 @@ import {
   getStoryScrollPosition,
   getStoryTrendingLevel,
   isStoryBookmarked,
+  isStoryFollowed,
   isStoryRead,
   markStoryAsRead,
   removeBookmark,
@@ -31,10 +37,33 @@ import {
   saveStoryCommentCount,
   saveStoryScore,
   saveStoryScrollPosition,
+  unfollowStory,
+  updateFollowedStoryCommentCount,
 } from './storage'
 import type { HNItem } from './types'
 
 describe('storage', () => {
+  // Shared test helper for creating test stories
+  const createTestStory = (
+    id: number,
+    overrides?: Partial<HNItem>,
+  ): HNItem => ({
+    id,
+    type: 0, // ItemType.Story
+    by: 'testuser',
+    time: Math.floor(Date.now() / 1000),
+    title: `Test Story ${id}`,
+    url: `https://example.com/${id}`,
+    score: 100,
+    descendants: 50,
+    text: null,
+    kids: null,
+    parent: null,
+    dead: false,
+    deleted: false,
+    ...overrides,
+  })
+
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear()
@@ -509,26 +538,6 @@ describe('storage', () => {
   })
 
   describe('bookmarks', () => {
-    const createTestStory = (
-      id: number,
-      overrides?: Partial<HNItem>,
-    ): HNItem => ({
-      id,
-      type: 0, // ItemType.Story
-      by: 'testuser',
-      time: Math.floor(Date.now() / 1000),
-      title: `Test Story ${id}`,
-      url: `https://example.com/${id}`,
-      score: 100,
-      descendants: 50,
-      text: null,
-      kids: null,
-      parent: null,
-      dead: false,
-      deleted: false,
-      ...overrides,
-    })
-
     it('bookmarks a story and retrieves it', () => {
       const story = createTestStory(12345)
 
@@ -843,6 +852,117 @@ describe('storage', () => {
         expect(parsed.version).toBe(1)
         expect(parsed.bookmarks).toEqual([])
       })
+    })
+  })
+
+  describe('followed stories', () => {
+    it('follows a story', () => {
+      const story = createTestStory(12345, { descendants: 50 })
+      followStory(story)
+      expect(isStoryFollowed(12345)).toBe(true)
+    })
+
+    it('does not duplicate already followed story', () => {
+      const story = createTestStory(12345, { descendants: 50 })
+      followStory(story)
+      followStory(story)
+      expect(getFollowedStoriesCount()).toBe(1)
+    })
+
+    it('unfollows a story', () => {
+      const story = createTestStory(12345, { descendants: 50 })
+      followStory(story)
+      unfollowStory(12345)
+      expect(isStoryFollowed(12345)).toBe(false)
+    })
+
+    it('gets followed stories', () => {
+      const story1 = createTestStory(1, { title: 'Story 1', descendants: 10 })
+      const story2 = createTestStory(2, { title: 'Story 2', descendants: 20 })
+      followStory(story1)
+      followStory(story2)
+
+      const followed = getFollowedStories()
+      expect(followed).toHaveLength(2)
+      // Newest first
+      expect(followed[0].story.id).toBe(2)
+      expect(followed[1].story.id).toBe(1)
+    })
+
+    it('gets followed story IDs as Set', () => {
+      followStory(createTestStory(1, { descendants: 5 }))
+      followStory(createTestStory(2, { descendants: 5 }))
+
+      const ids = getFollowedStoryIds()
+      expect(ids.has(1)).toBe(true)
+      expect(ids.has(2)).toBe(true)
+      expect(ids.has(3)).toBe(false)
+    })
+
+    it('gets followed stories count', () => {
+      expect(getFollowedStoriesCount()).toBe(0)
+      followStory(createTestStory(1, { descendants: 5 }))
+      expect(getFollowedStoriesCount()).toBe(1)
+      followStory(createTestStory(2, { descendants: 5 }))
+      expect(getFollowedStoriesCount()).toBe(2)
+    })
+
+    it('clears all followed stories', () => {
+      followStory(createTestStory(1, { descendants: 5 }))
+      followStory(createTestStory(2, { descendants: 5 }))
+      clearFollowedStories()
+      expect(getFollowedStoriesCount()).toBe(0)
+    })
+
+    it('updates comment count and returns new comments', () => {
+      const story = createTestStory(1, { descendants: 50 })
+      followStory(story)
+
+      // Update with more comments
+      const newComments = updateFollowedStoryCommentCount(1, 60)
+      expect(newComments).toBe(10)
+
+      // Update again with same count
+      const noNew = updateFollowedStoryCommentCount(1, 60)
+      expect(noNew).toBe(0)
+
+      // Update with fewer comments (edge case)
+      const negative = updateFollowedStoryCommentCount(1, 55)
+      expect(negative).toBe(0) // Should not be negative
+    })
+
+    it('returns 0 new comments for unfollowed story', () => {
+      const newComments = updateFollowedStoryCommentCount(999, 100)
+      expect(newComments).toBe(0)
+    })
+
+    it('handles corrupted localStorage gracefully', () => {
+      localStorage.setItem('pastel-hn-followed-stories', 'invalid json {{{')
+      expect(getFollowedStories()).toEqual([])
+      expect(isStoryFollowed(1)).toBe(false)
+    })
+
+    it('stores initial comment count when following', () => {
+      const story = createTestStory(1, { descendants: 42 })
+      followStory(story)
+
+      const followed = getFollowedStories()
+      expect(followed[0].lastCommentCount).toBe(42)
+    })
+
+    it('prunes old entries when exceeding max (50)', () => {
+      // Follow 51 stories
+      for (let i = 1; i <= 51; i++) {
+        followStory(createTestStory(i, { descendants: i }))
+      }
+
+      const count = getFollowedStoriesCount()
+      expect(count).toBe(50)
+
+      // Oldest should be removed (story 1)
+      expect(isStoryFollowed(1)).toBe(false)
+      // Newest should remain
+      expect(isStoryFollowed(51)).toBe(true)
     })
   })
 })
