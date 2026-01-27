@@ -499,13 +499,16 @@ describe('settings', () => {
     })
 
     it('clicking export button triggers download', async () => {
-      // Mock URL.createObjectURL and URL.revokeObjectURL
+      vi.useFakeTimers()
+
+      // Mock URL static methods while preserving the URL constructor
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
-      vi.stubGlobal('URL', {
-        createObjectURL: mockCreateObjectURL,
-        revokeObjectURL: mockRevokeObjectURL,
-      })
+      const OriginalURL = globalThis.URL
+      const originalCreateObjectURL = URL.createObjectURL
+      const originalRevokeObjectURL = URL.revokeObjectURL
+      URL.createObjectURL = mockCreateObjectURL
+      URL.revokeObjectURL = mockRevokeObjectURL
 
       // Track created anchor elements
       let capturedLink: HTMLAnchorElement | null = null
@@ -529,13 +532,11 @@ describe('settings', () => {
       ) as HTMLElement
       exportBtn.click()
 
-      // Wait for async operations to complete (Tauri fails, falls back to web)
-      await vi.waitFor(
-        () => {
-          expect(mockCreateObjectURL).toHaveBeenCalled()
-        },
-        { timeout: 2000 },
-      )
+      // Wait for async chain: button click -> triggerDownloadWithFallback -> Tauri reject -> triggerWebDownload
+      // Use waitFor to poll until the side effect occurs
+      await vi.waitFor(() => {
+        expect(mockCreateObjectURL).toHaveBeenCalled()
+      })
 
       expect(capturedLink).not.toBeNull()
       expect(capturedLink?.click).toHaveBeenCalled()
@@ -543,13 +544,14 @@ describe('settings', () => {
         /^pastel-hn-bookmarks-\d{4}-\d{2}-\d{2}\.json$/,
       )
 
-      // URL.revokeObjectURL is called after 1000ms setTimeout - use longer timeout
-      await vi.waitFor(
-        () => {
-          expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
-        },
-        { timeout: 2000 },
-      )
+      // URL.revokeObjectURL is called after 1000ms setTimeout
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+
+      // Restore original URL methods
+      URL.createObjectURL = originalCreateObjectURL
+      URL.revokeObjectURL = originalRevokeObjectURL
+      vi.useRealTimers()
     })
   })
 
@@ -897,13 +899,15 @@ describe('settings', () => {
     })
 
     it('clicking export settings button triggers download', async () => {
-      // Mock URL.createObjectURL and URL.revokeObjectURL
+      vi.useFakeTimers()
+
+      // Mock URL static methods while preserving the URL constructor
       const mockCreateObjectURL = vi.fn().mockReturnValue('blob:mock-url')
       const mockRevokeObjectURL = vi.fn()
-      vi.stubGlobal('URL', {
-        createObjectURL: mockCreateObjectURL,
-        revokeObjectURL: mockRevokeObjectURL,
-      })
+      const originalCreateObjectURL = URL.createObjectURL
+      const originalRevokeObjectURL = URL.revokeObjectURL
+      URL.createObjectURL = mockCreateObjectURL
+      URL.revokeObjectURL = mockRevokeObjectURL
 
       // Track created anchor elements
       let capturedLink: HTMLAnchorElement | null = null
@@ -926,7 +930,7 @@ describe('settings', () => {
       ) as HTMLElement
       exportBtn.click()
 
-      // Wait for async operations to complete (Tauri fails, falls back to web)
+      // Wait for async chain: button click -> triggerDownloadWithFallback -> Tauri reject -> triggerWebDownload
       await vi.waitFor(() => {
         expect(mockCreateObjectURL).toHaveBeenCalled()
       })
@@ -937,10 +941,14 @@ describe('settings', () => {
         /^pastel-hn-settings-\d{4}-\d{2}-\d{2}\.json$/,
       )
 
-      // URL.revokeObjectURL is called after a timeout - verify with waitFor
-      await vi.waitFor(() => {
-        expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
-      })
+      // URL.revokeObjectURL is called after 1000ms setTimeout
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
+
+      // Restore original URL methods
+      URL.createObjectURL = originalCreateObjectURL
+      URL.revokeObjectURL = originalRevokeObjectURL
+      vi.useRealTimers()
     })
 
     it('clicking import settings button triggers file input click', async () => {
