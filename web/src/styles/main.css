@@ -965,10 +965,34 @@ main {
 }
 
 .story-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.9rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
   margin-left: 0.75rem;
+}
+
+/* Favicon lazy loaded images */
+.favicon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  border-radius: 2px;
+  flex-shrink: 0;
+  /* Smooth fade-in when loaded */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.favicon[src] {
+  opacity: 1;
+}
+
+/* Placeholder space while loading */
+.favicon:not([src]) {
+  background: var(--surface-hover);
 }
 
 .story-meta {

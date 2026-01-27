@@ -18,6 +18,8 @@ export interface VirtualScrollOptions<T> {
   onNearEnd?: () => void
   /** Distance from bottom to trigger onNearEnd */
   nearEndThreshold?: number
+  /** Callback after items are rendered (for lazy loading, etc.) */
+  onRender?: () => void
 }
 
 export interface VirtualScrollState<T> {
@@ -37,6 +39,7 @@ export class VirtualScroll<T> {
   private renderItem: (item: T, index: number) => string
   private onNearEnd?: () => void
   private nearEndThreshold: number
+  private onRender?: () => void
 
   private items: T[] = []
   private scrollTop = 0
@@ -65,6 +68,7 @@ export class VirtualScroll<T> {
     this.renderItem = options.renderItem
     this.onNearEnd = options.onNearEnd
     this.nearEndThreshold = options.nearEndThreshold ?? 200
+    this.onRender = options.onRender
   }
 
   /**
@@ -263,6 +267,9 @@ export class VirtualScroll<T> {
         .join('')
 
       this.itemsContainer.innerHTML = html
+
+      // Call onRender callback for post-render actions (e.g., lazy loading)
+      this.onRender?.()
     } finally {
       this.isRendering = false
     }

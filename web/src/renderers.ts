@@ -4,6 +4,7 @@
  */
 
 import { extractDomain, formatTimeAgo } from './api'
+import { createFaviconElement } from './favicon'
 import { icons } from './icons'
 import type { TrendingLevel } from './storage'
 import type { CommentWithChildren, HNItem } from './types'
@@ -77,7 +78,7 @@ export function renderStory(
           <a href="${story.url || `#item/${story.id}`}" target="_blank" rel="noopener">
             ${escapeHtml(story.title || 'Untitled')}
           </a>
-          ${domain ? `<span class="story-domain" aria-label="from ${domain}">(${domain})</span>` : ''}
+          ${domain ? `<span class="story-domain" aria-label="from ${domain}">${createFaviconElement(domain)}(${domain})</span>` : ''}
         </h2>
         <div class="story-meta" aria-hidden="true">
           <span class="story-score"${heatAttr}>${icons.points}${story.score} points${trendingIndicator}</span>
@@ -207,7 +208,7 @@ export function renderSubmissionItem(item: HNItem): string {
         <a href="${item.url || `#item/${item.id}`}" target="${item.url ? '_blank' : '_self'}" rel="noopener">
           ${escapeHtml(item.title || 'Untitled')}
         </a>
-        ${domain ? `<span class="story-domain">(${domain})</span>` : ''}
+        ${domain ? `<span class="story-domain">${createFaviconElement(domain)}(${domain})</span>` : ''}
       </div>
       <div class="submission-meta">
         ${icons.points}${item.score} points

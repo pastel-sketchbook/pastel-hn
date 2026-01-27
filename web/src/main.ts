@@ -19,6 +19,7 @@ import {
   updateBackToTopVisibility,
 } from './back-to-top'
 import { initErrorBoundary } from './error-boundary'
+import { initFaviconLazyLoading } from './favicon'
 import { initKeyboard, setKeyboardCallbacks } from './keyboard'
 import {
   configureNavigation,
@@ -376,6 +377,9 @@ async function main(): Promise<void> {
 
     // Initialize offline detection
     initOfflineDetection()
+
+    // Initialize favicon lazy loading
+    initFaviconLazyLoading()
 
     // Set up zen mode callback
     setZenModeChangeCallback((isActive) => {

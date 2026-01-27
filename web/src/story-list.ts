@@ -9,6 +9,7 @@ import { clearStoryIdsCache, fetchStoriesPaginated } from './api'
 import { updateAssistantZenMode } from './assistant-ui'
 import { type DuplicateInfo, findDuplicates } from './duplicates'
 import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
+import { observeNewFavicons } from './favicon'
 import { icons } from './icons'
 import { resetSelection } from './keyboard'
 import {
@@ -195,6 +196,9 @@ function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
     )
     .join('')
 
+  // Observe newly added favicons for lazy loading
+  observeNewFavicons()
+
   applyStaggerAnimation(container, '.story')
   setupStoryHoverPrefetch(container)
 
@@ -233,6 +237,10 @@ function initVirtualScroll(container: HTMLElement): void {
       }
     },
     nearEndThreshold: 400,
+    onRender: () => {
+      // Observe newly rendered favicons for lazy loading
+      observeNewFavicons()
+    },
   })
 
   virtualScroll.init(currentStories)
