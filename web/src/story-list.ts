@@ -180,7 +180,8 @@ function renderStoriesStandard(
           duplicateInfo?.totalSubmissions ?? 0,
         )
       })
-      .join('') + renderLoadMoreIndicator(hasMoreStories)
+      .join('') +
+    renderLoadMoreIndicator(hasMoreStories)
 
   applyStaggerAnimation(container, '.story')
   setupStoryHoverPrefetch(container)

@@ -32,7 +32,15 @@ describe('getFeedTitle', () => {
   })
 
   it('returns titles for all feed types', () => {
-    const feeds: StoryFeed[] = ['top', 'new', 'best', 'ask', 'show', 'jobs', 'saved']
+    const feeds: StoryFeed[] = [
+      'top',
+      'new',
+      'best',
+      'ask',
+      'show',
+      'jobs',
+      'saved',
+    ]
     for (const feed of feeds) {
       const title = getFeedTitle(feed)
       expect(title).toBeTruthy()
