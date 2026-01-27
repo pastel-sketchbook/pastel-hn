@@ -105,6 +105,7 @@ export function saveAndResetStoryState(
  * Set up tab switching for story detail view.
  */
 function setupStoryTabs(container: HTMLElement): void {
+  const _tablist = container.querySelector('.story-tabs')
   const tabs = container.querySelectorAll('.story-tab')
   const contents = container.querySelectorAll('.story-tab-content')
 
@@ -113,24 +114,51 @@ function setupStoryTabs(container: HTMLElement): void {
       const tabName = (tab as HTMLElement).dataset.tab
       if (!tabName) return
 
-      // Update active tab
+      // Update active tab and ARIA states
       tabs.forEach((t) => {
-        t.classList.remove('active')
+        const isActive = t === tab
+        t.classList.toggle('active', isActive)
+        t.setAttribute('aria-selected', isActive ? 'true' : 'false')
+        t.setAttribute('tabindex', isActive ? '0' : '-1')
       })
-      tab.classList.add('active')
 
       // Show/hide content
       contents.forEach((content) => {
         const contentName = (content as HTMLElement).dataset.tabContent
-        if (contentName === tabName) {
-          content.classList.remove('hidden')
-        } else {
-          content.classList.add('hidden')
-        }
+        const isVisible = contentName === tabName
+        content.classList.toggle('hidden', !isVisible)
+        content.setAttribute('aria-hidden', isVisible ? 'false' : 'true')
       })
 
       // Scroll to top when switching tabs
       setScrollTop(0)
+    })
+
+    // Keyboard navigation for tabs
+    tab.addEventListener('keydown', (e) => {
+      const key = (e as KeyboardEvent).key
+      const currentIndex = Array.from(tabs).indexOf(tab)
+      let newIndex = currentIndex
+
+      if (key === 'ArrowLeft' || key === 'ArrowUp') {
+        e.preventDefault()
+        newIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1
+      } else if (key === 'ArrowRight' || key === 'ArrowDown') {
+        e.preventDefault()
+        newIndex = currentIndex === tabs.length - 1 ? 0 : currentIndex + 1
+      } else if (key === 'Home') {
+        e.preventDefault()
+        newIndex = 0
+      } else if (key === 'End') {
+        e.preventDefault()
+        newIndex = tabs.length - 1
+      }
+
+      if (newIndex !== currentIndex) {
+        const newTab = tabs[newIndex] as HTMLElement
+        newTab.focus()
+        newTab.click()
+      }
     })
   })
 }
@@ -206,6 +234,17 @@ export function setupCommentCollapse(container: HTMLElement): void {
       const isCollapsed = comment.dataset.collapsed === 'true'
       comment.dataset.collapsed = isCollapsed ? 'false' : 'true'
       collapseBtn.title = isCollapsed ? 'Collapse' : 'Expand'
+      collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false')
+
+      // Update aria-label to reflect current state
+      const author =
+        comment.querySelector('.comment-author a')?.textContent || 'unknown'
+      collapseBtn.setAttribute(
+        'aria-label',
+        isCollapsed
+          ? `Collapse comment by ${author}`
+          : `Expand comment by ${author}`,
+      )
       return
     }
 
@@ -490,18 +529,18 @@ export async function renderStoryDetail(
           </div>
         </article>
         
-        <div class="story-tabs">
-          <button class="story-tab active" data-tab="story">
+        <div class="story-tabs" role="tablist" aria-label="Story content tabs">
+          <button class="story-tab active" data-tab="story" role="tab" aria-selected="true" aria-controls="story-tab-panel" id="story-tab" tabindex="0">
             ${icons.article}
             <span>Story</span>
           </button>
-          <button class="story-tab" data-tab="comments">
+          <button class="story-tab" data-tab="comments" role="tab" aria-selected="false" aria-controls="comments-tab-panel" id="comments-tab" tabindex="-1">
             ${icons.comment}
             <span>Comments${commentCount > 0 ? ` (${commentCount})` : ''}</span>
           </button>
         </div>
         
-        <div class="story-tab-content" data-tab-content="story">
+        <div class="story-tab-content" data-tab-content="story" role="tabpanel" id="story-tab-panel" aria-labelledby="story-tab" aria-hidden="false">
           ${
             hasExternalUrl
               ? `
@@ -537,7 +576,7 @@ export async function renderStoryDetail(
           }
         </div>
         
-        <div class="story-tab-content hidden" data-tab-content="comments">
+        <div class="story-tab-content hidden" data-tab-content="comments" role="tabpanel" id="comments-tab-panel" aria-labelledby="comments-tab" aria-hidden="true">
           <section class="comments-section">
             <div class="comments-list">
               ${commentsHtml}

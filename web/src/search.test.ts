@@ -324,4 +324,89 @@ describe('search', () => {
       expect(storiesBtn.classList.contains('active')).toBe(true)
     })
   })
+
+  describe('accessibility', () => {
+    it('has role="dialog" on modal', () => {
+      showSearchModal()
+      const modal = document.querySelector('.search-modal')
+      expect(modal?.getAttribute('role')).toBe('dialog')
+    })
+
+    it('has aria-modal="true" on modal', () => {
+      showSearchModal()
+      const modal = document.querySelector('.search-modal')
+      expect(modal?.getAttribute('aria-modal')).toBe('true')
+    })
+
+    it('has aria-labelledby pointing to screen reader title', () => {
+      showSearchModal()
+      const modal = document.querySelector('.search-modal')
+      const title = document.getElementById('search-modal-title')
+      expect(modal?.getAttribute('aria-labelledby')).toBe('search-modal-title')
+      expect(title).not.toBeNull()
+      expect(title?.textContent).toBe('Search Hacker News')
+    })
+
+    it('has aria-label on search input', () => {
+      showSearchModal()
+      const input = document.querySelector('.search-input')
+      expect(input?.getAttribute('aria-label')).toBe('Search query')
+    })
+
+    it('has aria-pressed on filter buttons', () => {
+      showSearchModal()
+      const allBtn = document.querySelector('[data-filter="all"]')
+      const storiesBtn = document.querySelector('[data-filter="story"]')
+
+      expect(allBtn?.getAttribute('aria-pressed')).toBe('true')
+      expect(storiesBtn?.getAttribute('aria-pressed')).toBe('false')
+    })
+
+    it('toggles aria-pressed when switching filters', () => {
+      showSearchModal()
+      const allBtn = document.querySelector(
+        '[data-filter="all"]',
+      ) as HTMLElement
+      const storiesBtn = document.querySelector(
+        '[data-filter="story"]',
+      ) as HTMLElement
+
+      storiesBtn.click()
+
+      expect(allBtn.getAttribute('aria-pressed')).toBe('false')
+      expect(storiesBtn.getAttribute('aria-pressed')).toBe('true')
+    })
+
+    it('has aria-pressed and aria-label on sort button', () => {
+      showSearchModal()
+      const sortBtn = document.querySelector('[data-sort="toggle"]')
+
+      expect(sortBtn?.getAttribute('aria-pressed')).toBe('false')
+      expect(sortBtn?.getAttribute('aria-label')).toBe('Sort by: Relevance')
+    })
+
+    it('updates aria-pressed and aria-label when toggling sort', () => {
+      showSearchModal()
+      const sortBtn = document.querySelector(
+        '[data-sort="toggle"]',
+      ) as HTMLElement
+
+      sortBtn.click()
+
+      expect(sortBtn.getAttribute('aria-pressed')).toBe('true')
+      expect(sortBtn.getAttribute('aria-label')).toBe('Sort by: Date')
+
+      sortBtn.click()
+
+      expect(sortBtn.getAttribute('aria-pressed')).toBe('false')
+      expect(sortBtn.getAttribute('aria-label')).toBe('Sort by: Relevance')
+    })
+
+    it('has aria-live on search results region', () => {
+      showSearchModal()
+      const results = document.querySelector('.search-results')
+      expect(results?.getAttribute('aria-live')).toBe('polite')
+      expect(results?.getAttribute('role')).toBe('region')
+    })
+  })
 })

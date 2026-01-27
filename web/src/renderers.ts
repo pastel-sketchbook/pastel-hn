@@ -145,12 +145,14 @@ export function renderComment(
     `
     : ''
 
+  const commentBodyId = `comment-body-${comment.id}`
+
   return `
     <div class="comment" data-id="${comment.id}" data-depth="${depth}" data-collapsed="false" data-kids="${totalKids}">
       <div class="comment-indent" style="--depth: ${depth}"></div>
-      <div class="comment-body">
+      <div class="comment-body" id="${commentBodyId}">
         <div class="comment-meta">
-          <button class="comment-collapse" title="Collapse">
+          <button class="comment-collapse" title="Collapse" aria-expanded="true" aria-controls="${commentBodyId}" aria-label="Collapse comment by ${escapeHtml(comment.by || 'unknown')}">
             ${icons.collapse}
           </button>
           <span class="comment-author${isOp ? ' comment-author-op' : ''}">${icons.user}<a href="#user/${encodeURIComponent(comment.by || 'unknown')}" class="user-link">${escapeHtml(comment.by || 'unknown')}</a>${isOp ? ' <span class="op-badge">OP</span>' : ''}</span>

@@ -324,6 +324,40 @@ describe('renderComment', () => {
     expect(result).toContain('comment-collapse')
     expect(result).toContain('title="Collapse"')
   })
+
+  it('has aria-expanded on collapse button', () => {
+    const result = renderComment(baseComment)
+
+    expect(result).toContain('aria-expanded="true"')
+  })
+
+  it('has aria-controls pointing to comment body', () => {
+    const result = renderComment(baseComment)
+
+    expect(result).toContain(`aria-controls="comment-body-${baseComment.id}"`)
+    expect(result).toContain(`id="comment-body-${baseComment.id}"`)
+  })
+
+  it('has aria-label with author name on collapse button', () => {
+    const result = renderComment(baseComment)
+
+    expect(result).toContain(
+      `aria-label="Collapse comment by ${baseComment.by}"`,
+    )
+  })
+
+  it('escapes author name in aria-label', () => {
+    const commentWithSpecialChars: CommentWithChildren = {
+      ...baseComment,
+      by: 'user<script>',
+    }
+    const result = renderComment(commentWithSpecialChars)
+
+    // escapeHtml converts < to &lt;
+    expect(result).toContain(
+      'aria-label="Collapse comment by user&lt;script&gt;"',
+    )
+  })
 })
 
 describe('renderSubmissionItem', () => {

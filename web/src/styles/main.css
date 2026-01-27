@@ -250,6 +250,30 @@ body {
   border: 0;
 }
 
+/* Accessibility: Global focus-visible styles for keyboard navigation */
+/* Only show focus ring when navigating via keyboard, not mouse clicks */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 4px var(--cyan-soft),
+    0 0 12px var(--cyan-glow);
+}
+
+/* Remove default focus outline since we're using focus-visible */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* High contrast focus styles */
+[data-high-contrast="true"] :focus-visible {
+  outline-width: 3px;
+  outline-offset: 3px;
+  box-shadow:
+    0 0 0 6px var(--cyan-soft),
+    0 0 20px var(--cyan-glow);
+}
+
 /* Paper gradient background for light theme */
 [data-theme="light"] body {
   background: var(--paper-gradient);

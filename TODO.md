@@ -335,6 +335,7 @@
 - [x] Reduced motion support
 - [x] Skip-to-content link
 - [x] Proper heading hierarchy audit
+- [x] Screen reader navigation improvements (focus-visible, ARIA dialog/tablist patterns)
 
 ### 7.3 Testing
 - [x] Unit tests for API functions (api.test.ts - 20 tests)

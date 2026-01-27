@@ -148,4 +148,26 @@ describe('help-modal', () => {
       expect(isHelpModalOpen()).toBe(true)
     })
   })
+
+  describe('accessibility', () => {
+    it('has role="dialog" on modal', () => {
+      showHelpModal()
+      const modal = document.querySelector('.help-modal')
+      expect(modal?.getAttribute('role')).toBe('dialog')
+    })
+
+    it('has aria-modal="true" on modal', () => {
+      showHelpModal()
+      const modal = document.querySelector('.help-modal')
+      expect(modal?.getAttribute('aria-modal')).toBe('true')
+    })
+
+    it('has aria-labelledby pointing to title', () => {
+      showHelpModal()
+      const modal = document.querySelector('.help-modal')
+      const title = document.querySelector('.help-modal-title')
+      expect(modal?.getAttribute('aria-labelledby')).toBe('help-modal-title')
+      expect(title?.id).toBe('help-modal-title')
+    })
+  })
 })

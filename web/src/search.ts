@@ -43,6 +43,8 @@ export function showSearchModal(): void {
   // Reset search state
   searchQuery = ''
   searchResults = []
+  searchSort = 'relevance'
+  searchFilter = 'all'
   searchPage = 0
   searchTotalPages = 0
   searchTotalHits = 0
@@ -51,9 +53,10 @@ export function showSearchModal(): void {
   const modal = document.createElement('div')
   modal.className = 'search-modal-overlay'
   modal.innerHTML = `
-    <div class="search-modal cyber-frame">
+    <div class="search-modal cyber-frame" role="dialog" aria-modal="true" aria-labelledby="search-modal-title">
       <span class="corner-tr"></span>
       <span class="corner-bl"></span>
+      <h2 class="sr-only" id="search-modal-title">Search Hacker News</h2>
       <div class="search-header">
         <div class="search-input-wrapper">
           ${icons.search}
@@ -62,19 +65,20 @@ export function showSearchModal(): void {
             class="search-input"
             placeholder="Search Hacker News..."
             autofocus
+            aria-label="Search query"
           />
         </div>
-        <div class="search-filters">
-          <button class="search-filter-btn active" data-filter="all">All</button>
-          <button class="search-filter-btn" data-filter="story">Stories</button>
-          <button class="search-filter-btn" data-filter="comment">Comments</button>
-          <button class="search-filter-btn search-sort-btn" data-sort="toggle">
+        <div class="search-filters" role="group" aria-label="Search filters">
+          <button class="search-filter-btn active" data-filter="all" aria-pressed="true">All</button>
+          <button class="search-filter-btn" data-filter="story" aria-pressed="false">Stories</button>
+          <button class="search-filter-btn" data-filter="comment" aria-pressed="false">Comments</button>
+          <button class="search-filter-btn search-sort-btn" data-sort="toggle" aria-pressed="false" aria-label="Sort by: Relevance">
             ${icons.sort}
             <span class="sort-label">Relevance</span>
           </button>
         </div>
       </div>
-      <div class="search-results">
+      <div class="search-results" role="region" aria-live="polite" aria-label="Search results">
         <div class="search-hint">
           Type to search • <kbd>Esc</kbd> to close
         </div>
@@ -140,7 +144,9 @@ export function showSearchModal(): void {
       if (filter && filter !== searchFilter) {
         searchFilter = filter
         modal.querySelectorAll('[data-filter]').forEach((btn) => {
-          btn.classList.toggle('active', btn === filterBtn)
+          const isActive = btn === filterBtn
+          btn.classList.toggle('active', isActive)
+          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false')
         })
         if (searchQuery.length >= 2) {
           searchPage = 0
@@ -158,7 +164,13 @@ export function showSearchModal(): void {
       if (label) {
         label.textContent = searchSort === 'relevance' ? 'Relevance' : 'Date'
       }
-      sortBtn.classList.toggle('active', searchSort === 'date')
+      const isDateSort = searchSort === 'date'
+      sortBtn.classList.toggle('active', isDateSort)
+      sortBtn.setAttribute('aria-pressed', isDateSort ? 'true' : 'false')
+      sortBtn.setAttribute(
+        'aria-label',
+        `Sort by: ${searchSort === 'relevance' ? 'Relevance' : 'Date'}`,
+      )
       if (searchQuery.length >= 2) {
         searchPage = 0
         performSearch()

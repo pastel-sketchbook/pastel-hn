@@ -541,12 +541,14 @@ export async function renderStories(
 
     container.setAttribute('aria-busy', 'false')
 
+    // Announce feed switch and story count for screen readers
+    const feedTitle = getFeedTitle(feed)
     if (feed === 'saved') {
       announce(
-        `${stories.length} bookmarked ${stories.length === 1 ? 'story' : 'stories'}`,
+        `${feedTitle}: ${stories.length} bookmarked ${stories.length === 1 ? 'story' : 'stories'}`,
       )
     } else {
-      announce(`${stories.length} stories loaded`)
+      announce(`${feedTitle}: ${stories.length} stories loaded`)
     }
 
     restoreFeedScrollPosition(feed)
