@@ -4759,6 +4759,7 @@ main {
 
 .view-fade-out {
   animation-name: fadeOut;
+  animation-duration: 0.2s;
 }
 
 /* Vertical transition classes for open/close panel effect */
@@ -5864,7 +5865,7 @@ main {
 
 /* Light mode specific background */
 [data-theme="light"].zen-mode main {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 /* Container stretches to fill */

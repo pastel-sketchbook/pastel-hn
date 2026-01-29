@@ -6,8 +6,8 @@
 
 export type Theme = 'dark' | 'light'
 
-export const THEME_STORAGE_KEY = 'wasm-hn-theme'
-export const HIGH_CONTRAST_STORAGE_KEY = 'wasm-hn-high-contrast'
+export const THEME_STORAGE_KEY = 'pastel-hn-theme'
+export const HIGH_CONTRAST_STORAGE_KEY = 'pastel-hn-high-contrast'
 
 /**
  * Get the current theme based on:
