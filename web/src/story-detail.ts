@@ -425,9 +425,9 @@ export async function renderStoryDetail(
   }
 
   // Show skeleton loading state
-  const skeletonWidth = isZenModeActive() ? '95%' : '90%'
+  // CSS handles zen mode width (zen-mode class on html sets max-width via CSS)
   container.innerHTML = `
-    <div class="story-detail" style="max-width: ${skeletonWidth};">
+    <div class="story-detail">
       <div class="story-detail-header">
         <button class="back-btn" data-action="back" title="Back to stories">
           ${icons.back}

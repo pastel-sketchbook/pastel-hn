@@ -378,22 +378,47 @@ describe('story-detail', () => {
   })
 
   describe('renderStoryDetail', () => {
-    it('shows skeleton loading state initially', async () => {
-      mockFetchStoryWithComments.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve(mockStoryWithComments), 100),
-          ),
-      )
+it('shows skeleton loading state initially', async () => {
+    mockFetchStoryWithComments.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(mockStoryWithComments), 100),
+        ),
+    )
 
-      const promise = renderStoryDetail(123, container, new Set())
+    const promise = renderStoryDetail(123, container, new Set())
 
-      // Check skeleton is shown
-      expect(container.innerHTML).toContain('skeleton')
-      expect(mockRenderCommentSkeletons).toHaveBeenCalled()
+    // Check skeleton is shown
+    expect(container.innerHTML).toContain('skeleton')
+    expect(mockRenderCommentSkeletons).toHaveBeenCalled()
 
-      await promise
-    })
+    await promise
+  })
+
+  it('does not apply inline width style to skeleton', async () => {
+    // Skeleton should not have inline max-width style - CSS handles both modes
+    _mockIsZenModeActive.mockReturnValue(false)
+
+    mockFetchStoryWithComments.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(mockStoryWithComments), 50)),
+    )
+
+    const promise = renderStoryDetail(123, container, new Set())
+
+    // Check skeleton immediately (before async fetch completes)
+    const skeletonDetail = container.querySelector('.story-detail')
+    expect(skeletonDetail).not.toBeNull()
+    // Skeleton should NOT have inline max-width style
+    expect(skeletonDetail?.getAttribute('style')).toBeNull()
+
+    // Wait for content to load
+    await promise
+
+    // After loading, the content should also not have inline style
+    const contentDetail = container.querySelector('.story-detail')
+    expect(contentDetail).not.toBeNull()
+    expect(contentDetail?.getAttribute('style')).toBeNull()
+  })
 
     it('renders story title', async () => {
       await renderStoryDetail(123, container, new Set())
@@ -498,11 +523,14 @@ describe('story-detail', () => {
       expect(mockSetStoryContext).toHaveBeenCalledWith(mockStory, mockComments)
     })
 
-    it('updates assistant zen mode', async () => {
-      await renderStoryDetail(123, container, new Set())
+it('updates assistant zen mode', async () => {
+    // Reset zen mode mock to default (false) for this test
+    _mockIsZenModeActive.mockReturnValue(false)
+    
+    await renderStoryDetail(123, container, new Set())
 
-      expect(mockUpdateAssistantZenMode).toHaveBeenCalledWith(false, 'detail')
-    })
+    expect(mockUpdateAssistantZenMode).toHaveBeenCalledWith(false, 'detail')
+  })
 
     it('restores scroll position', async () => {
       await renderStoryDetail(123, container, new Set())
