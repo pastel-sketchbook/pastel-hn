@@ -9,6 +9,12 @@ export type Theme = 'dark' | 'light'
 export const THEME_STORAGE_KEY = 'pastel-hn-theme'
 export const HIGH_CONTRAST_STORAGE_KEY = 'pastel-hn-high-contrast'
 
+// Callback for external state updates
+type ThemeChangeCallback = () => void
+type HighContrastChangeCallback = (isHighContrast: boolean) => void
+let onThemeChangeCallback: ThemeChangeCallback | null = null
+let onHighContrastChangeCallback: HighContrastChangeCallback | null = null
+
 /**
  * Get the current theme based on:
  * 1. Stored preference in localStorage (if valid)
@@ -31,6 +37,24 @@ export function getTheme(): Theme {
 export function setTheme(theme: Theme): void {
   document.documentElement.setAttribute('data-theme', theme)
   localStorage.setItem(THEME_STORAGE_KEY, theme)
+  // Notify callback of theme change
+  onThemeChangeCallback?.()
+}
+
+/**
+ * Set a callback to be called when theme changes
+ * This allows external code to react to theme state changes (e.g., refresh virtual scroll)
+ */
+export function setThemeChangeCallback(callback: ThemeChangeCallback | null): void {
+  onThemeChangeCallback = callback
+}
+
+/**
+ * Set a callback to be called when high contrast changes
+ * This allows external code to react to high contrast state changes
+ */
+export function setHighContrastChangeCallback(callback: HighContrastChangeCallback | null): void {
+  onHighContrastChangeCallback = callback
 }
 
 /**
@@ -104,6 +128,8 @@ export function setHighContrast(enabled: boolean): void {
     document.documentElement.removeAttribute('data-high-contrast')
   }
   localStorage.setItem(HIGH_CONTRAST_STORAGE_KEY, String(enabled))
+  // Notify callback of high contrast change
+  onHighContrastChangeCallback?.(enabled)
 }
 
 /**

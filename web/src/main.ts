@@ -67,7 +67,7 @@ import {
   renderStories as renderStoriesModule,
   setCurrentFeed,
 } from './story-list'
-import { toggleTheme } from './theme'
+import { setHighContrastChangeCallback, setThemeChangeCallback, toggleTheme } from './theme'
 import { toastError, toastInfo, toastSuccess } from './toast'
 import { configureTrayEvents, initTrayEvents } from './tray-events'
 import { initTtsUi } from './tts-ui'
@@ -561,16 +561,35 @@ async function main(): Promise<void> {
     })
     initDeepLinks()
 
-    // Set up zen mode callback
-    setZenModeChangeCallback((isActive) => {
-      updateAssistantZenMode(isActive, currentView)
-      const virtualScroll = getVirtualScroll()
-      if (virtualScroll) {
-        requestAnimationFrame(() => {
-          virtualScroll?.forceRender()
-        })
-      }
-    })
+// Set up zen mode callback
+  setZenModeChangeCallback((isActive) => {
+    updateAssistantZenMode(isActive, currentView)
+    const virtualScroll = getVirtualScroll()
+    if (virtualScroll) {
+      requestAnimationFrame(() => {
+        virtualScroll?.forceRender()
+      })
+    }
+  })
+
+  // Set up theme change callbacks to refresh virtual scroll
+  setThemeChangeCallback(() => {
+    const virtualScroll = getVirtualScroll()
+    if (virtualScroll) {
+      requestAnimationFrame(() => {
+        virtualScroll?.forceRender()
+      })
+    }
+  })
+
+  setHighContrastChangeCallback(() => {
+    const virtualScroll = getVirtualScroll()
+    if (virtualScroll) {
+      requestAnimationFrame(() => {
+        virtualScroll?.forceRender()
+      })
+    }
+  })
 
     // Update nav to show correct default feed as active
     document.querySelectorAll('[data-feed]').forEach((btn) => {
