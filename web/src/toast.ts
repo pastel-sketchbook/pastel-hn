@@ -23,7 +23,7 @@ interface Toast extends ToastOptions {
 }
 
 const DEFAULT_DURATION = 4000
-const TOAST_GAP = 12
+const TOAST_GAP = 8
 
 let toastContainer: HTMLElement | null = null
 const activeToasts: Toast[] = []
@@ -96,7 +96,7 @@ function createToastElement(options: ToastOptions, id: string): HTMLElement {
 function updatePositions(): void {
   let offset = 0
   for (const toast of activeToasts) {
-    toast.element.style.transform = `translateY(${offset}px)`
+    toast.element.style.setProperty('--toast-offset', `-${offset}px`)
     offset += toast.element.offsetHeight + TOAST_GAP
   }
 }
@@ -118,11 +118,13 @@ function removeToast(id: string): void {
   // Animate out
   toast.element.classList.add('toast-exit')
 
+  // Remove from active list immediately so others can slide down
+  activeToasts.splice(index, 1)
+  updatePositions()
+
   // Remove after animation
   setTimeout(() => {
     toast.element.remove()
-    activeToasts.splice(index, 1)
-    updatePositions()
   }, 200)
 }
 
@@ -159,7 +161,7 @@ export function showToast(options: ToastOptions): string {
   for (const toast of activeToasts) {
     offset += toast.element.offsetHeight + TOAST_GAP
   }
-  element.style.transform = `translateY(${offset}px)`
+  element.style.setProperty('--toast-offset', `-${offset}px`)
 
   // Trigger enter animation
   requestAnimationFrame(() => {
