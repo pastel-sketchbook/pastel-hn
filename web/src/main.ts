@@ -398,10 +398,16 @@ async function main(): Promise<void> {
   initSettings()
 
   // Ensure window decorations are visible on startup
+  // Only set decorations if not already in fullscreen (preserves zen mode state from previous session)
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     const appWindow = getCurrentWindow()
-    await appWindow.setDecorations(true)
+    const isFullscreen = await appWindow.isFullscreen()
+    // Only force decorations to true if not in fullscreen mode
+    // This prevents breaking zen mode restoration on app restart
+    if (!isFullscreen) {
+      await appWindow.setDecorations(true)
+    }
   } catch {
     // Not in Tauri environment
   }
