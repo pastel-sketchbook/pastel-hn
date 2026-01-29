@@ -104,7 +104,7 @@ describe('animateStoriesAway', () => {
 
   it('skips animations when in zen mode', async () => {
     vi.mocked(isZenModeActive).mockReturnValue(true)
-    
+
     const stories = document.querySelectorAll('.story')
     const clickedStory = stories[1] as HTMLElement
 

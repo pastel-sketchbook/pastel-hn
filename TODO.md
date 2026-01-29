@@ -413,6 +413,37 @@ pastel-hn/
 
 ---
 
+## Recently Fixed - Zen Mode / Theme / View Transitions
+
+The following subtle bugs have been fixed in recent commits:
+
+### 1. ✅ Light Mode Zen Mode Background Inconsistency
+- **Fixed**: `web/src/styles/main.css:5865` - Changed `rgba(0, 0, 0, 0.02)` to `rgba(255, 255, 255, 0.02)` for light theme zen mode
+
+### 2. ✅ Story Detail Skeleton Width Race Condition
+- **Fixed**: `web/src/story-detail.ts:427-430` - Removed inline skeleton width; CSS now handles consistent widths for both skeleton and content
+
+### 3. ✅ Animation Duration Mismatch
+- **Fixed**: `web/src/styles/main.css:4761` - Added explicit `animation-duration: 0.2s` to `.view-fade-out` to match `TRANSITION_DURATION`
+
+### 4. ✅ Assistant Panel Position Inconsistency
+- **Fixed**: `web/src/styles/main.css:6106` - `.assistant-panel` already has `transition: right 0.3s ease` for smooth position changes
+
+### 5. ✅ Virtual Scroll Not Recalculating on Theme/Zen Changes
+- **Fixed**: `web/src/theme.ts:9-59` - Added `setThemeChangeCallback()` and `setHighContrastChangeCallback()` to notify virtual scroll to re-render
+- **Fixed**: `web/src/main.ts:583-601` - Wired up callbacks to call `virtualScroll.forceRender()` on theme/zen changes
+
+### 6. ✅ Theme Storage Key Mismatch
+- **Fixed**: `web/src/theme.ts:9` - Updated `THEME_STORAGE_KEY` from `'wasm-hn-theme'` to `'pastel-hn-theme'`
+
+### 7. ✅ Window Decorations Race Condition on Startup
+- **Fixed**: `web/src/main.ts:400-410` - Check fullscreen state before forcing window decorations; preserves zen mode on app restart
+
+### 8. ✅ View Transition + Zen Mode Layout Conflict
+- **Fixed**: `web/src/animations.ts:17-73` - View transitions now skip animations when `isZenModeActive()` returns true to prevent layout thrashing
+
+---
+
 ## Success Metrics
 
 The "best UI/UX HN client" should achieve:

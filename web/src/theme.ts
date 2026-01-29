@@ -45,7 +45,9 @@ export function setTheme(theme: Theme): void {
  * Set a callback to be called when theme changes
  * This allows external code to react to theme state changes (e.g., refresh virtual scroll)
  */
-export function setThemeChangeCallback(callback: ThemeChangeCallback | null): void {
+export function setThemeChangeCallback(
+  callback: ThemeChangeCallback | null,
+): void {
   onThemeChangeCallback = callback
 }
 
@@ -53,7 +55,9 @@ export function setThemeChangeCallback(callback: ThemeChangeCallback | null): vo
  * Set a callback to be called when high contrast changes
  * This allows external code to react to high contrast state changes
  */
-export function setHighContrastChangeCallback(callback: HighContrastChangeCallback | null): void {
+export function setHighContrastChangeCallback(
+  callback: HighContrastChangeCallback | null,
+): void {
   onHighContrastChangeCallback = callback
 }
 

@@ -3,8 +3,8 @@
  * Handles smooth animations between list and detail views
  */
 
-import { isZenModeActive } from './zen-mode'
 import { prefersReducedMotion } from './utils'
+import { isZenModeActive } from './zen-mode'
 
 /** Animation duration in ms - matches CSS animation duration */
 export const TRANSITION_DURATION = 350
@@ -14,7 +14,7 @@ export const TRANSITION_DURATION = 350
  * - Stories above the clicked one slide up
  * - Stories below the clicked one slide down
  * - Clicked story fades out
- * 
+ *
  * Note: Animations are skipped in zen mode to prevent layout conflicts
  * with the fixed positioning used in zen mode
  */
@@ -55,7 +55,7 @@ export async function animateStoriesAway(
 
 /**
  * Animate detail view entering
- * 
+ *
  * Note: Animations are skipped in zen mode to prevent layout conflicts
  * with the fixed positioning used in zen mode
  */
@@ -72,7 +72,7 @@ export async function animateDetailEnter(
 
 /**
  * Animate detail view exiting (going back to list)
- * 
+ *
  * Note: Animations are skipped in zen mode to prevent layout conflicts
  * with the fixed positioning used in zen mode
  */
