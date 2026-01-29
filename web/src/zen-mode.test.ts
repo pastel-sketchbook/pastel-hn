@@ -23,6 +23,7 @@ describe('zen-mode', () => {
       getCurrentWindow: () => ({
         setDecorations: vi.fn().mockResolvedValue(undefined),
         setFullscreen: vi.fn().mockResolvedValue(undefined),
+        isFullscreen: vi.fn().mockResolvedValue(false),
       }),
     }))
 

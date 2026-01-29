@@ -442,6 +442,18 @@ The following subtle bugs have been fixed in recent commits:
 ### 8. ✅ View Transition + Zen Mode Layout Conflict
 - **Fixed**: `web/src/animations.ts:17-73` - View transitions now skip animations when `isZenModeActive()` returns true to prevent layout thrashing
 
+## Recently Fixed - macOS Window Management
+
+### 9. ✅ Mac Window Traffic Lights Missing After Exiting Zen Mode
+- **Issue**: When exiting zen mode (pressing 'z' or Escape), the Mac traffic lights (close/minimize/maximize buttons) didn't appear in the title bar
+- **Root Cause**: The 300ms delay after `setFullscreen(false)` was not sufficient for macOS to complete the fullscreen exit transition
+- **Fixed**: `web/src/zen-mode.ts:11-13` and `web/src/zen-mode.ts:63-97`
+  - Added `FULLSCREEN_EXIT_MAX_WAIT_MS = 2000` (max wait time)
+  - Added `FULLSCREEN_EXIT_POLL_INTERVAL_MS = 50` (polling interval)
+  - Added `waitForFullscreenExit()` helper function that polls `isFullscreen()` until it returns false
+  - Updated both `toggleZenMode()` and `exitZenMode()` to use polling instead of fixed delay
+  - This ensures window is fully out of fullscreen before decorations are restored
+
 ---
 
 ## Success Metrics

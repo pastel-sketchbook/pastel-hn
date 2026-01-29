@@ -9,6 +9,8 @@ let zenModeTransitioning = false // Lock to prevent rapid toggling
 
 // Animation duration constants
 const FULLSCREEN_EXIT_DELAY_MS = 300 // ms - delay for macOS fullscreen exit reliability
+const FULLSCREEN_EXIT_MAX_WAIT_MS = 2000 // ms - maximum time to wait for fullscreen exit
+const FULLSCREEN_EXIT_POLL_INTERVAL_MS = 50 // ms - polling interval for fullscreen exit check
 
 // Callback for external state updates
 type ZenModeChangeCallback = (isActive: boolean) => void
@@ -39,6 +41,38 @@ export function setZenModeChangeCallback(
 }
 
 /**
+ * Wait for the window to fully exit fullscreen mode
+ * Uses polling to detect when isFullscreen() returns false
+ * This ensures window decorations can be properly restored on macOS
+ */
+async function waitForFullscreenExit(appWindow: {
+  isFullscreen: () => Promise<boolean>
+}): Promise<void> {
+  const startTime = Date.now()
+
+  // First, wait the minimum delay
+  await new Promise((resolve) => setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS))
+
+  // Then poll until fullscreen is actually exited or timeout
+  while (Date.now() - startTime < FULLSCREEN_EXIT_MAX_WAIT_MS) {
+    const isFullscreen = await appWindow.isFullscreen()
+    if (!isFullscreen) {
+      // Window has fully exited fullscreen
+      return
+    }
+    // Wait before next poll
+    await new Promise((resolve) =>
+      setTimeout(resolve, FULLSCREEN_EXIT_POLL_INTERVAL_MS),
+    )
+  }
+
+  // Timeout reached - log warning but don't throw (graceful degradation)
+  console.warn(
+    'Timeout waiting for fullscreen exit, proceeding with decorations restore',
+  )
+}
+
+/**
  * Toggle zen mode - fullscreen, hides header, maximizes content area
  * Press 'z' to toggle, Escape also exits zen mode
  */
@@ -64,9 +98,8 @@ export async function toggleZenMode(): Promise<void> {
       // Important: Exit fullscreen first, then restore decorations
       await appWindow.setFullscreen(false)
       // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) =>
-        setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS),
-      )
+      // Use polling to ensure window is fully out of fullscreen (macOS reliability)
+      await waitForFullscreenExit(appWindow)
       await appWindow.setDecorations(true)
     }
 
@@ -123,9 +156,8 @@ export async function exitZenMode(): Promise<void> {
       // Exit fullscreen first, then restore decorations
       await appWindow.setFullscreen(false)
       // Wait for fullscreen exit to complete before restoring decorations
-      await new Promise((resolve) =>
-        setTimeout(resolve, FULLSCREEN_EXIT_DELAY_MS),
-      )
+      // Use polling to ensure window is fully out of fullscreen (macOS reliability)
+      await waitForFullscreenExit(appWindow)
       await appWindow.setDecorations(true)
     } catch (error) {
       console.warn('Tauri window API not available:', error)
