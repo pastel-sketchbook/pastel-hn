@@ -5,6 +5,22 @@ All notable changes to pastel-hn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Fixed 8 subtle bugs in zen mode, theme, and view transition interactions
+- Light mode zen background now uses proper light tint (`rgba(255,255,255,0.02)`)
+- Removed inline skeleton width to prevent race conditions during async loading
+- Fixed animation duration mismatch for view-fade-out (0.2s)
+- Added theme/high contrast callbacks to refresh virtual scroll on changes
+- Fixed window decorations race condition on startup (checks fullscreen state)
+- Disabled view transitions when in zen mode to prevent layout thrashing
+
+### Changed
+- **BREAKING**: Updated theme storage key from `wasm-hn-theme` to `pastel-hn-theme`
+  - User theme preferences will reset to system default on first launch after update
+  - High contrast key also updated from `wasm-hn-high-contrast` to `pastel-hn-high-contrast`
+
 ## [0.14.6] - 2026-01-27
 
 ### Added
