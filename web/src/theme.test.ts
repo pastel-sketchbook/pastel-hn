@@ -5,7 +5,9 @@ import {
   HIGH_CONTRAST_STORAGE_KEY,
   initTheme,
   setHighContrast,
+  setHighContrastChangeCallback,
   setTheme,
+  setThemeChangeCallback,
   THEME_STORAGE_KEY,
   toggleHighContrast,
   toggleTheme,
@@ -245,41 +247,35 @@ describe('theme', () => {
     })
   })
 
-  describe('theme change callbacks', () => {
-    it('calls theme change callback when setTheme is called', () => {
-      const { setThemeChangeCallback } = require('./theme')
-      const callback = vi.fn()
-      setThemeChangeCallback(callback)
+describe('theme change callbacks', () => {
+  it('calls theme change callback when setTheme is called', () => {
+    const callback = vi.fn()
+    setThemeChangeCallback(callback)
 
-      setTheme('dark')
-      expect(callback).toHaveBeenCalledTimes(1)
+    setTheme('dark')
+    expect(callback).toHaveBeenCalledTimes(1)
 
-      setTheme('light')
-      expect(callback).toHaveBeenCalledTimes(2)
-    })
-
-    it('calls high contrast change callback when setHighContrast is called', () => {
-      const { setHighContrastChangeCallback } = require('./theme')
-      const callback = vi.fn()
-      setHighContrastChangeCallback(callback)
-
-      setHighContrast(true)
-      expect(callback).toHaveBeenCalledWith(true)
-
-      setHighContrast(false)
-      expect(callback).toHaveBeenCalledWith(false)
-    })
-
-    it('does not throw when callback is null', () => {
-      const {
-        setThemeChangeCallback,
-        setHighContrastChangeCallback,
-      } = require('./theme')
-      setThemeChangeCallback(null)
-      setHighContrastChangeCallback(null)
-
-      expect(() => setTheme('dark')).not.toThrow()
-      expect(() => setHighContrast(true)).not.toThrow()
-    })
+    setTheme('light')
+    expect(callback).toHaveBeenCalledTimes(2)
   })
+
+  it('calls high contrast change callback when setHighContrast is called', () => {
+    const callback = vi.fn()
+    setHighContrastChangeCallback(callback)
+
+    setHighContrast(true)
+    expect(callback).toHaveBeenCalledWith(true)
+
+    setHighContrast(false)
+    expect(callback).toHaveBeenCalledWith(false)
+  })
+
+  it('does not throw when callback is null', () => {
+    setThemeChangeCallback(null)
+    setHighContrastChangeCallback(null)
+
+    expect(() => setTheme('dark')).not.toThrow()
+    expect(() => setHighContrast(true)).not.toThrow()
+  })
+})
 })
