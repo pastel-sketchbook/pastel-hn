@@ -71,7 +71,7 @@ fn main() {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(fmt::layer())
-        .with(EnvFilter::from_default_env().add_directive("pastel_hn=debug".parse().unwrap()))
+        .with(EnvFilter::from_default_env().add_directive("pastel_hn=info".parse().unwrap()))
         .init();
 
     info!("Starting pastel-hn v{}", env!("CARGO_PKG_VERSION"));
