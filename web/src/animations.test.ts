@@ -1,4 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Mock zen-mode module
+vi.mock('./zen-mode', () => ({
+  isZenModeActive: vi.fn().mockReturnValue(false),
+}))
+
 import {
   animateDetailEnter,
   animateDetailExit,
@@ -7,6 +13,7 @@ import {
   applyStaggerAnimation,
   TRANSITION_DURATION,
 } from './animations'
+import { isZenModeActive } from './zen-mode'
 
 describe('TRANSITION_DURATION', () => {
   it('exports the correct duration', () => {
@@ -38,6 +45,7 @@ describe('animateStoriesAway', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    vi.mocked(isZenModeActive).mockReturnValue(false)
   })
 
   it('adds animation classes to stories', async () => {
@@ -93,6 +101,23 @@ describe('animateStoriesAway', () => {
     // No classes should be added
     expect(stories[0].classList.contains('view-transition')).toBe(false)
   })
+
+  it('skips animations when in zen mode', async () => {
+    vi.mocked(isZenModeActive).mockReturnValue(true)
+    
+    const stories = document.querySelectorAll('.story')
+    const clickedStory = stories[1] as HTMLElement
+
+    await animateStoriesAway(clickedStory)
+
+    // No classes should be added when in zen mode
+    stories.forEach((story) => {
+      expect(story.classList.contains('view-transition')).toBe(false)
+      expect(story.classList.contains('view-exit-up')).toBe(false)
+      expect(story.classList.contains('view-exit-down')).toBe(false)
+      expect(story.classList.contains('view-anchor-fade')).toBe(false)
+    })
+  })
 })
 
 describe('animateDetailEnter', () => {
@@ -111,6 +136,7 @@ describe('animateDetailEnter', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    vi.mocked(isZenModeActive).mockReturnValue(false)
   })
 
   it('adds and removes animation classes', async () => {
@@ -145,6 +171,15 @@ describe('animateDetailEnter', () => {
 
     expect(container.classList.contains('view-transition')).toBe(false)
   })
+
+  it('skips animations when in zen mode', async () => {
+    vi.mocked(isZenModeActive).mockReturnValue(true)
+
+    const container = document.createElement('div')
+    await animateDetailEnter(container)
+
+    expect(container.classList.contains('view-transition')).toBe(false)
+  })
 })
 
 describe('animateDetailExit', () => {
@@ -163,6 +198,7 @@ describe('animateDetailExit', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    vi.mocked(isZenModeActive).mockReturnValue(false)
   })
 
   it('adds and removes animation classes', async () => {
@@ -196,6 +232,17 @@ describe('animateDetailExit', () => {
     await animateDetailExit(container)
 
     expect(container.classList.contains('view-transition')).toBe(false)
+  })
+
+  it('skips animations when in zen mode', async () => {
+    vi.mocked(isZenModeActive).mockReturnValue(true)
+
+    const container = document.createElement('div')
+    await animateDetailExit(container)
+
+    // No classes should be added when in zen mode
+    expect(container.classList.contains('view-transition')).toBe(false)
+    expect(container.classList.contains('view-fade-out')).toBe(false)
   })
 })
 
