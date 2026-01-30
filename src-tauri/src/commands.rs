@@ -527,6 +527,35 @@ pub async fn tts_neural_stop() -> Result<(), String> {
     crate::tts::neural::stop().await
 }
 
+/// Speak sentences one-by-one with progress events.
+///
+/// This command processes each sentence individually, emitting `tts-sentence`
+/// events to the frontend when each sentence starts and ends. This enables
+/// the UI to highlight the currently spoken sentence.
+///
+/// # Arguments
+///
+/// * `sentences` - Array of sentences to speak
+/// * `voice_id` - Optional voice ID (uses default if not specified)
+/// * `rate` - Speech rate from 0.5 to 2.0 (1.0 is normal)
+///
+/// # Events
+///
+/// Emits `tts-sentence` events with payloads:
+/// - `{ type: "start", index: number, text: string }` - Sentence started
+/// - `{ type: "end", index: number }` - Sentence finished
+/// - `{ type: "finished" }` - All sentences done
+/// - `{ type: "stopped" }` - Playback was stopped
+#[tauri::command]
+pub async fn tts_neural_speak_sentences(
+    app_handle: tauri::AppHandle,
+    sentences: Vec<String>,
+    voice_id: Option<String>,
+    rate: Option<f32>,
+) -> Result<(), String> {
+    crate::tts::neural::speak_sentences(sentences, voice_id.as_deref(), rate, app_handle).await
+}
+
 /// Get the neural TTS model directory path.
 ///
 /// Returns the platform-specific path where models are stored.

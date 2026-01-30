@@ -36,6 +36,7 @@ import {
   isNeuralTtsSupported,
   type ModelDownloadProgress,
   type ModelInfo,
+  type SentenceEvent,
 } from './tts-neural'
 
 /** Unified voice info that works for both native and neural */
@@ -63,6 +64,10 @@ interface TtsUiState {
   unifiedVoices: UnifiedVoiceInfo[]
   selectedVoiceId: string | null
   models: ModelInfo[]
+  /** Current sentence index being spoken (for highlighting) */
+  currentSentenceIndex: number | null
+  /** Array of sentence texts for the current reading session */
+  sentences: string[]
 }
 
 const state: TtsUiState = {
@@ -77,6 +82,8 @@ const state: TtsUiState = {
   unifiedVoices: [],
   selectedVoiceId: null,
   models: [],
+  currentSentenceIndex: null,
+  sentences: [],
 }
 
 /** Get the native TTS client */
@@ -672,7 +679,10 @@ export async function toggleNeuralReading(text: string): Promise<boolean> {
     debug('Stopping neural playback...')
     state.isPlaying = false
     state.currentText = null
+    state.currentSentenceIndex = null
+    state.sentences = []
     updateNeuralTtsButtonState(false)
+    clearSentenceHighlighting()
     try {
       const stopResult = await getNeuralClient().stop()
       debug('Neural stop result:', stopResult)
@@ -840,12 +850,47 @@ export async function toggleNeuralReading(text: string): Promise<boolean> {
     setNeuralButtonLoadingState(true)
 
     try {
+      // Find the article container for inline highlighting
+      const articleContainer =
+        document.querySelector('.article-content') ||
+        document.querySelector('.story-detail-text')
+
+      // Split text into sentences for sentence-by-sentence playback with highlighting
+      const sentences = splitIntoSentences(text)
       console.log(
-        '[TTS] Calling neuralClient.speak() with text length:',
-        text.length,
+        '[TTS] Split text into',
+        sentences.length,
+        'sentences for highlighting',
       )
-      const success = await getNeuralClient().speak(text)
-      debug('Neural speak result:', success)
+
+      if (sentences.length === 0) {
+        debug('No sentences to speak')
+        toastWarning('No readable text found')
+        setNeuralButtonLoadingState(false)
+        return false
+      }
+
+      // Store sentences in state for progress tracking
+      state.sentences = sentences
+      state.currentSentenceIndex = null
+
+      // Prepare article for inline highlighting (wrap sentences in spans)
+      if (articleContainer) {
+        prepareArticleForTts(articleContainer as HTMLElement)
+      }
+
+      console.log(
+        '[TTS] Calling neuralClient.speakSentences() with',
+        sentences.length,
+        'sentences',
+      )
+
+      // Use sentence-by-sentence playback with event callbacks
+      const success = await getNeuralClient().speakSentences(
+        sentences,
+        handleSentenceEvent,
+      )
+      debug('Neural speakSentences result:', success)
 
       if (success) {
         state.isPlaying = true
@@ -853,18 +898,20 @@ export async function toggleNeuralReading(text: string): Promise<boolean> {
         updateNeuralTtsButtonState(true)
         debug('Playback started successfully')
       } else {
-        debug('Neural speak returned false')
+        debug('Neural speakSentences returned false')
         toastError('Failed to start speech playback')
         setNeuralButtonLoadingState(false)
+        clearSentenceHighlighting()
       }
       debug('===== toggleNeuralReading END - success =====')
       return success
     } catch (error) {
-      debugError('Error in neuralClient.speak():', error)
+      debugError('Error in neuralClient.speakSentences():', error)
       toastError(
         `Speech playback failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
       setNeuralButtonLoadingState(false)
+      clearSentenceHighlighting()
       debug('===== toggleNeuralReading END - error =====')
       return false
     }
@@ -1152,6 +1199,377 @@ export function extractArticleText(container: HTMLElement): string {
     .trim()
 
   return text
+}
+
+/**
+ * Split text into sentences using common sentence boundaries
+ * Combines short sentences to create chunks of ~200-350 characters
+ * for better TTS pacing and highlighting visibility
+ *
+ * @param text - Text to split into sentences
+ * @returns Array of sentence strings
+ */
+export function splitIntoSentences(text: string): string[] {
+  // Target sentence length range (in characters)
+  // Shorter sentences are combined until reaching this threshold
+  const MIN_CHUNK_LENGTH = 200
+  const MAX_CHUNK_LENGTH = 400
+
+  // Split on sentence-ending punctuation followed by space
+  const rawSentences = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim())
+
+  if (rawSentences.length === 0 && text.trim().length > 0) {
+    return [text.trim()]
+  }
+
+  // Combine short sentences into longer chunks
+  const chunks: string[] = []
+  let currentChunk = ''
+
+  for (const sentence of rawSentences) {
+    const trimmed = sentence.trim()
+    if (!trimmed) continue
+
+    // If current chunk is empty, start with this sentence
+    if (!currentChunk) {
+      currentChunk = trimmed
+      continue
+    }
+
+    // Check if adding this sentence would exceed max length
+    const combined = `${currentChunk} ${trimmed}`
+
+    if (combined.length <= MAX_CHUNK_LENGTH) {
+      // If current chunk is below minimum, always combine
+      if (currentChunk.length < MIN_CHUNK_LENGTH) {
+        currentChunk = combined
+      } else {
+        // Current chunk is already good size, start new chunk
+        chunks.push(currentChunk)
+        currentChunk = trimmed
+      }
+    } else {
+      // Would exceed max - push current and start new
+      chunks.push(currentChunk)
+      currentChunk = trimmed
+    }
+  }
+
+  // Don't forget the last chunk
+  if (currentChunk) {
+    chunks.push(currentChunk)
+  }
+
+  return chunks
+}
+
+/**
+ * Prepare article content for TTS with sentence highlighting
+ *
+ * This function wraps each sentence in a span with a data-sentence-index attribute,
+ * allowing the TTS to highlight the current sentence being spoken.
+ *
+ * @param container - The article content container
+ * @returns Object with sentences array and whether preparation was successful
+ */
+export function prepareArticleForTts(container: HTMLElement): {
+  sentences: string[]
+  success: boolean
+} {
+  // Check if already prepared
+  if (container.querySelector('[data-sentence-index]')) {
+    // Already prepared - extract sentences from existing spans
+    const spans = container.querySelectorAll('[data-sentence-index]')
+    const sentences: string[] = []
+    spans.forEach((span) => {
+      sentences.push(span.textContent || '')
+    })
+    return { sentences, success: true }
+  }
+
+  // Extract text and split into sentences
+  const text = extractArticleText(container)
+  const sentences = splitIntoSentences(text)
+
+  if (sentences.length === 0) {
+    return { sentences: [], success: false }
+  }
+
+  // Store sentences for reference
+  state.sentences = sentences
+
+  // Wrap sentences in spans for inline highlighting
+  wrapSentencesInContainer(container, sentences)
+
+  return { sentences, success: true }
+}
+
+/**
+ * Wrap sentences in the container with span elements for highlighting
+ * This modifies the DOM to enable inline sentence highlighting
+ */
+function wrapSentencesInContainer(
+  container: HTMLElement,
+  sentences: string[],
+): void {
+  // Store original HTML for restoration later
+  if (!container.hasAttribute('data-original-html')) {
+    container.setAttribute('data-original-html', container.innerHTML)
+  }
+
+  // Get the full text content
+  const fullText = container.textContent || ''
+
+  // Build a map of sentence positions in the text
+  let searchStart = 0
+  const sentencePositions: Array<{ start: number; end: number; text: string }> =
+    []
+
+  for (const sentence of sentences) {
+    const pos = fullText.indexOf(sentence, searchStart)
+    if (pos !== -1) {
+      sentencePositions.push({
+        start: pos,
+        end: pos + sentence.length,
+        text: sentence,
+      })
+      searchStart = pos + sentence.length
+    }
+  }
+
+  // Now we need to walk through text nodes and wrap them
+  // This is a simplified approach that works for most cases
+  wrapTextNodesWithSentences(container, sentencePositions)
+}
+
+/**
+ * Walk through text nodes and wrap sentence content with spans
+ */
+function wrapTextNodesWithSentences(
+  container: HTMLElement,
+  sentencePositions: Array<{ start: number; end: number; text: string }>,
+): void {
+  // Create a TreeWalker to find all text nodes
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      // Skip empty text nodes
+      if (!node.textContent?.trim()) {
+        return NodeFilter.FILTER_SKIP
+      }
+      return NodeFilter.FILTER_ACCEPT
+    },
+  })
+
+  // Collect all text nodes first (modifying during iteration causes issues)
+  const textNodes: Text[] = []
+  let node: Node | null = walker.nextNode()
+  while (node) {
+    textNodes.push(node as Text)
+    node = walker.nextNode()
+  }
+
+  // Track position in the full text
+  let globalOffset = 0
+
+  for (const textNode of textNodes) {
+    const text = textNode.textContent || ''
+    const nodeStart = globalOffset
+    const nodeEnd = globalOffset + text.length
+
+    // Find sentences that overlap with this text node
+    const overlappingSentences = sentencePositions
+      .map((s, idx) => ({ ...s, index: idx }))
+      .filter((s) => s.start < nodeEnd && s.end > nodeStart)
+
+    if (overlappingSentences.length > 0) {
+      // Split and wrap this text node
+      const fragment = document.createDocumentFragment()
+      let currentPos = 0
+
+      for (const sentence of overlappingSentences) {
+        // Calculate overlap within this text node
+        const overlapStart = Math.max(0, sentence.start - nodeStart)
+        const overlapEnd = Math.min(text.length, sentence.end - nodeStart)
+
+        // Add text before the sentence (if any)
+        if (overlapStart > currentPos) {
+          fragment.appendChild(
+            document.createTextNode(text.slice(currentPos, overlapStart)),
+          )
+        }
+
+        // Add the sentence span
+        const span = document.createElement('span')
+        span.className = 'tts-sentence'
+        span.setAttribute('data-sentence-index', String(sentence.index))
+        span.textContent = text.slice(overlapStart, overlapEnd)
+        fragment.appendChild(span)
+
+        currentPos = overlapEnd
+      }
+
+      // Add remaining text after the last sentence
+      if (currentPos < text.length) {
+        fragment.appendChild(document.createTextNode(text.slice(currentPos)))
+      }
+
+      // Replace the text node with our fragment
+      textNode.parentNode?.replaceChild(fragment, textNode)
+    }
+
+    globalOffset += text.length
+  }
+}
+
+/**
+ * Handle sentence event from TTS backend
+ * Updates the visual highlighting of the current sentence
+ */
+function handleSentenceEvent(event: SentenceEvent): void {
+  debug('Handling sentence event:', event)
+
+  switch (event.type) {
+    case 'start':
+      state.currentSentenceIndex = event.index
+      highlightCurrentSentence(event.index)
+      break
+
+    case 'end':
+      // Sentence finished - could add transition effect here
+      break
+
+    case 'finished':
+      state.isPlaying = false
+      state.currentSentenceIndex = null
+      state.sentences = []
+      clearSentenceHighlighting()
+      updateNeuralTtsButtonState(false)
+      break
+
+    case 'stopped':
+      state.isPlaying = false
+      state.currentSentenceIndex = null
+      state.sentences = []
+      clearSentenceHighlighting()
+      updateNeuralTtsButtonState(false)
+      break
+  }
+}
+
+/**
+ * Highlight the current sentence being spoken
+ * Uses both progress indicator and inline highlighting
+ */
+function highlightCurrentSentence(index: number): void {
+  // Get the article content container
+  const container =
+    document.querySelector('.article-content') ||
+    document.querySelector('.story-detail-text')
+
+  if (!container) return
+
+  // Update progress indicator
+  updateSentenceProgressIndicator(index, state.sentences.length)
+
+  // Remove highlight from previous sentence
+  document.querySelectorAll('.tts-sentence.tts-active').forEach((el) => {
+    el.classList.remove('tts-active')
+  })
+
+  // Highlight current sentence spans
+  const currentSpans = document.querySelectorAll(
+    `[data-sentence-index="${index}"]`,
+  )
+  currentSpans.forEach((span) => {
+    span.classList.add('tts-active')
+
+    // Scroll into view if needed (only for first span of the sentence)
+    if (span === currentSpans[0]) {
+      span.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+
+  debug(`Highlighting sentence ${index + 1} of ${state.sentences.length}`)
+}
+
+/**
+ * Clear all sentence highlighting and restore original content
+ */
+function clearSentenceHighlighting(): void {
+  // Remove progress indicator
+  const indicator = document.querySelector('.tts-sentence-indicator')
+  if (indicator) {
+    indicator.remove()
+  }
+
+  // Restore original HTML content
+  const containers = document.querySelectorAll('[data-original-html]')
+  containers.forEach((container) => {
+    const originalHtml = container.getAttribute('data-original-html')
+    if (originalHtml) {
+      container.innerHTML = originalHtml
+      container.removeAttribute('data-original-html')
+    }
+  })
+
+  // Reset any highlighted elements (fallback)
+  document.querySelectorAll('.tts-sentence.tts-active').forEach((el) => {
+    el.classList.remove('tts-active')
+  })
+}
+
+/**
+ * Update the sentence progress indicator
+ * Shows which sentence is currently being read
+ */
+function updateSentenceProgressIndicator(
+  currentIndex: number,
+  totalSentences: number,
+): void {
+  let indicator = document.querySelector(
+    '.tts-sentence-indicator',
+  ) as HTMLElement | null
+
+  if (!indicator) {
+    // Create the indicator
+    indicator = document.createElement('div')
+    indicator.className = 'tts-sentence-indicator'
+
+    // Find the article container and add indicator
+    const articleContainer =
+      document.querySelector('.article-content') ||
+      document.querySelector('.story-detail-text')
+    if (articleContainer) {
+      // Insert before the article content
+      articleContainer.parentElement?.insertBefore(indicator, articleContainer)
+    }
+  }
+
+  const progress = ((currentIndex + 1) / totalSentences) * 100
+  const currentSentence = state.sentences[currentIndex] || ''
+  const previewText =
+    currentSentence.length > 100
+      ? `${currentSentence.substring(0, 100)}...`
+      : currentSentence
+
+  indicator.innerHTML = `
+    <div class="tts-progress-bar">
+      <div class="tts-progress-fill" style="width: ${progress}%"></div>
+    </div>
+    <div class="tts-progress-text">
+      <span class="tts-progress-count">${currentIndex + 1} / ${totalSentences}</span>
+      <span class="tts-current-text">${escapeHtml(previewText)}</span>
+    </div>
+  `
+}
+
+/**
+ * Escape HTML special characters
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
 }
 
 // Track containers that already have TTS listeners attached

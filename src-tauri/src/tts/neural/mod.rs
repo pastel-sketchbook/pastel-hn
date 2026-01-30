@@ -31,12 +31,13 @@ pub mod model;
 pub mod synth;
 
 pub use model::{ModelManager, NeuralModel};
-pub use synth::NeuralTtsEngine;
+pub use synth::{NeuralTtsEngine, SentenceEvent};
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use tokio::sync::RwLock;
+use tauri::{AppHandle, Emitter};
+use tokio::sync::{mpsc, RwLock};
 
 /// Global neural TTS engine instance
 static NEURAL_TTS: OnceLock<RwLock<NeuralTtsEngine>> = OnceLock::new();
@@ -198,6 +199,62 @@ pub async fn stop() -> Result<(), String> {
             engine.stop().await.map_err(|e| e.to_string())
         }
         None => Ok(()), // Nothing to stop
+    }
+}
+
+/// Speak sentences one-by-one with progress events.
+///
+/// This function processes each sentence individually, emitting Tauri events
+/// when each sentence starts and ends. This allows the frontend to highlight
+/// the currently spoken sentence.
+///
+/// # Arguments
+///
+/// * `sentences` - Array of sentences to speak
+/// * `voice_id` - Optional voice ID (uses default if not specified)
+/// * `rate` - Speech rate from 0.5 to 2.0 (1.0 is normal)
+/// * `app_handle` - Tauri AppHandle for emitting events
+///
+/// # Events
+///
+/// Emits `tts-sentence` events with payloads:
+/// - `{ type: "start", index: number, text: string }` - Sentence started
+/// - `{ type: "end", index: number }` - Sentence finished
+/// - `{ type: "finished" }` - All sentences done
+/// - `{ type: "stopped" }` - Playback was stopped
+pub async fn speak_sentences(
+    sentences: Vec<String>,
+    voice_id: Option<&str>,
+    rate: Option<f32>,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let mut engine = get_engine_mut().await?;
+
+    // Set rate if provided
+    if let Some(r) = rate {
+        engine.set_rate(r);
+    }
+
+    // Create channel for sentence events
+    let (tx, mut rx) = mpsc::channel::<SentenceEvent>(32);
+
+    // Spawn task to forward events to Tauri
+    let handle = app_handle.clone();
+    tokio::spawn(async move {
+        while let Some(event) = rx.recv().await {
+            if let Err(e) = handle.emit("tts-sentence", &event) {
+                tracing::warn!("Failed to emit TTS sentence event: {}", e);
+            }
+        }
+    });
+
+    // Speak sentences with events
+    match engine.speak_sentences(&sentences, voice_id, tx).await {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            tracing::warn!("Neural TTS failed: {}", e);
+            Err(e.to_string())
+        }
     }
 }
 

@@ -5,6 +5,7 @@
 //! - Text-to-phoneme conversion via espeak-ng
 //! - Phoneme-to-ID mapping using model config
 //! - Audio generation and playback
+//! - Sentence-by-sentence playback with progress events
 
 use super::audio::AudioData;
 use super::model::{ModelError, ModelManager, NeuralModel};
@@ -16,6 +17,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::sync::mpsc;
 
 /// Errors that can occur during synthesis
 #[derive(Debug, Error)]
@@ -37,6 +39,28 @@ pub enum SynthesisError {
     PhonemeError(String),
     #[error("Config parse error: {0}")]
     ConfigError(String),
+}
+
+/// Events emitted during sentence-by-sentence TTS playback
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum SentenceEvent {
+    /// A sentence has started playing
+    Start {
+        /// Index of the sentence (0-based)
+        index: usize,
+        /// The sentence text
+        text: String,
+    },
+    /// A sentence has finished playing
+    End {
+        /// Index of the sentence (0-based)
+        index: usize,
+    },
+    /// All sentences have finished
+    Finished,
+    /// Playback was stopped
+    Stopped,
 }
 
 /// Configuration for neural TTS
@@ -313,6 +337,106 @@ impl NeuralTtsEngine {
     /// Stop current playback
     pub async fn stop(&mut self) -> Result<(), SynthesisError> {
         self.is_speaking.store(false, Ordering::SeqCst);
+        Ok(())
+    }
+
+    /// Speak sentences one-by-one, emitting events for each sentence
+    ///
+    /// This method processes each sentence individually, generating audio
+    /// and playing it before moving to the next. It sends events through
+    /// the provided channel to allow the frontend to highlight the current
+    /// sentence being spoken.
+    ///
+    /// # Arguments
+    ///
+    /// * `sentences` - Array of sentences to speak
+    /// * `voice_id` - Optional voice ID override
+    /// * `event_tx` - Channel to send sentence events
+    pub async fn speak_sentences(
+        &mut self,
+        sentences: &[String],
+        voice_id: Option<&str>,
+        event_tx: mpsc::Sender<SentenceEvent>,
+    ) -> Result<(), SynthesisError> {
+        // Ensure model is loaded
+        if self.model_session.is_none() {
+            self.load_model(&self.config.model_id.clone()).await?;
+        }
+
+        // Update voice if specified
+        if let Some(vid) = voice_id {
+            self.config.voice_id = vid.to_string();
+        }
+
+        // Mark as speaking
+        self.is_speaking.store(true, Ordering::SeqCst);
+
+        let sample_rate = self
+            .piper_config
+            .as_ref()
+            .map(|c| c.audio.sample_rate)
+            .unwrap_or(22050);
+
+        // Process each sentence one by one
+        for (index, sentence) in sentences.iter().enumerate() {
+            // Check if we should stop
+            if !self.is_speaking.load(Ordering::SeqCst) {
+                let _ = event_tx.send(SentenceEvent::Stopped).await;
+                break;
+            }
+
+            // Preprocess the sentence
+            let processed = match self.preprocess_text(sentence) {
+                Ok(p) if !p.is_empty() => p,
+                _ => continue, // Skip empty sentences
+            };
+
+            // Emit sentence start event
+            let _ = event_tx
+                .send(SentenceEvent::Start {
+                    index,
+                    text: sentence.clone(),
+                })
+                .await;
+
+            // Generate audio for this sentence
+            match self.generate_audio(&processed).await {
+                Ok(audio_data) => {
+                    if !audio_data.is_empty() {
+                        let is_speaking = self.is_speaking.clone();
+
+                        // Play audio and wait for completion
+                        let play_result = tokio::task::spawn_blocking(move || {
+                            play_audio_blocking(audio_data, sample_rate, is_speaking)
+                        })
+                        .await;
+
+                        match play_result {
+                            Ok(Ok(())) => {}
+                            Ok(Err(e)) => {
+                                tracing::warn!("Audio playback error: {}", e);
+                            }
+                            Err(e) => {
+                                tracing::warn!("Audio task join error: {}", e);
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to generate audio for sentence {}: {}", index, e);
+                    // Continue with next sentence instead of stopping
+                }
+            }
+
+            // Emit sentence end event
+            let _ = event_tx.send(SentenceEvent::End { index }).await;
+        }
+
+        self.is_speaking.store(false, Ordering::SeqCst);
+
+        // Emit finished event
+        let _ = event_tx.send(SentenceEvent::Finished).await;
+
         Ok(())
     }
 

@@ -2140,6 +2140,113 @@ main {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
+/* ===== TTS SENTENCE INDICATOR ===== */
+.tts-sentence-indicator {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-panel);
+  border: 1px solid var(--cyan-soft);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(8px);
+  animation: tts-indicator-in 0.3s ease-out;
+}
+
+@keyframes tts-indicator-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tts-progress-bar {
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.tts-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  border-radius: 2px;
+  transition: width 0.3s ease-out;
+}
+
+.tts-progress-text {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.tts-progress-count {
+  font-family: var(--font-mono);
+  color: var(--cyan);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tts-current-text {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+[data-theme="light"] .tts-sentence-indicator {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 150, 180, 0.2);
+}
+
+[data-theme="light"] .tts-progress-bar {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .tts-progress-count {
+  color: var(--cyan-dim);
+}
+
+[data-theme="light"] .tts-current-text {
+  color: var(--text-secondary);
+}
+
+/* Highlight for current sentence (if inline highlighting is used) */
+.tts-current-sentence {
+  background: var(--cyan-soft);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+/* ===== TTS INLINE SENTENCE HIGHLIGHTING ===== */
+.tts-sentence {
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.tts-sentence.tts-active {
+  color: var(--cyan);
+  background: var(--cyan-soft);
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 -2px;
+}
+
+[data-theme="light"] .tts-sentence.tts-active {
+  color: var(--cyan-dim);
+  background: rgba(0, 180, 216, 0.15);
+}
+
 .story-detail-text {
   font-size: 1.05rem;
   line-height: 1.7;

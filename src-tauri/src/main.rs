@@ -365,6 +365,7 @@ fn main() {
             commands::tts_download_model,
             commands::tts_is_model_ready,
             commands::tts_neural_speak,
+            commands::tts_neural_speak_sentences,
             commands::tts_neural_stop,
             commands::tts_model_directory,
             commands::tts_model_disk_usage,

@@ -73,6 +73,16 @@ export interface NeuralTtsPreferences {
   useFallbackOnError: boolean
 }
 
+/** Sentence event types from the backend */
+export type SentenceEvent =
+  | { type: 'start'; index: number; text: string }
+  | { type: 'end'; index: number }
+  | { type: 'finished' }
+  | { type: 'stopped' }
+
+/** Callback for sentence events */
+export type SentenceEventCallback = (event: SentenceEvent) => void
+
 /** Unavailable status for non-Tauri environments */
 const UNAVAILABLE_STATUS: NeuralTtsStatus = {
   available: false,
@@ -114,7 +124,9 @@ export class NeuralTtsClient {
   private downloadProgressListeners: Set<
     (progress: ModelDownloadProgress) => void
   > = new Set()
+  private sentenceEventListeners: Set<SentenceEventCallback> = new Set()
   private unlistenFn: UnlistenFn | null = null
+  private sentenceUnlistenFn: UnlistenFn | null = null
 
   /** Check if neural TTS is available */
   isAvailable(): boolean {
@@ -402,6 +414,143 @@ export class NeuralTtsClient {
   }
 
   /**
+   * Speak sentences one-by-one with progress events
+   *
+   * This method processes each sentence individually, emitting events
+   * when each sentence starts and ends. Use this for sentence highlighting.
+   *
+   * @param sentences - Array of sentences to speak
+   * @param onSentenceEvent - Callback for sentence events
+   * @param voiceId - Optional voice ID (uses preference if not specified)
+   * @returns true if started successfully
+   */
+  async speakSentences(
+    sentences: string[],
+    onSentenceEvent: SentenceEventCallback,
+    voiceId?: string,
+  ): Promise<boolean> {
+    debug(
+      'speakSentences() called, sentences:',
+      sentences.length,
+      'isTauri:',
+      isTauri(),
+    )
+
+    if (!isTauri()) {
+      debug('Not available - not in Tauri environment')
+      return false
+    }
+
+    // Ensure initialized
+    if (!this.initialized) {
+      debug('Not initialized, initializing now...')
+      await this.init()
+      debug('After init - available:', this.status.available)
+    }
+
+    // Set up sentence event listener
+    await this.setupSentenceEventListener(onSentenceEvent)
+
+    try {
+      const selectedVoice = voiceId || this.preferences.preferredVoiceId
+      debug(
+        'Calling tts_neural_speak_sentences with voice:',
+        selectedVoice,
+        'sentences:',
+        sentences.length,
+      )
+
+      this.status.isSpeaking = true
+
+      // The Rust backend handles model loading and emits events
+      await invoke('tts_neural_speak_sentences', {
+        sentences,
+        voiceId: selectedVoice,
+        rate: this.preferences.rate,
+      })
+
+      this.status.isSpeaking = false
+      debug('tts_neural_speak_sentences completed successfully')
+      return true
+    } catch (error) {
+      this.status.isSpeaking = false
+      debugError('Failed to speak sentences with neural TTS:', error)
+
+      // Clean up listener
+      await this.cleanupSentenceEventListener()
+
+      return false
+    }
+  }
+
+  /**
+   * Add a listener for sentence events
+   * @param callback - Function to call when sentence events occur
+   */
+  addSentenceEventListener(callback: SentenceEventCallback): void {
+    this.sentenceEventListeners.add(callback)
+  }
+
+  /**
+   * Remove a sentence event listener
+   * @param callback - The callback to remove
+   */
+  removeSentenceEventListener(callback: SentenceEventCallback): void {
+    this.sentenceEventListeners.delete(callback)
+  }
+
+  /**
+   * Set up event listener for sentence events from backend
+   */
+  private async setupSentenceEventListener(
+    callback: SentenceEventCallback,
+  ): Promise<void> {
+    if (!isTauri()) return
+
+    // Clean up existing listener if any
+    await this.cleanupSentenceEventListener()
+
+    // Add the callback
+    this.sentenceEventListeners.add(callback)
+
+    try {
+      // Listen for sentence events
+      this.sentenceUnlistenFn = await listen<SentenceEvent>(
+        'tts-sentence',
+        (event) => {
+          debug('Received sentence event:', event.payload)
+          // Notify all registered listeners
+          this.sentenceEventListeners.forEach((listener) => {
+            listener(event.payload)
+          })
+
+          // Clean up when finished or stopped
+          if (
+            event.payload.type === 'finished' ||
+            event.payload.type === 'stopped'
+          ) {
+            this.status.isSpeaking = false
+            // Remove the callback after completion
+            this.sentenceEventListeners.delete(callback)
+          }
+        },
+      )
+    } catch (error) {
+      debugError('Failed to setup sentence event listener:', error)
+    }
+  }
+
+  /**
+   * Clean up sentence event listener
+   */
+  private async cleanupSentenceEventListener(): Promise<void> {
+    if (this.sentenceUnlistenFn) {
+      this.sentenceUnlistenFn()
+      this.sentenceUnlistenFn = null
+    }
+  }
+
+  /**
    * Set speech rate
    * @param rate - Rate from 0.5 to 2.0 (1.0 is normal)
    */
@@ -559,7 +708,10 @@ export class NeuralTtsClient {
       this.unlistenFn = null
     }
 
+    await this.cleanupSentenceEventListener()
+
     this.downloadProgressListeners.clear()
+    this.sentenceEventListeners.clear()
   }
 }
 
