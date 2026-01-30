@@ -172,24 +172,24 @@ Implement **Option 4: Rust Backend TTS with Piper + ONNX Runtime**, with Option 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     TypeScript (Frontend)                    │
+│                     TypeScript (Frontend)                   │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │  tts-ui.ts  │  │ tts-neural. │  │  Article Content    │  │
 │  │  (Unified   │  │   ts        │  │  Extraction         │  │
 │  │   UI)       │  │  (Neural    │  │                     │  │
 │  └──────┬──────┘  │   Client)   │  └─────────────────────┘  │
-│         │         └──────┬──────┘                             │
-│         │                │                                   │
-│  ┌──────▼──────┐  ┌──────▼──────┐                            │
-│  │ tts-client. │  │  invoke()   │                            │
-│  │  ts         │  │  Commands:  │                            │
-│  │ (Native)    │  │  tts_neural │                            │
-│  └──────┬──────┘  │  _speak     │                            │
-│         │         │  tts_neural │                            │
-│         │         │  _status    │                            │
-│         │         │  tts_downl  │                            │
-│         │         │  oad_model  │                            │
-└─────────┼─────────┼──────┬──────┼─────────────────────────────┘
+│         │         └──────┬──────┘                           │
+│         │                │                                  │
+│  ┌──────▼──────┐  ┌──────▼──────┐                           │
+│  │ tts-client. │  │  invoke()   │                           │
+│  │  ts         │  │  Commands:  │                           │
+│  │ (Native)    │  │  tts_neural │                           │
+│  └──────┬──────┘  │  _speak     │                           │
+│         │         │  tts_neural │                           │
+│         │         │  _status    │                           │
+│         │         │  tts_downl  │                           │
+│         │         │  oad_model  │                           │
+└─────────┼─────────┼──────┬──────┼───────────────────────────┘
           │         │      │      │
           │         │ ┌────▼──────▼───────┐
           │         │ │  Tauri IPC Layer  │
@@ -221,13 +221,13 @@ Implement **Option 4: Rust Backend TTS with Piper + ONNX Runtime**, with Option 
 │         │         │  │  rodio     │                            │
 │         │         │  │  (Audio)   │                            │
 │         │         │  └────────────┘                            │
-│         │         │                                              │
-│  ┌──────▼─────────▼──────┐                                       │
-│  │ tts.rs (Native TTS)   │  (Fallback when neural unavailable)  │
-│  │ tts crate             │                                       │
-│  └───────────────────────┘                                       │
-│                                                                   │
-└───────────────────────────────────────────────────────────────────┘
+│         │         │                                            │
+│  ┌──────▼─────────▼──────┐                                     │
+│  │ tts.rs (Native TTS)   │  (Fallback when neural unavailable) │
+│  │ tts crate             │                                     │
+│  └───────────────────────┘                                     │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ## Implementation Details
