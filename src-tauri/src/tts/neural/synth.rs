@@ -391,18 +391,18 @@ impl NeuralTtsEngine {
                 _ => continue, // Skip empty sentences
             };
 
-            // Emit sentence start event
-            let _ = event_tx
-                .send(SentenceEvent::Start {
-                    index,
-                    text: sentence.clone(),
-                })
-                .await;
-
-            // Generate audio for this sentence
+            // Generate audio for this sentence BEFORE emitting start event
+            // This ensures highlighting syncs with actual audio playback
             match self.generate_audio(&processed).await {
                 Ok(audio_data) => {
                     if !audio_data.is_empty() {
+                        // Emit sentence start event right before playback
+                        let _ = event_tx
+                            .send(SentenceEvent::Start {
+                                index,
+                                text: sentence.clone(),
+                            })
+                            .await;
                         let is_speaking = self.is_speaking.clone();
 
                         // Play audio and wait for completion
