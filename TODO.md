@@ -456,6 +456,96 @@ The following subtle bugs have been fixed in recent commits:
 
 ---
 
+## Phase 8: Neural TTS with XTTS v2 (Rust Backend)
+
+> See [ADR-0008](./docs/rationale/0008_rust_backend_tts_xtts_v2.md) for full rationale
+
+**Goal**: Replace native/browser TTS with high-quality neural voices via Rust backend + ONNX Runtime
+
+### 8.1 Rust Backend Infrastructure
+
+- [ ] Add dependencies to `src-tauri/Cargo.toml`:
+  - `ort = "2.0"` - ONNX Runtime bindings
+  - `rodio = "0.19"` - Audio playback
+  - `tts = "0.26"` - Native TTS fallback
+  - `hound = "3.5"` - WAV encoding
+  - `tokio = { version = "1", features = ["sync", "rt"] }`
+
+- [ ] Create `src-tauri/src/tts/mod.rs`:
+  - [ ] Model download/caching logic
+  - [ ] ONNX session management
+  - [ ] Audio generation pipeline
+
+- [ ] Implement Tauri commands:
+  - [ ] `tts_speak(text: String, voice: Option<String>) -> Result<(), String>`
+  - [ ] `tts_stop() -> Result<(), String>`
+  - [ ] `tts_get_status() -> TtsStatus`
+  - [ ] `tts_list_voices() -> Vec<VoiceInfo>`
+  - [ ] `tts_download_model(model_id: String) -> Result<(), String>`
+
+### 8.2 Model Management
+
+- [ ] **Model storage**: `~/.local/share/pastel-hn/models/` (platform-specific)
+- [ ] **First-run flow**:
+  - [ ] Detect missing model on first TTS use
+  - [ ] Prompt user to download (~1.5GB for XTTS v2)
+  - [ ] Show progress bar with cancel option
+  - [ ] Auto-fallback to native TTS until download completes
+- [ ] **Model options**:
+  - `xtts-v2-full` (~1.5GB) - Best quality, primary option
+  - `piper-en-us` (~50MB) - Lightweight alternative for storage-constrained users
+
+### 8.3 Frontend Integration
+
+- [ ] Create `web/src/tts-rust.ts`:
+  - [ ] `speak(text: string): Promise<void>` - invoke Rust TTS command
+  - [ ] `stop(): Promise<void>` - stop playback
+  - [ ] `getStatus(): Promise<TtsStatus>` - check model status
+
+- [ ] Update `web/src/tts-ui.ts`:
+  - [ ] Prefer Rust TTS when available and model downloaded
+  - [ ] Auto-fallback to native TTS during model download or on error
+  - [ ] Add "Download Neural Voice" button when model missing
+
+- [ ] Add TTS settings UI:
+  - [ ] Voice selection dropdown
+  - [ ] Speech rate slider (0.5x - 2.0x)
+  - [ ] Model download management (download/delete/verify)
+  - [ ] "Use native voice" toggle for fallback preference
+
+### 8.4 Streaming & Performance
+
+- [ ] **Sentence chunking**: Split text into sentences, generate in parallel
+- [ ] **Audio streaming**: Play first chunk while generating subsequent ones
+- [ ] **Caching**: Cache generated audio for recently read articles (LRU, max 100MB)
+- [ ] **GPU acceleration**: Enable CUDA/Metal backends where available (auto-detect)
+
+### 8.5 Testing
+
+- [ ] Unit tests for model download/resume logic
+- [ ] Unit tests for audio chunking pipeline
+- [ ] Integration tests for Tauri commands
+- [ ] E2E tests for full "listen to article" flow
+- [ ] Performance benchmarks (first audio latency, real-time factor)
+
+### 8.6 Error Handling
+
+- [ ] Network error during model download (retry with exponential backoff)
+- [ ] ONNX Runtime crash (catch panics, fallback to native TTS)
+- [ ] Audio playback failure (switch audio backend: rodio → cpal)
+- [ ] Out of disk space (clear cache, show warning)
+
+### 8.7 Performance Targets
+
+| Metric | Target | XTTS v2 Expected |
+|--------|--------|------------------|
+| First audio latency | <3 seconds | ~500ms (M1 Mac) |
+| Real-time factor | <0.5x | ~0.3x |
+| Memory usage | <3GB | ~2GB |
+| Model size | <2GB | ~1.5GB |
+
+---
+
 ## Success Metrics
 
 The "best UI/UX HN client" should achieve:
