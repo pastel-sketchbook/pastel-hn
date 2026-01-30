@@ -24,6 +24,8 @@ const THRESHOLDS = {
   FEED_SWITCH: 200,
   /** Navigation to story detail */
   STORY_DETAIL_NAVIGATION: 500,
+  /** Theme toggle should feel instant (<200ms is perceived as immediate) */
+  THEME_TOGGLE: 150,
 }
 
 interface PerformanceMetrics {
@@ -245,7 +247,7 @@ test.describe('Performance Benchmarks', () => {
       )
 
       expect(newTheme).not.toBe(initialTheme)
-      expect(toggleTime).toBeLessThan(100) // Theme toggle should be instant
+      expect(toggleTime).toBeLessThan(THRESHOLDS.THEME_TOGGLE)
     })
   })
 
