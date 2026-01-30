@@ -1317,48 +1317,113 @@ function wrapSentencesInContainer(
     container.setAttribute('data-original-html', container.innerHTML)
   }
 
-  // Get the full text content
+  // Get the full text content (raw, with all whitespace)
   const fullText = container.textContent || ''
+  
+  // Create a normalized version for matching (same normalization as extractArticleText)
+  const normalizedFullText = fullText.replace(/\s+/g, ' ').trim()
 
-  // Build a map of sentence positions in the text
-  let searchStart = 0
-  const sentencePositions: Array<{ start: number; end: number; text: string }> =
-    []
+  // Build a map of sentence positions
+  // We find positions in normalized text, then map back to raw positions
+  const sentencePositions: Array<{ start: number; end: number; text: string }> = []
 
-  for (const sentence of sentences) {
-    const pos = fullText.indexOf(sentence, searchStart)
-    if (pos !== -1) {
-      sentencePositions.push({
-        start: pos,
-        end: pos + sentence.length,
-        text: sentence,
-      })
-      searchStart = pos + sentence.length
+  let normalizedSearchStart = 0
+  let notFoundCount = 0
+  
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i]
+    
+    // Find sentence in normalized text
+    const normalizedPos = normalizedFullText.indexOf(sentence, normalizedSearchStart)
+    
+    if (normalizedPos === -1) {
+      notFoundCount++
+      console.warn(`[TTS] Sentence ${i} not found in normalized text:`, sentence.substring(0, 50))
+      continue
     }
+    
+    // Map normalized position back to raw position
+    // Count characters in raw text until we've passed normalizedPos normalized chars
+    let rawPos = 0
+    let normalizedCount = 0
+    let inWhitespace = false
+    
+    // Skip leading whitespace in raw text
+    while (rawPos < fullText.length && /\s/.test(fullText[rawPos])) {
+      rawPos++
+    }
+    
+    // Now advance through raw text, tracking normalized position
+    const rawStartSearch = rawPos
+    while (rawPos < fullText.length && normalizedCount < normalizedPos) {
+      const char = fullText[rawPos]
+      if (/\s/.test(char)) {
+        if (!inWhitespace) {
+          normalizedCount++ // Count collapsed whitespace as single space
+          inWhitespace = true
+        }
+      } else {
+        normalizedCount++
+        inWhitespace = false
+      }
+      rawPos++
+    }
+    
+    // rawPos now points to the start of the sentence in raw text
+    const rawStart = rawPos
+    
+    // Find the end by advancing through the sentence length
+    let sentenceNormalizedCount = 0
+    while (rawPos < fullText.length && sentenceNormalizedCount < sentence.length) {
+      const char = fullText[rawPos]
+      if (/\s/.test(char)) {
+        if (!inWhitespace) {
+          sentenceNormalizedCount++
+          inWhitespace = true
+        }
+      } else {
+        sentenceNormalizedCount++
+        inWhitespace = false
+      }
+      rawPos++
+    }
+    
+    const rawEnd = rawPos
+    
+    sentencePositions.push({
+      start: rawStart,
+      end: rawEnd,
+      text: sentence,
+    })
+    
+    normalizedSearchStart = normalizedPos + sentence.length
   }
 
+  if (notFoundCount > 0) {
+    console.warn(`[TTS] ${notFoundCount}/${sentences.length} sentences not found in DOM text`)
+  }
+  
+  console.log(`[TTS] Wrapped ${sentencePositions.length} sentences, fullText length: ${fullText.length}`)
+
   // Now we need to walk through text nodes and wrap them
-  // This is a simplified approach that works for most cases
   wrapTextNodesWithSentences(container, sentencePositions)
 }
 
 /**
  * Walk through text nodes and wrap sentence content with spans
+ *
+ * IMPORTANT: We must include ALL text nodes (including whitespace-only nodes)
+ * when calculating globalOffset, because container.textContent includes them.
+ * Previously, skipping whitespace nodes caused offset drift, making highlights
+ * appear 2+ sentences ahead of the audio.
  */
 function wrapTextNodesWithSentences(
   container: HTMLElement,
   sentencePositions: Array<{ start: number; end: number; text: string }>,
 ): void {
-  // Create a TreeWalker to find all text nodes
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
-    acceptNode: (node) => {
-      // Skip empty text nodes
-      if (!node.textContent?.trim()) {
-        return NodeFilter.FILTER_SKIP
-      }
-      return NodeFilter.FILTER_ACCEPT
-    },
-  })
+  // Create a TreeWalker to find ALL text nodes (don't skip any!)
+  // We need every text node to correctly calculate globalOffset
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
 
   // Collect all text nodes first (modifying during iteration causes issues)
   const textNodes: Text[] = []
@@ -1368,13 +1433,21 @@ function wrapTextNodesWithSentences(
     node = walker.nextNode()
   }
 
-  // Track position in the full text
+  // Track position in the full text (must match container.textContent positions)
   let globalOffset = 0
 
   for (const textNode of textNodes) {
     const text = textNode.textContent || ''
     const nodeStart = globalOffset
     const nodeEnd = globalOffset + text.length
+
+    // Always increment offset, even for whitespace-only nodes
+    globalOffset += text.length
+
+    // Skip processing whitespace-only nodes (but we already counted them above!)
+    if (!text.trim()) {
+      continue
+    }
 
     // Find sentences that overlap with this text node
     const overlappingSentences = sentencePositions
@@ -1416,8 +1489,6 @@ function wrapTextNodesWithSentences(
       // Replace the text node with our fragment
       textNode.parentNode?.replaceChild(fragment, textNode)
     }
-
-    globalOffset += text.length
   }
 }
 

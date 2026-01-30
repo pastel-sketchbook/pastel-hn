@@ -85,6 +85,29 @@ The implementation uses **both** approaches for maximum visibility:
 - On sentence start event, add highlight class and scroll into view
 - On stop/finish, restore original HTML content
 
+**Critical: Text Normalization for Accurate Highlighting**
+
+A subtle but critical issue arises from how text is processed:
+
+1. `extractArticleText()` normalizes whitespace (collapses `\n\n\n` to single space)
+2. `splitIntoSentences()` works on this normalized text
+3. But DOM `textContent` retains original whitespace
+
+This mismatch caused highlights to appear 2+ sentences ahead of audio. The solution:
+
+```typescript
+// In wrapSentencesInContainer():
+const fullText = container.textContent || ''  // Raw with all whitespace
+const normalizedFullText = fullText.replace(/\s+/g, ' ').trim()
+
+// Find sentence in normalized text, then map position back to raw text
+// by counting characters while tracking whitespace collapse
+```
+
+Additionally, the TreeWalker must include ALL text nodes (including whitespace-only)
+when calculating `globalOffset`, since `container.textContent` includes them.
+Skipping whitespace nodes causes offset drift.
+
 #### 3. Frontend Sentence Splitting with Chunking
 
 Sentences are split in the frontend before being sent to the backend. Short sentences
@@ -203,6 +226,18 @@ New styles for `.tts-sentence-indicator`:
 1. **Slightly longer startup**: Each sentence is generated individually (no pre-buffering)
 2. **More events**: One event per sentence increases IPC traffic slightly
 3. **No word-level highlighting**: Only sentence-level granularity
+
+### Technical Challenges Overcome
+
+1. **Whitespace Normalization Mismatch**: Text extraction normalizes whitespace for TTS,
+   but DOM retains original formatting. Solution: normalize-then-map-back algorithm.
+
+2. **TreeWalker Offset Drift**: Skipping whitespace-only text nodes in TreeWalker caused
+   `globalOffset` to drift from `textContent` positions. Solution: include all nodes
+   in offset calculation, skip only for processing.
+
+3. **Audio Buffer Latency**: Events must fire when audio is audible, not when queued.
+   Solution: 50ms delay after `sink.append()` before emitting Start event.
 
 ### Neutral
 
