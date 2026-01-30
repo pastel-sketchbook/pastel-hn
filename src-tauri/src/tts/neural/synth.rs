@@ -774,8 +774,15 @@ fn play_audio_blocking(
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
 
-    // Wait a bit for audio to finish
+    // Wait for audio to fully finish playing
+    // sleep_until_end waits for the sink to be empty, but there may still be
+    // audio in the hardware buffer that hasn't been played yet
     sink.sleep_until_end();
+
+    // Additional delay to account for audio hardware buffer latency
+    // This ensures the previous sentence's audio has fully played before
+    // we signal that the next sentence can start highlighting
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
     Ok(())
 }
