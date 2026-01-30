@@ -462,7 +462,13 @@ async function main(): Promise<void> {
     initAssistant()
 
     // Initialize TTS (text-to-speech)
-    initTtsUi()
+    initTtsUi().then((available) => {
+      if (available) {
+        console.log('TTS initialized successfully')
+      } else {
+        console.warn('TTS not available')
+      }
+    })
 
     // Initialize offline detection
     initOfflineDetection()

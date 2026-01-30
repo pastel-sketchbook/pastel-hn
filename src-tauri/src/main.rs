@@ -297,6 +297,28 @@ fn main() {
 
             info!("Deep link handler initialized");
 
+            // Initialize native TTS
+            if let Err(e) = tts::init() {
+                info!(
+                    "Native TTS initialization failed (may be unavailable): {}",
+                    e
+                );
+            } else {
+                info!("Native TTS initialized successfully");
+            }
+
+            // Initialize neural TTS (async - spawn on tauri runtime)
+            tauri::async_runtime::spawn(async {
+                if let Err(e) = tts::neural::init_neural().await {
+                    info!(
+                        "Neural TTS initialization failed (models not downloaded): {}",
+                        e
+                    );
+                } else {
+                    info!("Neural TTS engine initialized successfully");
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -328,7 +350,7 @@ fn main() {
             commands::copilot_draft_reply,
             commands::copilot_ask,
             commands::copilot_shutdown,
-            // TTS (Text-to-Speech)
+            // TTS (Text-to-Speech) - Native OS voices
             commands::tts_init,
             commands::tts_status,
             commands::tts_speak,
@@ -336,6 +358,17 @@ fn main() {
             commands::tts_get_voices,
             commands::tts_set_voice,
             commands::tts_set_rate,
+            // Neural TTS (Piper + ONNX Runtime)
+            commands::tts_neural_init,
+            commands::tts_neural_status,
+            commands::tts_neural_voices,
+            commands::tts_download_model,
+            commands::tts_is_model_ready,
+            commands::tts_neural_speak,
+            commands::tts_neural_stop,
+            commands::tts_model_directory,
+            commands::tts_model_disk_usage,
+            commands::tts_delete_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

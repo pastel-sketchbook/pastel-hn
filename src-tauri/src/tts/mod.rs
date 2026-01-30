@@ -1,31 +1,45 @@
-//! Text-to-Speech module using native OS voices.
+//! Text-to-Speech module with native and neural voice support.
 //!
-//! This module provides text-to-speech functionality using the system's native
-//! speech synthesis capabilities (macOS AVSpeechSynthesizer, Windows SAPI,
-//! Linux speech-dispatcher).
+//! This module provides two TTS backends:
 //!
-//! # Features
+//! 1. **Native OS TTS** ([`native`]) - Uses system voices (free, offline)
+//! 2. **Neural TTS** ([`neural`]) - High-quality Piper via ONNX Runtime
 //!
-//! - **Zero cost** - Uses free OS-provided voices
-//! - **Offline support** - Works without internet
-//! - **Voice selection** - Choose from available system voices
-//! - **Playback control** - Play, pause, resume, stop
-//! - **Rate control** - Adjust speaking speed
+//! The native TTS is always available as a fallback. Neural TTS requires
+//! downloading models (~63MB for Piper) but provides better voice quality.
+//!
+//! # Architecture
+//!
+//! ```text
+//! ┌─────────────────────────────────────────────┐
+//! │  TypeScript Frontend                        │
+//! │  - tts-ui.ts: UI controls                   │
+//! │  - tts-client.ts: Native TTS client         │
+//! │  - tts-neural.ts: Neural TTS client         │
+//! └─────────────────┬───────────────────────────┘
+//!                   │
+//! ┌─────────────────▼───────────────────────────┐
+//! │  Rust Backend                               │
+//! │  - tts.rs: Native OS TTS (tts crate)        │
+//! │  - tts/neural/: Piper + ONNX Runtime        │
+//! │    - mod.rs: Module coordinator             │
+//! │    - model.rs: Download/caching             │
+//! │    - synth.rs: ONNX inference               │
+//! │    - audio.rs: Playback (rodio)             │
+//! └─────────────────────────────────────────────┘
+//! ```
 //!
 //! # Usage
 //!
 //! ```ignore
-//! // Initialize TTS
-//! let tts = TtsService::new()?;
+//! // Native TTS (always available)
+//! tts::speak("Hello, world!", true)?;
 //!
-//! // Speak text
-//! tts.speak("Hello, world!")?;
-//!
-//! // Control playback
-//! tts.pause()?;
-//! tts.resume()?;
-//! tts.stop()?;
+//! // Neural TTS (requires model download)
+//! neural::speak("Hello, world!", None).await?;
 //! ```
+
+pub mod neural;
 
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};

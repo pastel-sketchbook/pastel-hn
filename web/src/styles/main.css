@@ -1982,6 +1982,42 @@ main {
   background: rgba(39, 174, 96, 0.12);
 }
 
+/* Neural TTS button - needs download state */
+.story-action-btn.neural-tts-btn.needs-download {
+  border: 2px dashed var(--orange);
+  opacity: 0.7;
+}
+
+.story-action-btn.neural-tts-btn.needs-download:hover {
+  opacity: 1;
+  border-style: solid;
+  background: rgba(255, 183, 77, 0.1);
+}
+
+[data-theme="light"] .story-action-btn.neural-tts-btn.needs-download {
+  border-color: var(--orange);
+}
+
+/* Neural TTS button - playing state */
+.story-action-btn.neural-tts-btn.playing {
+  background: var(--cyan);
+  color: var(--dark-bg);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.story-action-btn.neural-tts-btn.playing:hover {
+  background: var(--pink);
+}
+
+[data-theme="light"] .story-action-btn.neural-tts-btn.playing {
+  background: var(--cyan);
+  color: white;
+}
+
+[data-theme="light"] .story-action-btn.neural-tts-btn.playing:hover {
+  background: var(--pink);
+}
+
 /* TTS Settings Panel */
 .tts-settings {
   position: fixed;

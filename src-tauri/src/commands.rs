@@ -440,3 +440,116 @@ pub fn tts_set_voice(voice_id: String) -> Result<(), String> {
 pub fn tts_set_rate(rate: f32) -> Result<(), String> {
     tts::set_rate(rate)
 }
+
+// ============================================================================
+// Neural TTS Commands (Piper + ONNX Runtime)
+//
+// These commands provide high-quality neural voice synthesis as described
+// in ADR-0008. They complement the native TTS commands above.
+// ============================================================================
+
+/// Initialize the neural TTS engine.
+///
+/// Prepares the engine but doesn't download models yet.
+/// Call `tts_neural_status` to check if models are available.
+#[tauri::command]
+pub async fn tts_neural_init() -> Result<(), String> {
+    crate::tts::neural::init_neural().await
+}
+
+/// Get neural TTS status.
+///
+/// Returns whether the neural model is downloaded and ready,
+/// current voice, download progress, and available voices.
+#[tauri::command]
+pub async fn tts_neural_status() -> crate::tts::neural::NeuralTtsStatus {
+    crate::tts::neural::get_status().await
+}
+
+/// Get list of available neural voices.
+///
+/// These are high-quality neural voices (Piper) that can be
+/// downloaded and used for synthesis.
+#[tauri::command]
+pub fn tts_neural_voices() -> Vec<crate::tts::neural::NeuralVoiceInfo> {
+    crate::tts::neural::list_neural_voices()
+}
+
+/// Download a neural voice model.
+///
+/// # Arguments
+///
+/// * `model_id` - Model to download (e.g., "piper-en-us")
+///
+/// This is an async operation that can take a minute depending
+/// on the model size (~63MB for Piper).
+/// Check status with `tts_neural_status` for download progress.
+#[tauri::command]
+pub async fn tts_download_model(model_id: String) -> Result<(), String> {
+    // Create a progress callback that emits events
+    let progress_callback = move |progress: u8| {
+        // In production, would emit Tauri event for frontend progress
+        tracing::info!("Model download progress: {}%", progress);
+    };
+
+    crate::tts::neural::download_model(&model_id, Some(progress_callback)).await
+}
+
+/// Check if a model is ready for use.
+///
+/// Returns true if the model files are downloaded and valid.
+#[tauri::command]
+pub fn tts_is_model_ready(model_id: String) -> Result<bool, String> {
+    crate::tts::neural::is_model_ready(&model_id)
+}
+
+/// Speak text using neural TTS.
+///
+/// Falls back to native TTS if neural TTS is unavailable.
+///
+/// # Arguments
+///
+/// * `text` - Text to synthesize
+/// * `voice_id` - Optional voice ID (uses default if not specified)
+/// * `rate` - Speech rate from 0.5 to 2.0 (1.0 is normal)
+#[tauri::command]
+pub async fn tts_neural_speak(
+    text: String,
+    voice_id: Option<String>,
+    rate: Option<f32>,
+) -> Result<(), String> {
+    crate::tts::neural::speak(&text, voice_id.as_deref(), rate).await
+}
+
+/// Stop neural TTS playback.
+#[tauri::command]
+pub async fn tts_neural_stop() -> Result<(), String> {
+    crate::tts::neural::stop().await
+}
+
+/// Get the neural TTS model directory path.
+///
+/// Returns the platform-specific path where models are stored.
+#[tauri::command]
+pub fn tts_model_directory() -> Result<String, String> {
+    let path = crate::tts::neural::get_model_dir()?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// Get disk usage for neural TTS models.
+///
+/// Returns total bytes used by downloaded models.
+#[tauri::command]
+pub fn tts_model_disk_usage() -> Result<u64, String> {
+    crate::tts::neural::get_model_disk_usage()
+}
+
+/// Delete a neural TTS model to free disk space.
+///
+/// # Arguments
+///
+/// * `model_id` - Model to delete (e.g., "piper-en-us")
+#[tauri::command]
+pub fn tts_delete_model(model_id: String) -> Result<(), String> {
+    crate::tts::neural::delete_model(&model_id)
+}

@@ -18,6 +18,7 @@ import {
 } from './api'
 import { setStoryContext, updateAssistantZenMode } from './assistant-ui'
 import { parseApiError, renderErrorWithRetry, showErrorToast } from './errors'
+import { FEATURE_FLAGS } from './feature-flags'
 import { icons } from './icons'
 import { isCurrentlyOffline } from './offline'
 import { getCachedStoryDetail } from './prefetch'
@@ -32,7 +33,12 @@ import {
   saveStoryCommentCount,
 } from './storage'
 import { toastInfo } from './toast'
-import { createTtsButton, setupTtsListeners } from './tts-ui'
+import {
+  createNeuralTtsButton,
+  createTtsButton,
+  isDefaultNeuralModelReady,
+  setupTtsListeners,
+} from './tts-ui'
 import { type HNItem, ItemType } from './types'
 import {
   calculateReadingTime,
@@ -532,7 +538,8 @@ export async function renderStoryDetail(
               ${icons.share}
               <span>Share</span>
             </button>
-            ${createTtsButton()}
+            ${FEATURE_FLAGS.NATIVE_TTS_BUTTON ? createTtsButton() : ''}
+            ${createNeuralTtsButton(false, isDefaultNeuralModelReady())}
           </div>
         </article>
         
