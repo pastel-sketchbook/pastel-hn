@@ -315,7 +315,7 @@ impl NeuralTtsEngine {
 
             // Spawn blocking task for audio playback
             let play_result = tokio::task::spawn_blocking(move || {
-                play_audio_blocking(all_audio, sample_rate, is_speaking)
+                play_audio_blocking(all_audio, sample_rate, is_speaking, None)
             })
             .await;
 
@@ -396,20 +396,38 @@ impl NeuralTtsEngine {
             match self.generate_audio(&processed).await {
                 Ok(audio_data) => {
                     if !audio_data.is_empty() {
-                        // Emit sentence start event right before playback
-                        let _ = event_tx
-                            .send(SentenceEvent::Start {
-                                index,
-                                text: sentence.clone(),
-                            })
-                            .await;
                         let is_speaking = self.is_speaking.clone();
+
+                        // Create a oneshot channel to signal when audio starts
+                        let (start_tx, start_rx) = tokio::sync::oneshot::channel::<()>();
+
+                        // Clone data needed for the callback
+                        let event_tx_clone = event_tx.clone();
+                        let sentence_clone = sentence.clone();
+
+                        // Callback to emit start event when audio actually begins
+                        let on_start = Box::new(move || {
+                            // Use blocking send since we're in a sync context
+                            let rt = tokio::runtime::Handle::current();
+                            rt.block_on(async {
+                                let _ = event_tx_clone
+                                    .send(SentenceEvent::Start {
+                                        index,
+                                        text: sentence_clone,
+                                    })
+                                    .await;
+                            });
+                            let _ = start_tx.send(());
+                        });
 
                         // Play audio and wait for completion
                         let play_result = tokio::task::spawn_blocking(move || {
-                            play_audio_blocking(audio_data, sample_rate, is_speaking)
+                            play_audio_blocking(audio_data, sample_rate, is_speaking, Some(on_start))
                         })
                         .await;
+
+                        // Wait for start signal (ensures event was sent)
+                        let _ = start_rx.await;
 
                         match play_result {
                             Ok(Ok(())) => {}
@@ -703,10 +721,17 @@ fn _load_speaker_embedding(_path: &std::path::Path) -> Result<Vec<f32>, Synthesi
 
 /// Play audio in a blocking context using rodio
 /// This function is designed to be called from spawn_blocking
+///
+/// # Arguments
+/// * `audio_samples` - The audio samples to play
+/// * `sample_rate` - Sample rate in Hz
+/// * `is_speaking` - Atomic flag to check for stop signal
+/// * `on_start` - Optional callback to invoke when audio actually starts playing
 fn play_audio_blocking(
     audio_samples: Vec<f32>,
     sample_rate: u32,
     is_speaking: Arc<AtomicBool>,
+    on_start: Option<Box<dyn FnOnce() + Send>>,
 ) -> Result<(), String> {
     use rodio::{Decoder, OutputStreamBuilder, Sink};
     use std::io::Cursor;
@@ -728,6 +753,11 @@ fn play_audio_blocking(
     let source = Decoder::new(cursor).map_err(|e| format!("Failed to decode audio: {}", e))?;
 
     sink.append(source);
+
+    // Signal that audio playback is starting NOW
+    if let Some(callback) = on_start {
+        callback();
+    }
 
     // Wait for playback to complete, checking for stop signal
     while !sink.empty() {
