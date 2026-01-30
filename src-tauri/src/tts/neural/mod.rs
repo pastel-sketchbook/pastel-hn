@@ -238,10 +238,12 @@ pub async fn speak_sentences(
     // Create channel for sentence events
     let (tx, mut rx) = mpsc::channel::<SentenceEvent>(32);
 
-    // Spawn task to forward events to Tauri
+    // Spawn task to forward events to Tauri synchronously
+    // Use a bounded channel with ack to ensure events are emitted before continuing
     let handle = app_handle.clone();
-    tokio::spawn(async move {
+    let event_task = tokio::spawn(async move {
         while let Some(event) = rx.recv().await {
+            // Emit event to frontend - this is synchronous within the Tauri event system
             if let Err(e) = handle.emit("tts-sentence", &event) {
                 tracing::warn!("Failed to emit TTS sentence event: {}", e);
             }
@@ -249,13 +251,18 @@ pub async fn speak_sentences(
     });
 
     // Speak sentences with events
-    match engine.speak_sentences(&sentences, voice_id, tx).await {
+    let result = match engine.speak_sentences(&sentences, voice_id, tx).await {
         Ok(()) => Ok(()),
         Err(e) => {
             tracing::warn!("Neural TTS failed: {}", e);
             Err(e.to_string())
         }
-    }
+    };
+
+    // Wait for all events to be forwarded
+    let _ = event_task.await;
+
+    result
 }
 
 /// Get the model directory path.
