@@ -1319,42 +1319,49 @@ function wrapSentencesInContainer(
 
   // Get the full text content (raw, with all whitespace)
   const fullText = container.textContent || ''
-  
+
   // Create a normalized version for matching (same normalization as extractArticleText)
   const normalizedFullText = fullText.replace(/\s+/g, ' ').trim()
 
   // Build a map of sentence positions
   // We find positions in normalized text, then map back to raw positions
-  const sentencePositions: Array<{ start: number; end: number; text: string }> = []
+  const sentencePositions: Array<{ start: number; end: number; text: string }> =
+    []
 
   let normalizedSearchStart = 0
   let notFoundCount = 0
-  
+
   for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i]
-    
+
     // Find sentence in normalized text
-    const normalizedPos = normalizedFullText.indexOf(sentence, normalizedSearchStart)
-    
+    const normalizedPos = normalizedFullText.indexOf(
+      sentence,
+      normalizedSearchStart,
+    )
+
     if (normalizedPos === -1) {
       notFoundCount++
-      console.warn(`[TTS] Sentence ${i} not found in normalized text:`, sentence.substring(0, 50))
+      console.warn(
+        `[TTS] Sentence ${i} not found in normalized text:`,
+        sentence.substring(0, 50),
+      )
       continue
     }
-    
+
     // Map normalized position back to raw position
     // Count characters in raw text until we've passed normalizedPos normalized chars
     let rawPos = 0
     let normalizedCount = 0
     let inWhitespace = false
-    
+
     // Skip leading whitespace in raw text
     while (rawPos < fullText.length && /\s/.test(fullText[rawPos])) {
       rawPos++
     }
-    
+
     // Now advance through raw text, tracking normalized position
-    const rawStartSearch = rawPos
+    const _rawStartSearch = rawPos
     while (rawPos < fullText.length && normalizedCount < normalizedPos) {
       const char = fullText[rawPos]
       if (/\s/.test(char)) {
@@ -1368,13 +1375,16 @@ function wrapSentencesInContainer(
       }
       rawPos++
     }
-    
+
     // rawPos now points to the start of the sentence in raw text
     const rawStart = rawPos
-    
+
     // Find the end by advancing through the sentence length
     let sentenceNormalizedCount = 0
-    while (rawPos < fullText.length && sentenceNormalizedCount < sentence.length) {
+    while (
+      rawPos < fullText.length &&
+      sentenceNormalizedCount < sentence.length
+    ) {
       const char = fullText[rawPos]
       if (/\s/.test(char)) {
         if (!inWhitespace) {
@@ -1387,23 +1397,27 @@ function wrapSentencesInContainer(
       }
       rawPos++
     }
-    
+
     const rawEnd = rawPos
-    
+
     sentencePositions.push({
       start: rawStart,
       end: rawEnd,
       text: sentence,
     })
-    
+
     normalizedSearchStart = normalizedPos + sentence.length
   }
 
   if (notFoundCount > 0) {
-    console.warn(`[TTS] ${notFoundCount}/${sentences.length} sentences not found in DOM text`)
+    console.warn(
+      `[TTS] ${notFoundCount}/${sentences.length} sentences not found in DOM text`,
+    )
   }
-  
-  console.log(`[TTS] Wrapped ${sentencePositions.length} sentences, fullText length: ${fullText.length}`)
+
+  console.log(
+    `[TTS] Wrapped ${sentencePositions.length} sentences, fullText length: ${fullText.length}`,
+  )
 
   // Now we need to walk through text nodes and wrap them
   wrapTextNodesWithSentences(container, sentencePositions)
@@ -1498,7 +1512,12 @@ function wrapTextNodesWithSentences(
  */
 function handleSentenceEvent(event: SentenceEvent): void {
   // Always log sentence events for debugging sync issues
-  console.log('[TTS] Sentence event:', event.type, 'index' in event ? event.index : '', Date.now())
+  console.log(
+    '[TTS] Sentence event:',
+    event.type,
+    'index' in event ? event.index : '',
+    Date.now(),
+  )
 
   switch (event.type) {
     case 'start':
@@ -1533,8 +1552,13 @@ function handleSentenceEvent(event: SentenceEvent): void {
  * Uses both progress indicator and inline highlighting
  */
 function highlightCurrentSentence(index: number): void {
-  console.log('[TTS] highlightCurrentSentence called with index:', index, 'total sentences:', state.sentences.length)
-  
+  console.log(
+    '[TTS] highlightCurrentSentence called with index:',
+    index,
+    'total sentences:',
+    state.sentences.length,
+  )
+
   // Get the article content container
   const container =
     document.querySelector('.article-content') ||
@@ -1554,9 +1578,14 @@ function highlightCurrentSentence(index: number): void {
   const currentSpans = document.querySelectorAll(
     `[data-sentence-index="${index}"]`,
   )
-  
-  console.log('[TTS] Found', currentSpans.length, 'spans for sentence index', index)
-  
+
+  console.log(
+    '[TTS] Found',
+    currentSpans.length,
+    'spans for sentence index',
+    index,
+  )
+
   currentSpans.forEach((span) => {
     span.classList.add('tts-active')
 

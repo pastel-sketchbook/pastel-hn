@@ -422,7 +422,12 @@ impl NeuralTtsEngine {
 
                         // Play audio and wait for completion
                         let play_result = tokio::task::spawn_blocking(move || {
-                            play_audio_blocking(audio_data, sample_rate, is_speaking, Some(on_start))
+                            play_audio_blocking(
+                                audio_data,
+                                sample_rate,
+                                is_speaking,
+                                Some(on_start),
+                            )
                         })
                         .await;
 
@@ -1029,9 +1034,8 @@ mod tests {
         let mut timings: Vec<EventTiming> = Vec::new();
 
         // Spawn the speak task
-        let speak_handle = tokio::spawn(async move {
-            engine.speak_sentences(&sentences, None, tx).await
-        });
+        let speak_handle =
+            tokio::spawn(async move { engine.speak_sentences(&sentences, None, tx).await });
 
         // Collect all events with timestamps
         while let Some(event) = rx.recv().await {
@@ -1080,11 +1084,7 @@ mod tests {
                         "Got Start but expected End for index {}",
                         expected_index
                     );
-                    assert_eq!(
-                        timing.index,
-                        Some(expected_index),
-                        "Start index mismatch"
-                    );
+                    assert_eq!(timing.index, Some(expected_index), "Start index mismatch");
                     expecting_start = false;
                 }
                 "End" => {
@@ -1093,11 +1093,7 @@ mod tests {
                         "Got End but expected Start for index {}",
                         expected_index
                     );
-                    assert_eq!(
-                        timing.index,
-                        Some(expected_index),
-                        "End index mismatch"
-                    );
+                    assert_eq!(timing.index, Some(expected_index), "End index mismatch");
                     expected_index += 1;
                     expecting_start = true;
                 }
@@ -1173,7 +1169,10 @@ mod tests {
             .expect("Model should load");
 
         // Use a sentence that's long enough to notice timing issues
-        let sentences = vec!["This is a test sentence with enough words to make timing issues noticeable.".to_string()];
+        let sentences = vec![
+            "This is a test sentence with enough words to make timing issues noticeable."
+                .to_string(),
+        ];
 
         // Create channel for events
         let (tx, mut rx) = mpsc::channel::<SentenceEvent>(32);
@@ -1182,9 +1181,8 @@ mod tests {
         let call_start = Instant::now();
 
         // Spawn the speak task
-        let speak_handle = tokio::spawn(async move {
-            engine.speak_sentences(&sentences, None, tx).await
-        });
+        let speak_handle =
+            tokio::spawn(async move { engine.speak_sentences(&sentences, None, tx).await });
 
         // Wait for the Start event
         let start_event_time;
@@ -1270,9 +1268,8 @@ mod tests {
         let start_time = Instant::now();
 
         // Spawn the speak task
-        let speak_handle = tokio::spawn(async move {
-            engine.speak_sentences(&sentences, None, tx).await
-        });
+        let speak_handle =
+            tokio::spawn(async move { engine.speak_sentences(&sentences, None, tx).await });
 
         // Track timing for each sentence
         let mut start_times: Vec<Instant> = Vec::new();

@@ -519,8 +519,14 @@ export class NeuralTtsClient {
         'tts-sentence',
         (event) => {
           // Always log for debugging timing issues
-          console.log('[NeuralTTS] Event received:', event.payload.type, 'index' in event.payload ? `index=${event.payload.index}` : '', 'at', Date.now())
-          
+          console.log(
+            '[NeuralTTS] Event received:',
+            event.payload.type,
+            'index' in event.payload ? `index=${event.payload.index}` : '',
+            'at',
+            Date.now(),
+          )
+
           // Notify all registered listeners
           this.sentenceEventListeners.forEach((listener) => {
             listener(event.payload)
