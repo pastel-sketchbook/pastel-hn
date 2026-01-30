@@ -1426,7 +1426,8 @@ function wrapTextNodesWithSentences(
  * Updates the visual highlighting of the current sentence
  */
 function handleSentenceEvent(event: SentenceEvent): void {
-  debug('Handling sentence event:', event)
+  // Always log sentence events for debugging sync issues
+  console.log('[TTS] Sentence event:', event.type, 'index' in event ? event.index : '', Date.now())
 
   switch (event.type) {
     case 'start':
@@ -1461,6 +1462,8 @@ function handleSentenceEvent(event: SentenceEvent): void {
  * Uses both progress indicator and inline highlighting
  */
 function highlightCurrentSentence(index: number): void {
+  console.log('[TTS] highlightCurrentSentence called with index:', index, 'total sentences:', state.sentences.length)
+  
   // Get the article content container
   const container =
     document.querySelector('.article-content') ||
@@ -1480,6 +1483,9 @@ function highlightCurrentSentence(index: number): void {
   const currentSpans = document.querySelectorAll(
     `[data-sentence-index="${index}"]`,
   )
+  
+  console.log('[TTS] Found', currentSpans.length, 'spans for sentence index', index)
+  
   currentSpans.forEach((span) => {
     span.classList.add('tts-active')
 
