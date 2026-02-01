@@ -77,13 +77,25 @@ vi.mock('./zen-mode', () => ({
   isZenModeActive: vi.fn(() => false),
 }))
 
+vi.mock('./youtube', () => ({
+  isYouTubeUrl: vi.fn((url: string) => {
+    return (
+      url.includes('youtube.com') ||
+      url.includes('youtu.be') ||
+      url.includes('youtube-nocookie.com')
+    )
+  }),
+}))
+
 import { fetchStoriesPaginated } from './api'
 import {
   getCurrentFeed,
   getCurrentStories,
   getFeedTitle,
+  isYouTubeFilterActive,
   renderStories,
   setCurrentFeed,
+  toggleYouTubeFilter,
 } from './story-list'
 import type { StoryFeed } from './types'
 
@@ -292,5 +304,177 @@ describe('renderStories caching', () => {
 
     expect(mockFetchStoriesPaginated).not.toHaveBeenCalled()
     expect(getCurrentStories().length).toBe(30)
+  })
+})
+
+describe('YouTube filter', () => {
+  const mockStoriesWithYouTube = [
+    {
+      id: 1,
+      type: 'story' as const,
+      by: 'user1',
+      time: 1700000000,
+      title: 'Regular Story',
+      score: 100,
+      descendants: 10,
+      kids: [],
+      url: 'https://example.com/article',
+    },
+    {
+      id: 2,
+      type: 'story' as const,
+      by: 'user2',
+      time: 1700000001,
+      title: 'YouTube Video',
+      score: 50,
+      descendants: 5,
+      kids: [],
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    },
+    {
+      id: 3,
+      type: 'story' as const,
+      by: 'user3',
+      time: 1700000002,
+      title: 'Short YouTube Link',
+      score: 75,
+      descendants: 3,
+      kids: [],
+      url: 'https://youtu.be/abc123',
+    },
+    {
+      id: 4,
+      type: 'story' as const,
+      by: 'user4',
+      time: 1700000003,
+      title: 'Another Article',
+      score: 200,
+      descendants: 20,
+      kids: [],
+      url: 'https://news.example.com/story',
+    },
+  ]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    document.body.innerHTML =
+      '<div id="stories"></div><button id="youtube-filter-btn" aria-pressed="false"></button>'
+    setCurrentFeed('top')
+
+    // Reset filter state by toggling if active
+    if (isYouTubeFilterActive()) {
+      toggleYouTubeFilter()
+    }
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+    // Ensure filter is off for next test
+    if (isYouTubeFilterActive()) {
+      toggleYouTubeFilter()
+    }
+  })
+
+  it('starts with filter inactive', () => {
+    expect(isYouTubeFilterActive()).toBe(false)
+  })
+
+  it('toggles filter state on toggleYouTubeFilter call', async () => {
+    mockFetchStoriesPaginated.mockResolvedValue({
+      stories: mockStoriesWithYouTube,
+      hasMore: false,
+    })
+
+    // Load stories first
+    await renderStories('top', false, false)
+
+    expect(isYouTubeFilterActive()).toBe(false)
+
+    toggleYouTubeFilter()
+    expect(isYouTubeFilterActive()).toBe(true)
+
+    toggleYouTubeFilter()
+    expect(isYouTubeFilterActive()).toBe(false)
+  })
+
+  it('updates filter button aria-pressed attribute', async () => {
+    mockFetchStoriesPaginated.mockResolvedValue({
+      stories: mockStoriesWithYouTube,
+      hasMore: false,
+    })
+
+    await renderStories('top', false, false)
+    const btn = document.getElementById('youtube-filter-btn')
+
+    expect(btn?.getAttribute('aria-pressed')).toBe('false')
+
+    toggleYouTubeFilter()
+    expect(btn?.getAttribute('aria-pressed')).toBe('true')
+
+    toggleYouTubeFilter()
+    expect(btn?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('adds/removes active class on filter button', async () => {
+    mockFetchStoriesPaginated.mockResolvedValue({
+      stories: mockStoriesWithYouTube,
+      hasMore: false,
+    })
+
+    await renderStories('top', false, false)
+    const btn = document.getElementById('youtube-filter-btn')
+
+    expect(btn?.classList.contains('active')).toBe(false)
+
+    toggleYouTubeFilter()
+    expect(btn?.classList.contains('active')).toBe(true)
+
+    toggleYouTubeFilter()
+    expect(btn?.classList.contains('active')).toBe(false)
+  })
+
+  it('shows empty state when no YouTube videos in feed', async () => {
+    const storiesWithoutYouTube = [
+      {
+        id: 1,
+        type: 'story' as const,
+        by: 'user1',
+        time: 1700000000,
+        title: 'Regular Story',
+        score: 100,
+        descendants: 10,
+        kids: [],
+        url: 'https://example.com/article',
+      },
+    ]
+
+    mockFetchStoriesPaginated.mockResolvedValue({
+      stories: storiesWithoutYouTube,
+      hasMore: false,
+    })
+
+    await renderStories('top', false, false)
+    toggleYouTubeFilter()
+
+    const container = document.getElementById('stories')
+    expect(container?.innerHTML).toContain('No YouTube videos found')
+    expect(container?.innerHTML).toContain('Press')
+    expect(container?.innerHTML).toContain('Y')
+  })
+
+  it('resets filter when switching feeds', async () => {
+    mockFetchStoriesPaginated.mockResolvedValue({
+      stories: mockStoriesWithYouTube,
+      hasMore: false,
+    })
+
+    await renderStories('top', false, false)
+    toggleYouTubeFilter()
+    expect(isYouTubeFilterActive()).toBe(true)
+
+    // Switch to new feed
+    await renderStories('new', false, false)
+    expect(isYouTubeFilterActive()).toBe(false)
   })
 })

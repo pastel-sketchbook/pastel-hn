@@ -64,8 +64,10 @@ import {
   getReadStoryIdsSet,
   getVirtualScroll,
   isStoryListLoading,
+  isYouTubeFilterActive,
   renderStories as renderStoriesModule,
   setCurrentFeed,
+  toggleYouTubeFilter,
 } from './story-list'
 import {
   setHighContrastChangeCallback,
@@ -362,6 +364,12 @@ function setupKeyboardNavigation(): void {
       if (!container) return
       container.scrollTop = 0
     },
+    onYouTubeFilter: () => {
+      if (currentView === 'list') {
+        toggleYouTubeFilter()
+        updateYouTubeFilterButton()
+      }
+    },
   })
 
   initKeyboard()
@@ -388,6 +396,33 @@ function setupSettingsToggle(): void {
 
   toggle.addEventListener('click', () => {
     showSettingsModal()
+  })
+}
+
+/**
+ * Update YouTube filter button state to match filter active status.
+ */
+function updateYouTubeFilterButton(): void {
+  const btn = document.getElementById('youtube-filter-btn')
+  if (!btn) return
+
+  const isActive = isYouTubeFilterActive()
+  btn.classList.toggle('active', isActive)
+  btn.setAttribute('aria-pressed', String(isActive))
+}
+
+/**
+ * Set up YouTube filter button click handler.
+ */
+function setupYouTubeFilterButton(): void {
+  const btn = document.getElementById('youtube-filter-btn')
+  if (!btn) return
+
+  btn.addEventListener('click', () => {
+    if (currentView === 'list') {
+      toggleYouTubeFilter()
+      updateYouTubeFilterButton()
+    }
   })
 }
 
@@ -447,6 +482,7 @@ async function main(): Promise<void> {
     setupAllNavigation()
     setupThemeToggle()
     setupSettingsToggle()
+    setupYouTubeFilterButton()
     setupKeyboardNavigation()
 
     // Configure and setup pull-to-refresh

@@ -413,6 +413,7 @@ describe('keyboard', () => {
       expect(keys).toContain('/')
       expect(keys).toContain('1-7')
       expect(keys).toContain('?')
+      expect(keys).toContain('f')
     })
 
     it('includes vim-style navigation shortcuts', () => {
@@ -690,6 +691,40 @@ describe('keyboard', () => {
 
       expect(onNavigate).toHaveBeenCalled()
       expect(getSelectedIndex()).toBe(0) // First item
+    })
+  })
+
+  describe('YouTube filter shortcut', () => {
+    beforeEach(() => {
+      document.body.innerHTML = `
+        <div class="story" data-id="1"></div>
+        <div class="story" data-id="2"></div>
+      `
+      initKeyboard()
+    })
+
+    it('f calls onYouTubeFilter', () => {
+      const onYouTubeFilter = vi.fn()
+      setKeyboardCallbacks({ onYouTubeFilter })
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }))
+
+      expect(onYouTubeFilter).toHaveBeenCalledTimes(1)
+    })
+
+    it('f does not interfere with yy sequence', () => {
+      const onYouTubeFilter = vi.fn()
+      const onCopy = vi.fn()
+      setKeyboardCallbacks({ onYouTubeFilter, onCopy })
+
+      // Press f first
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }))
+      expect(onYouTubeFilter).toHaveBeenCalledTimes(1)
+
+      // Then do yy
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'y' }))
+      expect(onCopy).toHaveBeenCalledTimes(1)
     })
   })
 })

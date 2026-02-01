@@ -75,6 +75,8 @@ type KeyboardCallback = {
   onScrollToEnd?: () => void
   /** Called when pressing gg in detail view for scroll to start */
   onScrollToStart?: () => void
+  /** Called when pressing Y to toggle YouTube filter */
+  onYouTubeFilter?: () => void
   /** Returns true if currently in detail/article view */
   isDetailView?: () => boolean
 }
@@ -442,6 +444,11 @@ function handleKeydown(e: KeyboardEvent): void {
       e.preventDefault()
       callbacks.onToggleTheme?.()
       break
+
+    case 'f':
+      e.preventDefault()
+      callbacks.onYouTubeFilter?.()
+      break
   }
 }
 
@@ -470,6 +477,7 @@ export const KEYBOARD_SHORTCUTS = [
   { key: 'Enter', description: 'Open story / expand' },
   { key: 'o', description: 'Open link in browser' },
   { key: 'yy', description: 'Copy link' },
+  { key: 'f', description: 'Filter YouTube videos' },
   { key: 'c', description: 'Focus comments' },
   { key: 'b', description: 'Back to list' },
   { key: 'z', description: 'Toggle Zen mode' },

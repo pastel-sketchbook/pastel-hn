@@ -71,6 +71,7 @@ Built with [Tauri](https://tauri.app) - combining a TypeScript/HTML/CSS frontend
 | `j` / `k` | Navigate down / up through stories |
 | `Enter` | Open selected story |
 | `o` | Open link in browser |
+| `f` | Filter YouTube videos |
 | `r` | Refresh current feed |
 | `1-7` | Switch feeds (top/new/best/ask/show/jobs/saved) |
 | `/` | Focus search |

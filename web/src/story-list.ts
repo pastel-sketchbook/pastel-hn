@@ -43,6 +43,7 @@ import {
 } from './storage'
 import type { HNItem, StoryFeed } from './types'
 import { VirtualScroll } from './virtual-scroll'
+import { isYouTubeUrl } from './youtube'
 import { isZenModeActive } from './zen-mode'
 
 // Constants
@@ -80,6 +81,7 @@ let isLoading = false
 let isLoadingMore = false
 let virtualScroll: VirtualScroll<HNItem> | null = null
 let scrollObserver: IntersectionObserver | null = null
+let youtubeFilterActive = false
 
 /**
  * Get current feed.
@@ -138,6 +140,65 @@ export function clearReadStoryIds(): void {
 }
 
 /**
+ * Check if YouTube filter is active.
+ */
+export function isYouTubeFilterActive(): boolean {
+  return youtubeFilterActive
+}
+
+/**
+ * Filter stories to only YouTube videos.
+ */
+function filterYouTubeStories(stories: HNItem[]): HNItem[] {
+  if (!youtubeFilterActive) return stories
+  return stories.filter((story) => story.url && isYouTubeUrl(story.url))
+}
+
+/**
+ * Toggle YouTube filter and re-render current feed.
+ */
+export function toggleYouTubeFilter(): void {
+  youtubeFilterActive = !youtubeFilterActive
+
+  // Update filter button state
+  const filterBtn = document.getElementById('youtube-filter-btn')
+  if (filterBtn) {
+    filterBtn.classList.toggle('active', youtubeFilterActive)
+    filterBtn.setAttribute('aria-pressed', String(youtubeFilterActive))
+  }
+
+  // Re-render current stories with filter applied
+  const container = document.getElementById('stories')
+  if (!container || currentStories.length === 0) return
+
+  const filteredStories = filterYouTubeStories(currentStories)
+
+  if (filteredStories.length === 0 && youtubeFilterActive) {
+    const feedTitle = getFeedTitle(currentFeed)
+    container.innerHTML = `
+      <h1 class="feed-title">${feedTitle}</h1>
+      <div class="empty-state">
+        <p>No YouTube videos found in ${feedTitle.toLowerCase()}.</p>
+<p class="empty-state-hint">Press <kbd>f</kbd> to show all stories.</p>
+      `
+    announce('No YouTube videos found. Press f to show all stories.')
+    return
+  }
+
+  if (currentFeed === 'saved') {
+    renderSavedStories(container, filteredStories)
+  } else {
+    renderStoriesStandard(container, filteredStories)
+  }
+
+  announce(
+    youtubeFilterActive
+      ? `Showing ${filteredStories.length} YouTube videos`
+      : `Showing all ${currentStories.length} stories`,
+  )
+}
+
+/**
  * Set up hover event listeners on story cards for prefetching.
  */
 function setupStoryHoverPrefetch(container: HTMLElement): void {
@@ -169,11 +230,25 @@ function renderStoriesStandard(
     saveStoryScore(story.id, story.score || 0)
   }
 
+  // Apply YouTube filter if active
+  const filteredStories = filterYouTubeStories(stories)
   const feedTitle = getFeedTitle(currentFeed)
+
+  // Show empty state if filter removes all stories
+  if (filteredStories.length === 0 && youtubeFilterActive) {
+    container.innerHTML = `
+      <h1 class="feed-title">${feedTitle}</h1>
+      <div class="empty-state">
+        <p>No YouTube videos found in ${feedTitle.toLowerCase()}.</p>
+        <p class="empty-state-hint">Press <kbd>f</kbd> to show all stories.</p>
+      </div>
+    `
+    return
+  }
 
   container.innerHTML =
     `<h1 class="feed-title">${feedTitle}</h1>` +
-    stories
+    filteredStories
       .map((story, idx) => {
         const duplicateInfo = currentDuplicates.get(story.id)
         return renderStory(
@@ -186,12 +261,12 @@ function renderStoriesStandard(
         )
       })
       .join('') +
-    renderLoadMoreIndicator(hasMoreStories)
+    renderLoadMoreIndicator(hasMoreStories && !youtubeFilterActive)
 
   applyStaggerAnimation(container, '.story')
   setupStoryHoverPrefetch(container)
 
-  const storyIds = stories.map((s) => s.id)
+  const storyIds = filteredStories.map((s) => s.id)
   prefetchVisibleStories(storyIds)
 
   setupInfiniteScroll()
@@ -203,6 +278,9 @@ function renderStoriesStandard(
  */
 function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
   const feedTitle = getFeedTitle('saved')
+
+  // Apply YouTube filter if active
+  const filteredStories = filterYouTubeStories(stories)
 
   if (stories.length === 0) {
     container.innerHTML = `
@@ -220,9 +298,21 @@ function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
     return
   }
 
+  // Show empty state if filter removes all stories
+  if (filteredStories.length === 0 && youtubeFilterActive) {
+    container.innerHTML = `
+      <h1 class="feed-title">${feedTitle}</h1>
+      <div class="empty-state">
+        <p>No YouTube videos found in saved stories.</p>
+        <p class="empty-state-hint">Press <kbd>f</kbd> to show all stories.</p>
+      </div>
+    `
+    return
+  }
+
   container.innerHTML =
     `<h1 class="feed-title">${feedTitle}</h1>` +
-    stories
+    filteredStories
       .map((story, idx) =>
         renderStory(story, idx + 1, readStoryIds.has(story.id), 0, 'none', 0),
       )
@@ -234,7 +324,7 @@ function renderSavedStories(container: HTMLElement, stories: HNItem[]): void {
   applyStaggerAnimation(container, '.story')
   setupStoryHoverPrefetch(container)
 
-  const storyIds = stories.map((s) => s.id)
+  const storyIds = filteredStories.map((s) => s.id)
   prefetchVisibleStories(storyIds)
 
   updateAssistantZenMode(isZenModeActive(), 'list')
@@ -478,6 +568,15 @@ export async function renderStories(
   // Save current scroll position before clearing (for feed switches)
   if (currentFeed !== feed) {
     saveFeedScrollPosition(currentFeed, getScrollTop())
+    // Reset YouTube filter when switching feeds
+    if (youtubeFilterActive) {
+      youtubeFilterActive = false
+      const filterBtn = document.getElementById('youtube-filter-btn')
+      if (filterBtn) {
+        filterBtn.classList.remove('active')
+        filterBtn.setAttribute('aria-pressed', 'false')
+      }
+    }
   }
 
   // Save stories before resetting state (in case we can reuse them)

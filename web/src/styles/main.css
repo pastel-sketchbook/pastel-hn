@@ -699,6 +699,69 @@ nav {
     0 0 40px var(--cyan-glow);
 }
 
+/* ===== NAV SEPARATOR ===== */
+.nav-separator {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  margin: 0 0.5rem;
+  align-self: center;
+  opacity: 0.5;
+}
+
+/* ===== FILTER BUTTON ===== */
+.filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.02);
+  border: 2px solid transparent;
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.filter-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.filter-btn:hover {
+  color: var(--orange);
+  background: rgba(255, 159, 67, 0.1);
+  border-color: rgba(255, 159, 67, 0.3);
+}
+
+.filter-btn.active {
+  color: var(--bg-primary);
+  background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dim) 100%);
+  border-color: var(--orange);
+  box-shadow:
+    0 0 15px var(--orange-glow),
+    0 0 30px var(--orange-glow);
+}
+
+.filter-btn.active svg {
+  stroke: var(--bg-primary);
+}
+
+[data-theme="light"] .filter-btn:hover {
+  background: rgba(211, 84, 0, 0.08);
+  border-color: rgba(211, 84, 0, 0.3);
+}
+
+[data-theme="light"] .filter-btn.active {
+  color: #fff;
+  box-shadow:
+    0 0 12px var(--orange-glow),
+    0 0 25px var(--orange-glow);
+}
+
 /* ===== MAIN CONTENT ===== */
 main {
   position: relative;
@@ -2990,6 +3053,47 @@ main {
   line-height: 1.6;
   max-width: 400px;
   margin: 0;
+}
+
+/* ===== FILTER EMPTY STATE ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  min-height: 300px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.empty-state p {
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.empty-state-hint kbd,
+.empty-state kbd {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--cyan);
 }
 
 /* ===== COMMENT COMPONENT ===== */
