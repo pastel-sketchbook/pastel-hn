@@ -57,9 +57,10 @@ mod types;
 
 use tauri::{
     image::Image,
+    ipc::CapabilityBuilder,
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, Url, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -84,12 +85,21 @@ fn main() {
     // (zen mode should not persist across app restarts)
     let window_state_flags = StateFlags::POSITION | StateFlags::SIZE | StateFlags::VISIBLE;
 
+    // Pick a random unused port for the localhost server (release builds only)
+    // This enables YouTube embeds to work by serving content via http://localhost
+    // instead of tauri:// protocol which YouTube rejects with error 153
+    let port: u16 = portpicker::pick_unused_port().expect("failed to find unused port");
+    info!("Localhost server will use port: {}", port);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        // Localhost plugin serves frontend on http://localhost:<port> in release builds
+        // This is required for YouTube embeds to work (they reject tauri:// protocol)
+        .plugin(tauri_plugin_localhost::Builder::new(port).build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -127,7 +137,39 @@ fn main() {
                 .build(),
         )
         .manage(hn_client)
-        .setup(|app| {
+        .setup(move |app| {
+            // Create the main window programmatically
+            // In dev mode, use the default app URL (which points to Vite dev server)
+            // In release mode, use localhost server for YouTube embed compatibility
+            #[cfg(dev)]
+            let url = WebviewUrl::App(std::path::PathBuf::from("/"));
+
+            #[cfg(not(dev))]
+            let url = {
+                let localhost_url: Url = format!("http://localhost:{}", port).parse().unwrap();
+                info!("Release mode: using localhost URL {}", localhost_url);
+
+                // Add capability for the localhost URL to access Tauri APIs
+                app.add_capability(
+                    CapabilityBuilder::new("localhost")
+                        .remote(localhost_url.to_string())
+                        .window("main"),
+                )?;
+
+                WebviewUrl::External(localhost_url)
+            };
+
+            // Build the main window with the appropriate URL
+            WebviewWindowBuilder::new(app, "main", url)
+                .title("pastel-hn | The Best Hacker News Client")
+                .inner_size(1920.0, 1080.0)
+                .min_inner_size(1024.0, 768.0)
+                .resizable(true)
+                .fullscreen(false)
+                .build()?;
+
+            info!("Main window created");
+
             // Create tray menu items for feeds
             let top_i = MenuItem::with_id(app, "feed_top", "Top Stories", true, None::<&str>)?;
             let new_i = MenuItem::with_id(app, "feed_new", "New Stories", true, None::<&str>)?;

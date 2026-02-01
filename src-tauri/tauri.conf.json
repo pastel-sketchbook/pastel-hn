@@ -11,20 +11,10 @@
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "title": "pastel-hn | The Best Hacker News Client",
-        "width": 1920,
-        "height": 1080,
-        "minWidth": 1024,
-        "minHeight": 768,
-        "resizable": true,
-        "fullscreen": false
-      }
-    ],
     "security": {
       "csp": null
-    }
+    },
+    "windows": []
   },
   "plugins": {
     "deep-link": {

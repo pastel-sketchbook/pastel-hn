@@ -49,6 +49,11 @@ import {
   sanitizeHtml,
 } from './utils'
 import { isZenModeActive } from './zen-mode'
+import {
+  parseYouTubeUrl,
+  renderYouTubeEmbed,
+  setupYouTubeEmbedListeners,
+} from './youtube'
 
 // Module state
 let currentStoryAuthor: string | null = null
@@ -483,6 +488,8 @@ export async function renderStoryDetail(
         : '<div class="no-comments">No comments yet</div>'
 
     const hasExternalUrl = !!story.url && !story.url.startsWith('item?id=')
+    const youtubeInfo = story.url ? parseYouTubeUrl(story.url) : null
+    const isYouTube = youtubeInfo !== null
     const commentCount = story.descendants || 0
     currentStoryCommentCount = commentCount
 
@@ -545,8 +552,8 @@ export async function renderStoryDetail(
         
         <div class="story-tabs" role="tablist" aria-label="Story content tabs">
           <button class="story-tab active" data-tab="story" role="tab" aria-selected="true" aria-controls="story-tab-panel" id="story-tab" tabindex="0">
-            ${icons.article}
-            <span>Story</span>
+            ${isYouTube ? icons.play : icons.article}
+            <span>${isYouTube ? 'Video' : 'Story'}</span>
           </button>
           <button class="story-tab" data-tab="comments" role="tab" aria-selected="false" aria-controls="comments-tab-panel" id="comments-tab" tabindex="-1">
             ${icons.comment}
@@ -556,8 +563,10 @@ export async function renderStoryDetail(
         
         <div class="story-tab-content" data-tab-content="story" role="tabpanel" id="story-tab-panel" aria-labelledby="story-tab" aria-hidden="false">
           ${
-            hasExternalUrl
-              ? `
+            isYouTube && youtubeInfo
+              ? renderYouTubeEmbed(youtubeInfo)
+              : hasExternalUrl
+                ? `
             <div class="article-content" data-url="${escapeHtml(story.url || '')}">
               <div class="article-loading">
                 <div class="skeleton skeleton-title" style="height: 1.75rem; width: 75%; margin-bottom: 1.25rem;"></div>
@@ -574,11 +583,11 @@ export async function renderStoryDetail(
               </div>
             </div>
           `
-              : story.text
-                ? `
+                : story.text
+                  ? `
             <div class="story-detail-text">${sanitizeHtml(story.text)}</div>
           `
-                : `
+                  : `
             <div class="no-content">
               <p>This story links to an external URL.</p>
               <a href="${story.url}" target="_blank" rel="noopener" class="external-link-btn">
@@ -603,13 +612,15 @@ export async function renderStoryDetail(
     setupStoryTabs(container)
     setupCommentCollapse(container)
     setupTtsListeners(container)
+    setupYouTubeEmbedListeners(container)
 
     const commentsList = container.querySelector('.comments-list')
     if (commentsList) {
       applyStaggerAnimation(commentsList as HTMLElement, ':scope > .comment')
     }
 
-    if (hasExternalUrl && story.url) {
+    // Only fetch article content for non-YouTube external URLs
+    if (hasExternalUrl && story.url && !isYouTube) {
       fetchAndDisplayArticle(story.url, container)
     }
 
