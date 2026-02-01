@@ -48,12 +48,12 @@ import {
   getStoryType,
   sanitizeHtml,
 } from './utils'
-import { isZenModeActive } from './zen-mode'
 import {
   parseYouTubeUrl,
   renderYouTubeEmbed,
   setupYouTubeEmbedListeners,
 } from './youtube'
+import { isZenModeActive } from './zen-mode'
 
 // Module state
 let currentStoryAuthor: string | null = null

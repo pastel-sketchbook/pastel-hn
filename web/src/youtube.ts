@@ -30,7 +30,9 @@ function loadYouTubeApi(): Promise<void> {
 
   return new Promise((resolve) => {
     // Define the callback that YouTube API calls when ready
-    ;(window as unknown as { onYouTubeIframeAPIReady: () => void }).onYouTubeIframeAPIReady = () => {
+    ;(
+      window as unknown as { onYouTubeIframeAPIReady: () => void }
+    ).onYouTubeIframeAPIReady = () => {
       youtubeApiLoaded = true
       youtubeApiLoading = false
       resolve()
@@ -284,7 +286,7 @@ export function setupYouTubeEmbedListeners(container: HTMLElement): void {
     embedContainer.innerHTML = `<div id="${playerId}"></div>`
 
     // Create player using YouTube IFrame API
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: YouTube IFrame API is dynamically loaded without types
     const YT = (window as any).YT
     new YT.Player(playerId, {
       videoId: videoId,
@@ -314,7 +316,7 @@ export function setupYouTubeEmbedListeners(container: HTMLElement): void {
           }
           const errorMsg = errorMessages[errorCode] || 'Unknown error'
           console.error(`[YouTube] Player error ${errorCode}: ${errorMsg}`)
-          
+
           embedContainer.innerHTML = `
             <div class="youtube-error">
               <p>Error ${errorCode}: ${errorMsg}</p>

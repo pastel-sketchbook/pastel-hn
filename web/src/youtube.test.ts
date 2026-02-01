@@ -174,19 +174,29 @@ describe('youtube', () => {
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       )
       expect(result).not.toBe(null)
-      expect(result!.videoId).toBe('dQw4w9WgXcQ')
-      expect(result!.embedUrl).toContain('https://www.youtube.com/embed/dQw4w9WgXcQ')
-      expect(result!.thumbnailUrl).toBe('https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg')
-      expect(result!.originalUrl).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+      expect(result?.videoId).toBe('dQw4w9WgXcQ')
+      expect(result?.embedUrl).toContain(
+        'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      )
+      expect(result?.thumbnailUrl).toBe(
+        'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      )
+      expect(result?.originalUrl).toBe(
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      )
     })
 
     it('parses youtu.be URL', () => {
       const result = parseYouTubeUrl('https://youtu.be/abc123XYZ_-')
       expect(result).not.toBe(null)
-      expect(result!.videoId).toBe('abc123XYZ_-')
-      expect(result!.embedUrl).toContain('https://www.youtube.com/embed/abc123XYZ_-')
-      expect(result!.thumbnailUrl).toBe('https://i.ytimg.com/vi/abc123XYZ_-/hqdefault.jpg')
-      expect(result!.originalUrl).toBe('https://youtu.be/abc123XYZ_-')
+      expect(result?.videoId).toBe('abc123XYZ_-')
+      expect(result?.embedUrl).toContain(
+        'https://www.youtube.com/embed/abc123XYZ_-',
+      )
+      expect(result?.thumbnailUrl).toBe(
+        'https://i.ytimg.com/vi/abc123XYZ_-/hqdefault.jpg',
+      )
+      expect(result?.originalUrl).toBe('https://youtu.be/abc123XYZ_-')
     })
 
     it('returns null for non-YouTube URLs', () => {
@@ -207,7 +217,8 @@ describe('youtube', () => {
   describe('renderYouTubeEmbed', () => {
     const testVideoInfo = {
       videoId: 'dQw4w9WgXcQ',
-      embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?origin=http://localhost',
+      embedUrl:
+        'https://www.youtube.com/embed/dQw4w9WgXcQ?origin=http://localhost',
       thumbnailUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
       originalUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     }

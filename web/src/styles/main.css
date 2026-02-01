@@ -2794,7 +2794,7 @@ main {
 }
 
 .youtube-play-btn.loading::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 24px;
   height: 24px;
